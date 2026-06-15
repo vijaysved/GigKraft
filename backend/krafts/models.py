@@ -82,7 +82,7 @@ class Kraft(models.Model):
     def proof_errors(self):
         """Return unmet conditions (empty = publishable). Only an After photo is required."""
         if not self.has_after:
-            return ["A Kraft requires at least one photo."]
+            return ["A Kraft requires at least one After photo."]
         return []
 
     def clean(self):
