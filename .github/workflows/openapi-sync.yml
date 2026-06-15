@@ -17,7 +17,7 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: 'frontend/package-lock.json'
 
@@ -37,11 +37,27 @@ jobs:
 
       - name: Open Automatic Sync Pull Request
         if: steps.git-check.outputs.changed > 0
+        id: create-pr
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "chore: auto-sync openapi types from backend schema update"
-          title: "🤖 Automated OpenAPI Type Updates"
-          body: "This PR was generated automatically following a successful backend schema modification."
+          title: "chore: auto-sync OpenAPI types"
+          body: "Generated automatically after a successful backend deploy. Merge to redeploy frontend with updated types."
           branch: "automation/openapi-schema-sync"
           base: "main"
+
+      # If there were no schema changes, redeploy frontend immediately so it
+      # picks up any backend behaviour changes without waiting for a code push.
+      - name: Trigger Frontend Redeploy (schema unchanged)
+        if: steps.git-check.outputs.changed == 0
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        working-directory: frontend
+        run: |
+          npm ci
+          npx vercel pull --yes --environment=production --token=$VERCEL_TOKEN
+          npx vercel build --prod --token=$VERCEL_TOKEN
+          npx vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN
