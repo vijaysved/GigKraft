@@ -123,7 +123,9 @@ export function GkAdminStripePage() {
       const data = await fetchConfig();
       setCfg(data);
       setForm({
-        mode: data.effective_mode,
+        mode: data.mode,
+        effective_mode: data.effective_mode,
+        mode_locked: data.mode_locked,
         test_price_monthly: data.test_price_monthly,
         test_price_annual: data.test_price_annual,
         live_price_monthly: data.live_price_monthly,
@@ -144,6 +146,8 @@ export function GkAdminStripePage() {
       setCfg(updated);
       setForm({
         mode: updated.mode,
+        effective_mode: updated.effective_mode,
+        mode_locked: updated.mode_locked,
         test_price_monthly: updated.test_price_monthly,
         test_price_annual: updated.test_price_annual,
         live_price_monthly: updated.live_price_monthly,
