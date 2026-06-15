@@ -27,7 +27,7 @@ jobs:
       - name: Generate TypeScript Definitions
         run: |
           mkdir -p frontend/src/api/types
-          openapi-typescript https://gigkraft-backend.up.railway.app/api/openapi.json --output frontend/src/api/types/api.ts
+          openapi-typescript https://gigkraft-backend-production.up.railway.app/api/openapi.json --output frontend/src/api/types/api.ts
 
       - name: Detect Changes
         id: git-check
