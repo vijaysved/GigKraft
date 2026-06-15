@@ -146,14 +146,23 @@ class OtpMockAuthTests(ApiTestCase):
 
 
 class GoogleMockAuthTests(ApiTestCase):
-    def test_google_mock_token_signs_in_node_manager(self):
+    def test_google_mock_token_signs_in_as_homeowner_by_default(self):
         resp = self.post_json(
-            "/api/auth/google", {"id_token": "mock-google:boss@gigkraft.dev"}
+            "/api/auth/google", {"id_token": "mock-google:user@gigkraft.dev"}
         )
         self.assertEqual(resp.status_code, 200, resp.content)
         body = resp.json()
-        self.assertEqual(body["user"]["email"], "boss@gigkraft.dev")
-        self.assertEqual(body["user"]["role"], "node_manager")
+        self.assertEqual(body["user"]["email"], "user@gigkraft.dev")
+        self.assertEqual(body["user"]["role"], "homeowner")
+
+    def test_google_mock_token_signs_in_as_pro(self):
+        resp = self.post_json(
+            "/api/auth/google", {"id_token": "mock-google:pro@gigkraft.dev", "role": "pro"}
+        )
+        self.assertEqual(resp.status_code, 200, resp.content)
+        body = resp.json()
+        self.assertEqual(body["user"]["email"], "pro@gigkraft.dev")
+        self.assertEqual(body["user"]["role"], "pro")
 
     def test_google_invalid_token(self):
         resp = self.post_json("/api/auth/google", {"id_token": "not-a-mock-token"})

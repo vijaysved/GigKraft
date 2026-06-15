@@ -89,7 +89,8 @@ export function AdminKraftsPage() {
                 <GkBeforeAfter height={100} />
                 <Group gap="xs">
                   <GkProofBadge confirmed={kraft.has_after} label="After photo" />
-                  <GkProofBadge confirmed={kraft.invoice_confirmed} amount={kraft.invoice_cost ?? undefined} />
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                  <GkProofBadge confirmed={(kraft as any).invoice_confirmed} amount={(kraft as any).invoice_cost ?? undefined} />
                 </Group>
                 <Text size="sm">{kraft.description}</Text>
                 <TextInput
@@ -102,7 +103,7 @@ export function AdminKraftsPage() {
                   <Button
                     size="xs"
                     loading={busy === `verify-${kraft.id}`}
-                    disabled={!kraft.has_after || !kraft.invoice_confirmed}
+                    disabled={!kraft.has_after || !(kraft as any).invoice_confirmed}
                     onClick={() => runAction(`verify-${kraft.id}`, () => verifyKraft(kraft.id))}
                   >
                     Verify

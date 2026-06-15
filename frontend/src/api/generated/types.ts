@@ -379,7 +379,7 @@ export interface paths {
         put?: never;
         /**
          * Publish Kraft
-         * @description Publish the Kraft. Requires ≥1 photo. Sets status VERIFIED directly.
+         * @description Publish the Kraft. Requires ≥1 After photo + confirmed invoice. Sets status PENDING for node manager review.
          */
         post: operations["krafts_api_publish_kraft"];
         delete?: never;
@@ -1135,6 +1135,209 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/gk-admin/metrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Platform Metrics */
+        get: operations["common_gk_admin_api_platform_metrics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gk-admin/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Users */
+        get: operations["common_gk_admin_api_list_users"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gk-admin/nodes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Nodes */
+        get: operations["common_gk_admin_api_list_nodes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vendors/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Templates */
+        get: operations["vendors_api_list_templates"];
+        put?: never;
+        /** Create Template */
+        post: operations["vendors_api_create_template"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vendors/templates/{template_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Template */
+        get: operations["vendors_api_get_template"];
+        put?: never;
+        post?: never;
+        /** Delete Template */
+        delete: operations["vendors_api_delete_template"];
+        options?: never;
+        head?: never;
+        /** Update Template */
+        patch: operations["vendors_api_update_template"];
+        trace?: never;
+    };
+    "/api/vendors/templates/{template_id}/preview/{vendor_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Preview Template
+         * @description Render a template with a specific vendor's variables.
+         */
+        get: operations["vendors_api_preview_template"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vendors/{vendor_id}/communications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Communications */
+        get: operations["vendors_api_list_communications"];
+        put?: never;
+        /**
+         * Log Communication
+         * @description Log that an outreach was sent.
+         *
+         *     - Sets vendor.last_contact_date to today.
+         *     - Optionally advances vendor status from 'new' → 'contacted'.
+         */
+        post: operations["vendors_api_log_communication"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vendors/{vendor_id}/communications/{comm_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Communication */
+        delete: operations["vendors_api_delete_communication"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vendors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Vendors */
+        get: operations["vendors_api_list_vendors"];
+        put?: never;
+        /** Create Vendor */
+        post: operations["vendors_api_create_vendor"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vendors/{vendor_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Vendor */
+        get: operations["vendors_api_get_vendor"];
+        put?: never;
+        post?: never;
+        /** Delete Vendor */
+        delete: operations["vendors_api_delete_vendor"];
+        options?: never;
+        head?: never;
+        /** Update Vendor */
+        patch: operations["vendors_api_update_vendor"];
+        trace?: never;
+    };
+    "/api/vendors/bulk-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Bulk Update Status */
+        post: operations["vendors_api_bulk_update_status"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1251,6 +1454,11 @@ export interface components {
         GoogleAuthIn: {
             /** Id Token */
             id_token: string;
+            /**
+             * Role
+             * @default homeowner
+             */
+            role: string;
         };
         /** UserPatchIn */
         UserPatchIn: {
@@ -1326,9 +1534,9 @@ export interface components {
             /** Node Id */
             node_id: string | null;
             /** Email */
-            email?: string | null;
+            email: string | null;
             /** Phone */
-            phone?: string | null;
+            phone: string | null;
             stats: components["schemas"]["ProStatsSummary"];
         };
         /** ProStatsSummary */
@@ -1454,10 +1662,6 @@ export interface components {
             review_note: string;
             /** Has After */
             has_after: boolean;
-            /** Invoice Confirmed */
-            invoice_confirmed: boolean;
-            /** Invoice Cost */
-            invoice_cost: number | null;
             /** Photos */
             photos: components["schemas"]["KraftPhotoOut"][];
             /** Created At */
@@ -2162,6 +2366,305 @@ export interface components {
             period_label: string;
             /** Issued At */
             issued_at: string;
+        };
+        /** NodeSummary */
+        NodeSummary: {
+            /** Node Id */
+            node_id: string;
+            /** Name */
+            name: string;
+            /** Active Pros */
+            active_pros: number;
+            /** Pending Leads */
+            pending_leads: number;
+            /** Monthly Run Rate */
+            monthly_run_rate: number;
+            /** Is Active */
+            is_active: boolean;
+        };
+        /** PlatformMetrics */
+        PlatformMetrics: {
+            /** Total Users */
+            total_users: number;
+            /** Total Pros */
+            total_pros: number;
+            /** Total Homeowners */
+            total_homeowners: number;
+            /** Total Node Managers */
+            total_node_managers: number;
+            /** Total Nodes */
+            total_nodes: number;
+            /** Active Nodes */
+            active_nodes: number;
+            /** Total Krafts */
+            total_krafts: number;
+            /** Verified Krafts */
+            verified_krafts: number;
+            /** Total Leads */
+            total_leads: number;
+            /** Open Leads */
+            open_leads: number;
+            /** Total Subscriptions */
+            total_subscriptions: number;
+            /** Active Subscriptions */
+            active_subscriptions: number;
+            /** Open Infractions */
+            open_infractions: number;
+            /** Nodes */
+            nodes: components["schemas"]["NodeSummary"][];
+        };
+        /** UserRow */
+        UserRow: {
+            /** Id */
+            id: number;
+            /** Email */
+            email: string | null;
+            /** Phone */
+            phone: string | null;
+            /** Role */
+            role: string;
+            /** First Name */
+            first_name: string;
+            /** Last Name */
+            last_name: string;
+            /** Node Id */
+            node_id: string | null;
+            /** Is Active */
+            is_active: boolean;
+        };
+        /** TemplateOut */
+        TemplateOut: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Kind */
+            kind: string;
+            /** Subject */
+            subject: string;
+            /** Body */
+            body: string;
+            /** Is Default */
+            is_default: boolean;
+            /** Created At */
+            created_at: string;
+            /** Updated At */
+            updated_at: string;
+        };
+        /** TemplateIn */
+        TemplateIn: {
+            /** Name */
+            name: string;
+            /**
+             * Kind
+             * @default intro
+             */
+            kind: string;
+            /** Subject */
+            subject: string;
+            /** Body */
+            body: string;
+            /**
+             * Is Default
+             * @default false
+             */
+            is_default: boolean;
+        };
+        /** TemplatePatchIn */
+        TemplatePatchIn: {
+            /** Name */
+            name?: string | null;
+            /** Kind */
+            kind?: string | null;
+            /** Subject */
+            subject?: string | null;
+            /** Body */
+            body?: string | null;
+            /** Is Default */
+            is_default?: boolean | null;
+        };
+        /** TemplatePreviewOut */
+        TemplatePreviewOut: {
+            /** Subject */
+            subject: string;
+            /** Body */
+            body: string;
+            /** Mailto Link */
+            mailto_link: string;
+        };
+        /** CommunicationOut */
+        CommunicationOut: {
+            /** Id */
+            id: number;
+            /** Vendor Id */
+            vendor_id: number;
+            /** Template Id */
+            template_id: number | null;
+            /** Template Name */
+            template_name: string | null;
+            /** Channel */
+            channel: string;
+            /** Subject Sent */
+            subject_sent: string;
+            /** Body Sent */
+            body_sent: string;
+            /** Notes */
+            notes: string;
+            /** Sent At */
+            sent_at: string;
+        };
+        /** CommunicationIn */
+        CommunicationIn: {
+            /** Template Id */
+            template_id?: number | null;
+            /**
+             * Channel
+             * @default email
+             */
+            channel: string;
+            /**
+             * Subject Sent
+             * @default
+             */
+            subject_sent: string;
+            /**
+             * Body Sent
+             * @default
+             */
+            body_sent: string;
+            /**
+             * Notes
+             * @default
+             */
+            notes: string;
+            /** Sent At */
+            sent_at?: string | null;
+            /**
+             * Advance Status
+             * @default true
+             */
+            advance_status: boolean;
+        };
+        /** VendorOut */
+        VendorOut: {
+            /** Id */
+            id: number;
+            /** Vendor Id */
+            vendor_id: string;
+            /** Business Name */
+            business_name: string;
+            /** Contact Person */
+            contact_person: string;
+            /** Category */
+            category: string;
+            /** Lead Source */
+            lead_source: string;
+            /** Phone */
+            phone: string;
+            /** Email */
+            email: string;
+            /** Nextdoor Profile Url */
+            nextdoor_profile_url: string;
+            /** Status */
+            status: string;
+            /** Preferred Channel */
+            preferred_channel: string;
+            /** Last Contact Date */
+            last_contact_date: string | null;
+            /** Notes */
+            notes: string;
+            /** Whatsapp Link */
+            whatsapp_link: string;
+            /** Email Link */
+            email_link: string;
+            /** Created At */
+            created_at: string;
+            /** Updated At */
+            updated_at: string;
+        };
+        /** VendorIn */
+        VendorIn: {
+            /**
+             * Business Name
+             * @default
+             */
+            business_name: string;
+            /** Contact Person */
+            contact_person: string;
+            /**
+             * Category
+             * @default
+             */
+            category: string;
+            /**
+             * Lead Source
+             * @default nextdoor
+             */
+            lead_source: string;
+            /**
+             * Phone
+             * @default
+             */
+            phone: string;
+            /**
+             * Email
+             * @default
+             */
+            email: string;
+            /**
+             * Nextdoor Profile Url
+             * @default
+             */
+            nextdoor_profile_url: string;
+            /**
+             * Status
+             * @default new
+             */
+            status: string;
+            /**
+             * Preferred Channel
+             * @default whatsapp
+             */
+            preferred_channel: string;
+            /** Last Contact Date */
+            last_contact_date?: string | null;
+            /**
+             * Notes
+             * @default
+             */
+            notes: string;
+        };
+        /** VendorPatchIn */
+        VendorPatchIn: {
+            /** Business Name */
+            business_name?: string | null;
+            /** Contact Person */
+            contact_person?: string | null;
+            /** Category */
+            category?: string | null;
+            /** Lead Source */
+            lead_source?: string | null;
+            /** Phone */
+            phone?: string | null;
+            /** Email */
+            email?: string | null;
+            /** Nextdoor Profile Url */
+            nextdoor_profile_url?: string | null;
+            /** Status */
+            status?: string | null;
+            /** Preferred Channel */
+            preferred_channel?: string | null;
+            /** Last Contact Date */
+            last_contact_date?: string | null;
+            /** Notes */
+            notes?: string | null;
+        };
+        /** BulkStatusIn */
+        BulkStatusIn: {
+            /** Ids */
+            ids: number[];
+            /** Status */
+            status: string;
         };
     };
     responses: never;
@@ -4227,6 +4730,541 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InvoiceOut"][];
+                };
+            };
+        };
+    };
+    common_gk_admin_api_platform_metrics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformMetrics"];
+                };
+            };
+        };
+    };
+    common_gk_admin_api_list_users: {
+        parameters: {
+            query?: {
+                role?: string;
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserRow"][];
+                };
+            };
+        };
+    };
+    common_gk_admin_api_list_nodes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NodeSummary"][];
+                };
+            };
+        };
+    };
+    vendors_api_list_templates: {
+        parameters: {
+            query?: {
+                kind?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateOut"][];
+                };
+            };
+        };
+    };
+    vendors_api_create_template: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TemplateIn"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateOut"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    vendors_api_get_template: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    vendors_api_delete_template: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    vendors_api_update_template: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TemplatePatchIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    vendors_api_preview_template: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: number;
+                vendor_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplatePreviewOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    vendors_api_list_communications: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vendor_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommunicationOut"][];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    vendors_api_log_communication: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vendor_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommunicationIn"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommunicationOut"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    vendors_api_delete_communication: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vendor_id: number;
+                comm_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    vendors_api_list_vendors: {
+        parameters: {
+            query?: {
+                status?: string | null;
+                source?: string | null;
+                search?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VendorOut"][];
+                };
+            };
+        };
+    };
+    vendors_api_create_vendor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VendorIn"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VendorOut"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    vendors_api_get_vendor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vendor_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VendorOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    vendors_api_delete_vendor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vendor_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    vendors_api_update_vendor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vendor_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VendorPatchIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VendorOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    vendors_api_bulk_update_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkStatusIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VendorOut"][];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
                 };
             };
         };

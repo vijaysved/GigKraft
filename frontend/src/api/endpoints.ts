@@ -67,9 +67,9 @@ export async function register(body: RegisterIn): Promise<TokenPairOut> {
   return data;
 }
 
-export async function googleAuth(idToken: string): Promise<TokenPairOut> {
+export async function googleAuth(idToken: string, role = "homeowner"): Promise<TokenPairOut> {
   const { data, error, response } = await client.POST("/api/auth/google", {
-    body: { id_token: idToken },
+    body: { id_token: idToken, role },
   });
   if (!data) {
     throw new ApiError(

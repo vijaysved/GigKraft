@@ -33,10 +33,11 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { getKraftsByPro, getProByHandle, type KraftPublicOut, type ProOut } from "../../api/endpoints";
+import { useAuth } from "../../auth/AuthContext";
+import { GoogleSignInButton } from "../../components/GoogleSignInButton";
 import { KraftCard } from "../../components/KraftCard";
 import { ReviewsSection } from "../../components/ReviewsSection";
 import { loadAvatar } from "../../hooks/useProAvatar";
-import { useAuth } from "../../auth/AuthContext";
 
 const WALLPAPERS = [
   "var(--gk-brand-gradient)",
@@ -86,13 +87,15 @@ function ZipMap({ zip }: { zip: string }) {
 // ── Main page ─────────────────────────────────────────────────────────────────
 export function ProPublicProfilePage() {
   const { id: handle } = useParams<{ id: string }>();
-  const { status, user } = useAuth();
+  const { status, user, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
   const [pro, setPro] = useState<ProOut | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [krafts, setKrafts] = useState<KraftPublicOut[]>([]);
+  const [googleError, setGoogleError] = useState<string | null>(null);
+  const [contactRole, setContactRole] = useState<"homeowner" | "pro">("homeowner");
 
   const isLoggedIn = status === "authenticated";
   const profileUrl = window.location.href;
@@ -318,17 +321,47 @@ export function ProPublicProfilePage() {
                           </Group>
                         </Stack>
                       ) : (
-                        <Box style={{ position: "relative", userSelect: "none" }}>
-                          <Stack gap={4} style={{ filter: "blur(5px)", pointerEvents: "none" }} aria-hidden>
-                            <Group gap={6}><IconMail size={14} /><Text size="sm">john.doe@example.com</Text></Group>
-                            <Group gap={6}><IconMessage size={14} /><Text size="sm">+1 (512) 555-0192</Text></Group>
-                          </Stack>
-                          <Center style={{ position: "absolute", inset: 0 }}>
-                            <Button component={Link} to="/login" size="xs" variant="light">
-                              Sign in to view
+                        <Stack gap="xs">
+                          <Box style={{ position: "relative", userSelect: "none" }}>
+                            <Stack gap={4} style={{ filter: "blur(5px)", pointerEvents: "none" }} aria-hidden>
+                              <Group gap={6}><IconMail size={14} /><Text size="sm">john.doe@example.com</Text></Group>
+                              <Group gap={6}><IconMessage size={14} /><Text size="sm">+1 (512) 555-0192</Text></Group>
+                            </Stack>
+                          </Box>
+                          <Group gap="xs">
+                            <Button
+                              size="xs"
+                              variant={contactRole === "homeowner" ? "filled" : "light"}
+                              onClick={() => setContactRole("homeowner")}
+                            >
+                              I'm a homeowner
                             </Button>
-                          </Center>
-                        </Box>
+                            <Button
+                              size="xs"
+                              variant={contactRole === "pro" ? "filled" : "light"}
+                              onClick={() => setContactRole("pro")}
+                            >
+                              I'm a pro
+                            </Button>
+                          </Group>
+                          {googleError && <Text size="xs" c="red">{googleError}</Text>}
+                          <GoogleSignInButton
+                            label={`Sign up to contact ${pro.name.split(" ")[0]}`}
+                            fullWidth
+                            onSuccess={(idToken) =>
+                              loginWithGoogle(idToken, contactRole).then(() =>
+                                navigate(window.location.pathname, { replace: true })
+                              )
+                            }
+                            onError={setGoogleError}
+                          />
+                          <Text size="xs" c="dimmed" ta="center">
+                            Already have an account?{" "}
+                            <Link to={`/login?next=${encodeURIComponent(window.location.pathname)}`}>
+                              Sign in
+                            </Link>
+                          </Text>
+                        </Stack>
                       )}
                     </Stack>
                   </Stack>
@@ -445,6 +478,16 @@ export function ProPublicProfilePage() {
                   <Text size="sm" c="white" opacity={0.85}>
                     Create a free account to message, request a quote, and see contact info.
                   </Text>
+                  <GoogleSignInButton
+                    label="Sign up with Google"
+                    fullWidth
+                    onSuccess={(idToken) =>
+                      loginWithGoogle(idToken, "homeowner").then(() =>
+                        navigate(window.location.pathname, { replace: true })
+                      )
+                    }
+                    onError={setGoogleError}
+                  />
                   <Group gap="sm">
                     <Button component={Link} to="/register" color="white" variant="white"
                       style={{ color: "var(--gk-accent-primary)" }}>

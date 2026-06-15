@@ -67,6 +67,8 @@ class ProOut(Schema):
     is_verified: bool
     is_suspended: bool
     node_id: Optional[str]
+    email: Optional[str]
+    phone: Optional[str]
     stats: ProStatsSummary
 
 
@@ -98,6 +100,8 @@ def serialize_pro(pro: ProProfile) -> dict:
         "is_verified": pro.is_verified,
         "is_suspended": pro.is_suspended,
         "node_id": pro.user.node.node_id if pro.user.node_id else None,
+        "email": pro.user.email,
+        "phone": pro.user.phone,
         "stats": {
             "krafts_verified": pro.krafts.filter(
                 status=Kraft.Status.VERIFIED

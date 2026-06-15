@@ -1170,7 +1170,7 @@
             }
           }
         },
-        "description": "Publish the Kraft. Requires \u22651 photo. Sets status VERIFIED directly.",
+        "description": "Publish the Kraft. Requires \u22651 After photo + confirmed invoice. Sets status PENDING for node manager review.",
         "tags": [
           "krafts"
         ],
@@ -3307,6 +3307,888 @@
           }
         ]
       }
+    },
+    "/api/gk-admin/metrics": {
+      "get": {
+        "operationId": "common_gk_admin_api_platform_metrics",
+        "summary": "Platform Metrics",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformMetrics"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "gk_admin"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/gk-admin/users": {
+      "get": {
+        "operationId": "common_gk_admin_api_list_users",
+        "summary": "List Users",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "role",
+            "schema": {
+              "default": "",
+              "title": "Role",
+              "type": "string"
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "default": "",
+              "title": "Search",
+              "type": "string"
+            },
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/UserRow"
+                  },
+                  "title": "Response",
+                  "type": "array"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "gk_admin"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/gk-admin/nodes": {
+      "get": {
+        "operationId": "common_gk_admin_api_list_nodes",
+        "summary": "List Nodes",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/NodeSummary"
+                  },
+                  "title": "Response",
+                  "type": "array"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "gk_admin"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/vendors/templates": {
+      "get": {
+        "operationId": "vendors_api_list_templates",
+        "summary": "List Templates",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "kind",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            },
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TemplateOut"
+                  },
+                  "title": "Response",
+                  "type": "array"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "vendors"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "vendors_api_create_template",
+        "summary": "Create Template",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "vendors"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TemplateIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/vendors/templates/{template_id}": {
+      "get": {
+        "operationId": "vendors_api_get_template",
+        "summary": "Get Template",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "template_id",
+            "schema": {
+              "title": "Template Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "vendors"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      },
+      "patch": {
+        "operationId": "vendors_api_update_template",
+        "summary": "Update Template",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "template_id",
+            "schema": {
+              "title": "Template Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "vendors"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TemplatePatchIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "vendors_api_delete_template",
+        "summary": "Delete Template",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "template_id",
+            "schema": {
+              "title": "Template Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "vendors"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/vendors/templates/{template_id}/preview/{vendor_id}": {
+      "get": {
+        "operationId": "vendors_api_preview_template",
+        "summary": "Preview Template",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "template_id",
+            "schema": {
+              "title": "Template Id",
+              "type": "integer"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "vendor_id",
+            "schema": {
+              "title": "Vendor Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplatePreviewOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "description": "Render a template with a specific vendor's variables.",
+        "tags": [
+          "vendors"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/vendors/{vendor_id}/communications": {
+      "get": {
+        "operationId": "vendors_api_list_communications",
+        "summary": "List Communications",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vendor_id",
+            "schema": {
+              "title": "Vendor Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CommunicationOut"
+                  },
+                  "title": "Response",
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "vendors"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "vendors_api_log_communication",
+        "summary": "Log Communication",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vendor_id",
+            "schema": {
+              "title": "Vendor Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommunicationOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "description": "Log that an outreach was sent.\n\n- Sets vendor.last_contact_date to today.\n- Optionally advances vendor status from 'new' \u2192 'contacted'.",
+        "tags": [
+          "vendors"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommunicationIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/vendors/{vendor_id}/communications/{comm_id}": {
+      "delete": {
+        "operationId": "vendors_api_delete_communication",
+        "summary": "Delete Communication",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vendor_id",
+            "schema": {
+              "title": "Vendor Id",
+              "type": "integer"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "comm_id",
+            "schema": {
+              "title": "Comm Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "vendors"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/vendors": {
+      "get": {
+        "operationId": "vendors_api_list_vendors",
+        "summary": "List Vendors",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "source",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source"
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search"
+            },
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/VendorOut"
+                  },
+                  "title": "Response",
+                  "type": "array"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "vendors"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "vendors_api_create_vendor",
+        "summary": "Create Vendor",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VendorOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "vendors"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VendorIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/vendors/{vendor_id}": {
+      "get": {
+        "operationId": "vendors_api_get_vendor",
+        "summary": "Get Vendor",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vendor_id",
+            "schema": {
+              "title": "Vendor Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VendorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "vendors"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      },
+      "patch": {
+        "operationId": "vendors_api_update_vendor",
+        "summary": "Update Vendor",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vendor_id",
+            "schema": {
+              "title": "Vendor Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VendorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "vendors"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VendorPatchIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "vendors_api_delete_vendor",
+        "summary": "Delete Vendor",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vendor_id",
+            "schema": {
+              "title": "Vendor Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "vendors"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/vendors/bulk-status": {
+      "post": {
+        "operationId": "vendors_api_bulk_update_status",
+        "summary": "Bulk Update Status",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/VendorOut"
+                  },
+                  "title": "Response",
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "vendors"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkStatusIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -3591,6 +4473,11 @@
           "id_token": {
             "title": "Id Token",
             "type": "string"
+          },
+          "role": {
+            "default": "homeowner",
+            "title": "Role",
+            "type": "string"
           }
         },
         "required": [
@@ -3803,6 +4690,28 @@
             ],
             "title": "Node Id"
           },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
           "stats": {
             "$ref": "#/components/schemas/ProStatsSummary"
           }
@@ -3831,6 +4740,8 @@
           "is_verified",
           "is_suspended",
           "node_id",
+          "email",
+          "phone",
           "stats"
         ],
         "title": "ProOut",
@@ -6313,6 +7224,796 @@
           "issued_at"
         ],
         "title": "InvoiceOut",
+        "type": "object"
+      },
+      "NodeSummary": {
+        "properties": {
+          "node_id": {
+            "title": "Node Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "active_pros": {
+            "title": "Active Pros",
+            "type": "integer"
+          },
+          "pending_leads": {
+            "title": "Pending Leads",
+            "type": "integer"
+          },
+          "monthly_run_rate": {
+            "title": "Monthly Run Rate",
+            "type": "number"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "node_id",
+          "name",
+          "active_pros",
+          "pending_leads",
+          "monthly_run_rate",
+          "is_active"
+        ],
+        "title": "NodeSummary",
+        "type": "object"
+      },
+      "PlatformMetrics": {
+        "properties": {
+          "total_users": {
+            "title": "Total Users",
+            "type": "integer"
+          },
+          "total_pros": {
+            "title": "Total Pros",
+            "type": "integer"
+          },
+          "total_homeowners": {
+            "title": "Total Homeowners",
+            "type": "integer"
+          },
+          "total_node_managers": {
+            "title": "Total Node Managers",
+            "type": "integer"
+          },
+          "total_nodes": {
+            "title": "Total Nodes",
+            "type": "integer"
+          },
+          "active_nodes": {
+            "title": "Active Nodes",
+            "type": "integer"
+          },
+          "total_krafts": {
+            "title": "Total Krafts",
+            "type": "integer"
+          },
+          "verified_krafts": {
+            "title": "Verified Krafts",
+            "type": "integer"
+          },
+          "total_leads": {
+            "title": "Total Leads",
+            "type": "integer"
+          },
+          "open_leads": {
+            "title": "Open Leads",
+            "type": "integer"
+          },
+          "total_subscriptions": {
+            "title": "Total Subscriptions",
+            "type": "integer"
+          },
+          "active_subscriptions": {
+            "title": "Active Subscriptions",
+            "type": "integer"
+          },
+          "open_infractions": {
+            "title": "Open Infractions",
+            "type": "integer"
+          },
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/NodeSummary"
+            },
+            "title": "Nodes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "total_users",
+          "total_pros",
+          "total_homeowners",
+          "total_node_managers",
+          "total_nodes",
+          "active_nodes",
+          "total_krafts",
+          "verified_krafts",
+          "total_leads",
+          "open_leads",
+          "total_subscriptions",
+          "active_subscriptions",
+          "open_infractions",
+          "nodes"
+        ],
+        "title": "PlatformMetrics",
+        "type": "object"
+      },
+      "UserRow": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          },
+          "first_name": {
+            "title": "First Name",
+            "type": "string"
+          },
+          "last_name": {
+            "title": "Last Name",
+            "type": "string"
+          },
+          "node_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Node Id"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "phone",
+          "role",
+          "first_name",
+          "last_name",
+          "node_id",
+          "is_active"
+        ],
+        "title": "UserRow",
+        "type": "object"
+      },
+      "TemplateOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "subject": {
+            "title": "Subject",
+            "type": "string"
+          },
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "is_default": {
+            "title": "Is Default",
+            "type": "boolean"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "subject",
+          "body",
+          "is_default",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "TemplateOut",
+        "type": "object"
+      },
+      "TemplateIn": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "kind": {
+            "default": "intro",
+            "title": "Kind",
+            "type": "string"
+          },
+          "subject": {
+            "title": "Subject",
+            "type": "string"
+          },
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "is_default": {
+            "default": false,
+            "title": "Is Default",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "subject",
+          "body"
+        ],
+        "title": "TemplateIn",
+        "type": "object"
+      },
+      "TemplatePatchIn": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kind"
+          },
+          "subject": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject"
+          },
+          "body": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Body"
+          },
+          "is_default": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Default"
+          }
+        },
+        "title": "TemplatePatchIn",
+        "type": "object"
+      },
+      "TemplatePreviewOut": {
+        "properties": {
+          "subject": {
+            "title": "Subject",
+            "type": "string"
+          },
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "mailto_link": {
+            "title": "Mailto Link",
+            "type": "string"
+          }
+        },
+        "required": [
+          "subject",
+          "body",
+          "mailto_link"
+        ],
+        "title": "TemplatePreviewOut",
+        "type": "object"
+      },
+      "CommunicationOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "vendor_id": {
+            "title": "Vendor Id",
+            "type": "integer"
+          },
+          "template_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Template Id"
+          },
+          "template_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Template Name"
+          },
+          "channel": {
+            "title": "Channel",
+            "type": "string"
+          },
+          "subject_sent": {
+            "title": "Subject Sent",
+            "type": "string"
+          },
+          "body_sent": {
+            "title": "Body Sent",
+            "type": "string"
+          },
+          "notes": {
+            "title": "Notes",
+            "type": "string"
+          },
+          "sent_at": {
+            "title": "Sent At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "vendor_id",
+          "template_id",
+          "template_name",
+          "channel",
+          "subject_sent",
+          "body_sent",
+          "notes",
+          "sent_at"
+        ],
+        "title": "CommunicationOut",
+        "type": "object"
+      },
+      "CommunicationIn": {
+        "properties": {
+          "template_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Template Id"
+          },
+          "channel": {
+            "default": "email",
+            "title": "Channel",
+            "type": "string"
+          },
+          "subject_sent": {
+            "default": "",
+            "title": "Subject Sent",
+            "type": "string"
+          },
+          "body_sent": {
+            "default": "",
+            "title": "Body Sent",
+            "type": "string"
+          },
+          "notes": {
+            "default": "",
+            "title": "Notes",
+            "type": "string"
+          },
+          "sent_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sent At"
+          },
+          "advance_status": {
+            "default": true,
+            "title": "Advance Status",
+            "type": "boolean"
+          }
+        },
+        "title": "CommunicationIn",
+        "type": "object"
+      },
+      "VendorOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "vendor_id": {
+            "title": "Vendor Id",
+            "type": "string"
+          },
+          "business_name": {
+            "title": "Business Name",
+            "type": "string"
+          },
+          "contact_person": {
+            "title": "Contact Person",
+            "type": "string"
+          },
+          "category": {
+            "title": "Category",
+            "type": "string"
+          },
+          "lead_source": {
+            "title": "Lead Source",
+            "type": "string"
+          },
+          "phone": {
+            "title": "Phone",
+            "type": "string"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "nextdoor_profile_url": {
+            "title": "Nextdoor Profile Url",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "preferred_channel": {
+            "title": "Preferred Channel",
+            "type": "string"
+          },
+          "last_contact_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Contact Date"
+          },
+          "notes": {
+            "title": "Notes",
+            "type": "string"
+          },
+          "whatsapp_link": {
+            "title": "Whatsapp Link",
+            "type": "string"
+          },
+          "email_link": {
+            "title": "Email Link",
+            "type": "string"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "vendor_id",
+          "business_name",
+          "contact_person",
+          "category",
+          "lead_source",
+          "phone",
+          "email",
+          "nextdoor_profile_url",
+          "status",
+          "preferred_channel",
+          "last_contact_date",
+          "notes",
+          "whatsapp_link",
+          "email_link",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "VendorOut",
+        "type": "object"
+      },
+      "VendorIn": {
+        "properties": {
+          "business_name": {
+            "default": "",
+            "title": "Business Name",
+            "type": "string"
+          },
+          "contact_person": {
+            "title": "Contact Person",
+            "type": "string"
+          },
+          "category": {
+            "default": "",
+            "title": "Category",
+            "type": "string"
+          },
+          "lead_source": {
+            "default": "nextdoor",
+            "title": "Lead Source",
+            "type": "string"
+          },
+          "phone": {
+            "default": "",
+            "title": "Phone",
+            "type": "string"
+          },
+          "email": {
+            "default": "",
+            "title": "Email",
+            "type": "string"
+          },
+          "nextdoor_profile_url": {
+            "default": "",
+            "title": "Nextdoor Profile Url",
+            "type": "string"
+          },
+          "status": {
+            "default": "new",
+            "title": "Status",
+            "type": "string"
+          },
+          "preferred_channel": {
+            "default": "whatsapp",
+            "title": "Preferred Channel",
+            "type": "string"
+          },
+          "last_contact_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Contact Date"
+          },
+          "notes": {
+            "default": "",
+            "title": "Notes",
+            "type": "string"
+          }
+        },
+        "required": [
+          "contact_person"
+        ],
+        "title": "VendorIn",
+        "type": "object"
+      },
+      "VendorPatchIn": {
+        "properties": {
+          "business_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Business Name"
+          },
+          "contact_person": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contact Person"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "lead_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lead Source"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "nextdoor_profile_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextdoor Profile Url"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "preferred_channel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preferred Channel"
+          },
+          "last_contact_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Contact Date"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          }
+        },
+        "title": "VendorPatchIn",
+        "type": "object"
+      },
+      "BulkStatusIn": {
+        "properties": {
+          "ids": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Ids",
+            "type": "array"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ids",
+          "status"
+        ],
+        "title": "BulkStatusIn",
         "type": "object"
       }
     },

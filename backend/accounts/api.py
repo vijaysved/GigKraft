@@ -128,7 +128,7 @@ def google_auth(request, payload: GoogleAuthIn):
         return 503, {"detail": str(exc)}
     if email is None:
         return 401, {"detail": "Invalid Google id_token."}
-    user = services.get_or_create_google_user(email)
+    user = services.get_or_create_google_user(email, role=payload.role)
     return 200, _token_response(user)
 
 

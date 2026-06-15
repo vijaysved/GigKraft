@@ -4,6 +4,7 @@ import {
   Button,
   Card,
   Center,
+  Divider,
   Group,
   Paper,
   PasswordInput,
@@ -21,11 +22,12 @@ import { ApiError, register } from "../../api/endpoints";
 import { GkLogo } from "../../brand/GkLogo";
 import { WallpaperBackground } from "../../brand/WallpaperBackground";
 import { useAuth } from "../../auth/AuthContext";
+import { GoogleSignInButton } from "../../components/GoogleSignInButton";
 
 type Role = "pro" | "homeowner";
 
 export function RegisterPage() {
-  const { status, loginWithPassword } = useAuth();
+  const { status, loginWithPassword, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
 
   const [role, setRole] = useState<Role | null>(null);
@@ -98,6 +100,26 @@ export function RegisterPage() {
                       </Card>
                     </UnstyledButton>
                   </Group>
+                  <Divider label="or sign up with" labelPosition="center" />
+                  <Stack gap="xs">
+                    <Text size="xs" c="dimmed" ta="center">Choose your role first, then Google:</Text>
+                    <Group grow>
+                      <GoogleSignInButton
+                        label="Pro"
+                        onSuccess={(idToken) => loginWithGoogle(idToken, "pro").then(() =>
+                          navigate("/pro/onboarding", { replace: true })
+                        )}
+                        onError={(msg) => setError(msg)}
+                      />
+                      <GoogleSignInButton
+                        label="Homeowner"
+                        onSuccess={(idToken) => loginWithGoogle(idToken, "homeowner").then(() =>
+                          navigate("/home/discover", { replace: true })
+                        )}
+                        onError={(msg) => setError(msg)}
+                      />
+                    </Group>
+                  </Stack>
                   <Text size="sm" ta="center">
                     Already have an account? <Link to="/login">Sign in</Link>
                   </Text>

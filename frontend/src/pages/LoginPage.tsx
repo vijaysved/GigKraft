@@ -19,7 +19,7 @@ import { ApiError } from "../api/endpoints";
 import { GkLogo } from "../brand/GkLogo";
 import { WallpaperBackground } from "../brand/WallpaperBackground";
 import { useAuth } from "../auth/AuthContext";
-import { MOCK_GOOGLE_OAUTH } from "../config";
+import { GoogleSignInButton } from "../components/GoogleSignInButton";
 
 const ROLE_HOME: Record<string, string> = {
   pro: "/pro/leads",
@@ -29,7 +29,7 @@ const ROLE_HOME: Record<string, string> = {
 };
 
 export function LoginPage() {
-  const { status, user, loginWithPassword, loginWithGoogleMock } = useAuth();
+  const { status, user, loginWithPassword, loginWithGoogle } = useAuth();
   const location = useLocation();
 
   const [email, setEmail] = useState("");
@@ -58,21 +58,6 @@ export function LoginPage() {
     }
   }
 
-  async function handleGoogleSignIn() {
-    setError(null);
-    if (!email) {
-      setError("Enter your email above, then use Google sign-in.");
-      return;
-    }
-    setSubmitting(true);
-    try {
-      await loginWithGoogleMock(email);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Google sign-in failed.");
-    } finally {
-      setSubmitting(false);
-    }
-  }
 
   return (
     <Box pos="relative" mih="100vh">
@@ -107,19 +92,13 @@ export function LoginPage() {
                   Sign in
                 </Button>
                 <Divider label="or" labelPosition="center" />
-                <Button
-                  variant="default"
+                <GoogleSignInButton
                   fullWidth
                   disabled={submitting}
-                  onClick={handleGoogleSignIn}
-                >
-                  Continue with Google{MOCK_GOOGLE_OAUTH ? " (mock)" : ""}
-                </Button>
-                {MOCK_GOOGLE_OAUTH && (
-                  <Text size="xs" c="dimmed">
-                    Phase 1 mock: enter an email and click Google. Role is determined by the account on the backend.
-                  </Text>
-                )}
+                  mockEmail={email || undefined}
+                  onSuccess={(idToken) => loginWithGoogle(idToken)}
+                  onError={(msg) => setError(msg)}
+                />
                 <Text size="sm" ta="center">
                   New? <Link to="/register">Create an account</Link>
                 </Text>

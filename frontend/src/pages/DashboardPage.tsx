@@ -254,8 +254,8 @@ export function DashboardPage() {
                   </Group>
                   <Text size="sm" c="dimmed">
                     {kraft.pro.name} · invoice{" "}
-                    {kraft.invoice_confirmed
-                      ? `$${kraft.invoice_cost ?? "-"} confirmed`
+                    {(kraft as any).invoice_confirmed
+                      ? `$${(kraft as any).invoice_cost ?? "-"} confirmed`
                       : "not confirmed"}
                   </Text>
                   <Text size="sm">{kraft.description}</Text>
@@ -275,7 +275,7 @@ export function DashboardPage() {
                     <Button
                       size="xs"
                       loading={busy === `verify-${kraft.id}`}
-                      disabled={!kraft.has_after || !kraft.invoice_confirmed}
+                      disabled={!kraft.has_after || !(kraft as any).invoice_confirmed}
                       onClick={() =>
                         runAction(`verify-${kraft.id}`, () =>
                           verifyKraft(kraft.id),

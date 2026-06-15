@@ -152,3 +152,6 @@ MOCK_WHATSAPP = env_bool("MOCK_WHATSAPP", default=True)
 MOCK_OTP_CODE = os.environ.get("MOCK_OTP_CODE", "123456")
 # Mock Google id_token prefix: tokens look like "mock-google:<email>".
 MOCK_GOOGLE_TOKEN_PREFIX = "mock-google:"
+
+# --- Google OAuth ---
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")

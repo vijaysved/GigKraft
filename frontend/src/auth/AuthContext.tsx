@@ -25,6 +25,7 @@ interface AuthContextValue {
   user: UserOut | null;
   loginWithPassword: (email: string, password: string) => Promise<void>;
   loginWithGoogleMock: (email: string) => Promise<void>;
+  loginWithGoogle: (idToken: string, role?: string) => Promise<void>;
   logout: () => void;
   updateUser: (patch: Partial<UserOut>) => void;
 }
@@ -95,9 +96,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const loginWithGoogleMock = useCallback(async (email: string) => {
-    // Phase 1: backend runs with MOCK_GOOGLE_OAUTH=true and accepts
-    // deterministic tokens of the form "mock-google:<email>".
     const pair = await googleAuth(`mock-google:${email}`);
+    setTokens(pair.access, pair.refresh);
+    setUser(pair.user);
+    setStatus("authenticated");
+  }, []);
+
+  const loginWithGoogle = useCallback(async (idToken: string, role = "homeowner") => {
+    const pair = await googleAuth(idToken, role);
     setTokens(pair.access, pair.refresh);
     setUser(pair.user);
     setStatus("authenticated");
@@ -114,8 +120,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ status, user, loginWithPassword, loginWithGoogleMock, logout, updateUser }),
-    [status, user, loginWithPassword, loginWithGoogleMock, logout, updateUser],
+    () => ({ status, user, loginWithPassword, loginWithGoogleMock, loginWithGoogle, logout, updateUser }),
+    [status, user, loginWithPassword, loginWithGoogleMock, loginWithGoogle, logout, updateUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
