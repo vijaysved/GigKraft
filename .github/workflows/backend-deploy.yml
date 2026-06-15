@@ -1,0 +1,46 @@
+name: GigKraft Backend CI/CD
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-deploy.yml'
+
+jobs:
+  test-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          cd backend
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Backend Test Suite
+        env:
+          DJANGO_SECRET_KEY: 'ci-test-key-safe-to-expose'
+          DATABASE_URL: 'sqlite:///:memory:'
+        run: |
+          cd backend
+          python manage.py test
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Run Migrations and Deploy
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          cd backend
+          railway run python manage.py migrate
+          railway up --detach
