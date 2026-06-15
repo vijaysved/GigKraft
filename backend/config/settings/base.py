@@ -37,7 +37,7 @@ SECRET_KEY = os.environ.get(
 DEBUG = os.environ.get("DJANGO_DEBUG", "False") == "True"
 ALLOWED_HOSTS = [
     h.strip()
-    for h in os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,10.0.2.2").split(",")
+    for h in os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,10.0.2.2,.up.railway.app").split(",")
     if h.strip()
 ]
 
@@ -63,6 +63,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -103,14 +104,16 @@ ASGI_APPLICATION = "config.asgi.application"
 
 # Database: platform injects DATABASE_URL in production.
 # SQLite fallback is only used locally when no DATABASE_URL is set.
-_ssl_require = not env_bool("DJANGO_DEBUG", default=False)  # SSL off in local dev
-DATABASES = {
-    "default": dj_database_url.config(
-        default=os.environ.get("DATABASE_URL", f"sqlite:///{BASE_DIR / 'db.sqlite3'}"),
-        conn_max_age=600,
-        ssl_require=_ssl_require,
-    )
-}
+# ssl_require=False: Railway terminates SSL at the proxy layer; psycopg3[binary]
+# ignores PGSSLMODE env vars so we disable SSL via OPTIONS instead.
+_db = dj_database_url.config(
+    default=os.environ.get("DATABASE_URL", f"sqlite:///{BASE_DIR / 'db.sqlite3'}"),
+    conn_max_age=600,
+    ssl_require=False,
+)
+if _db.get("ENGINE", "").endswith("postgresql"):
+    _db.setdefault("OPTIONS", {})["sslmode"] = "disable"
+DATABASES = {"default": _db}
 
 AUTH_USER_MODEL = "accounts.User"
 
@@ -128,6 +131,7 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
