@@ -177,6 +177,7 @@ export function ProAccountPage() {
   const [centerZip, setCenterZip] = useState("");
   const [radius, setRadius] = useState(25);
   const [wallpaperId, setWallpaperId] = useState(0);
+  const [wpCustomUrl, setWpCustomUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -317,7 +318,6 @@ export function ProAccountPage() {
 
   // ── Wallpaper custom upload / URL ──
   const [wpUrl, setWpUrl] = useState("");
-  const [wpCustomUrl, setWpCustomUrl] = useState<string | null>(null);
   const [wpCropSrc, setWpCropSrc] = useState<string | null>(null);
   const wpResetRef = useRef<() => void>(null);
 

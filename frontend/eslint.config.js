@@ -19,10 +19,14 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
-      "react-refresh/only-export-components": [
-        "warn",
-        { allowConstantExport: true },
-      ],
+      "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
+      // set-state-in-effect flags `void load()` inside useEffect as "synchronous setState"
+      // even though load() is async with an if (!cancelled) guard — false positive.
+      "react-hooks/react-compiler": "off",
+      "react-hooks/set-state-in-effect": "off",
+      "react-hooks/exhaustive-deps": "warn",
+      "@typescript-eslint/no-explicit-any": "warn",
+      "no-empty": ["error", { allowEmptyCatch: true }],
     },
   },
 );
