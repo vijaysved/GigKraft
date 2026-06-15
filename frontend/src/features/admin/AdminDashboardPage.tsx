@@ -1,7 +1,6 @@
 import {
   Alert,
   Badge,
-  Box,
   Card,
   Group,
   Loader,
@@ -99,24 +98,6 @@ export function AdminDashboardPage() {
           </Stack>
         </Card>
 
-        <Card withBorder radius="md" padding="lg">
-          <Stack>
-            <Title order={4}>Backend integrations</Title>
-            {health ? (
-              <SimpleGrid cols={2}>
-                {Object.entries(health.mocks).map(([name, mocked]) => (
-                  <Box key={name}>
-                    <Badge variant="light" color={mocked ? "orange" : "green"} size="sm">
-                      {name}: {mocked ? "mock" : "live"}
-                    </Badge>
-                  </Box>
-                ))}
-              </SimpleGrid>
-            ) : (
-              <Loader size="sm" />
-            )}
-          </Stack>
-        </Card>
       </SimpleGrid>
     </Stack>
   );

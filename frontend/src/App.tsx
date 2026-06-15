@@ -12,7 +12,6 @@ import { HomeShell } from "./layout/HomeShell";
 
 // Public pages
 import { LoginPage } from "./pages/LoginPage";
-import { ThemesPage } from "./pages/ThemesPage";
 import { RegisterPage } from "./features/public/RegisterPage";
 import { ReviewPage } from "./features/public/ReviewPage";
 import { ProPublicProfilePage } from "./features/public/ProPublicProfilePage";
@@ -71,7 +70,6 @@ export default function App() {
   return (
     <Routes>
       {/* Public */}
-      <Route path="/themes" element={<ThemesPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/review/:handle/:token" element={<ReviewPage />} />
