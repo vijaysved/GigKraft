@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<!-- @dsCard group="UI Kit — Mobile App" name="Mobile App Kit" subtitle="Interactive guest / pro / consumer mobile prototype" viewport="909x760" -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GigKraft — Mobile App UI Kit</title>
+<link rel="stylesheet" href="../../colors_and_type.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--gk-font-body); background: #2a2018; }
+
+  /* ----- STAGE ----- */
+  .gk-stage { min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
+  .gk-chrome {
+    width: 100%; background: var(--gk-command); border-bottom: 4px solid var(--gk-orange);
+    padding: 14px 26px; display: flex; justify-content: space-between; align-items: center;
+    position: sticky; top: 0; z-index: 50; flex-wrap: wrap; gap: 12px;
+  }
+  .gk-chrome__title { font-family: var(--gk-font-display); font-weight: 600; font-size: 22px; color: #fff; }
+  .gk-chrome__title span { color: var(--gk-orange); }
+  .gk-chrome__chips { display: flex; gap: 9px; }
+  .gk-chip {
+    background: var(--gk-panel-2); color: #E2E8F0; border: 2px solid #475569;
+    padding: 8px 15px; font-family: var(--gk-font-display); font-weight: 600; font-size: 13px;
+    border-radius: 8px; cursor: pointer; transition: all .18s ease;
+  }
+  .gk-chip:hover { border-color: var(--gk-orange); color: #fff; }
+
+  .gk-device-wrap { flex: 1; display: flex; align-items: center; justify-content: center; padding: 36px 16px; }
+
+  /* ----- PHONE FRAME ----- */
+  .gk-phone {
+    width: 348px; height: 668px; background: var(--gk-cream); border: 8px solid var(--gk-navy);
+    border-radius: 44px; position: relative; box-shadow: var(--gk-shadow-float);
+    padding: 30px 14px 64px; overflow: hidden; display: flex; flex-direction: column; color: var(--gk-ink);
+  }
+  .gk-phone__notch {
+    width: 132px; height: 16px; background: var(--gk-navy);
+    border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;
+    position: absolute; top: 0; left: 50%; transform: translateX(-50%); z-index: 20;
+  }
+  .gk-phone__header {
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: var(--gk-border-dash); padding-bottom: 8px; margin-bottom: 12px; flex-shrink: 0;
+  }
+  .gk-phone__logo { font-family: var(--gk-font-display); font-size: 18px; font-weight: 600; color: var(--gk-navy); }
+  .gk-phone__logo span { color: var(--gk-orange); }
+  .gk-phone__right { font-size: 11px; font-weight: 700; }
+  .gk-hsub { font-size: 12px; font-weight: 700; color: var(--gk-muted); }
+  .gk-loc { font-size: 11px; font-weight: 700; }
+  .gk-phone__scroll { flex: 1; overflow-y: auto; padding-right: 3px; }
+  .gk-phone__scroll::-webkit-scrollbar { width: 5px; }
+  .gk-phone__scroll::-webkit-scrollbar-thumb { background: #d9d2c6; border-radius: 4px; }
+
+  .gk-phone__tabbar {
+    position: absolute; bottom: 0; left: 0; right: 0; height: 56px; background: #fff;
+    border-top: var(--gk-border); display: flex; justify-content: space-around; align-items: center; z-index: 10;
+  }
+  .gk-tab { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 9.5px; font-weight: 700; color: var(--gk-muted); cursor: pointer; }
+  .gk-tab--active { color: var(--gk-orange); }
+  .gk-tab__icon { font-size: 16px; }
+
+  /* ----- LAYOUT HELPERS ----- */
+  .gk-stack { display: flex; flex-direction: column; gap: 12px; }
+  .gk-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .gk-eyebrow-lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--gk-orange); }
+  .gk-section-lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--gk-muted); }
+
+  /* ----- BUTTON ----- */
+  .gk-btn {
+    display: block; width: 100%; font-family: var(--gk-font-display); font-weight: 700; font-size: 13px;
+    padding: 11px; border-radius: 8px; border: var(--gk-border); cursor: pointer; text-align: center;
+    box-shadow: var(--gk-shadow-sm); transition: transform .05s ease, box-shadow .05s ease;
+  }
+  .gk-btn:active { transform: translate(1px, 1px); box-shadow: var(--gk-shadow-xs); }
+  .gk-btn--primary { background: var(--gk-orange); color: #fff; }
+  .gk-btn--navy { background: var(--gk-navy); color: #fff; }
+  .gk-btn--secondary { background: #fff; color: var(--gk-navy); }
+  .gk-btn--danger { background: var(--gk-danger); color: #fff; }
+
+  /* ----- FIELD ----- */
+  .gk-field { margin-bottom: 2px; }
+  .gk-field__label { font-size: 11px; font-weight: 700; display: block; margin-bottom: 4px; color: var(--gk-ink); }
+  .gk-field__input {
+    width: 100%; padding: 9px; border: var(--gk-border); border-radius: 6px; font-size: 13px;
+    font-family: inherit; color: var(--gk-ink); background: #fff;
+  }
+  .gk-field__input:focus { outline: none; border-color: var(--gk-orange); box-shadow: var(--gk-shadow-xs); }
+  .gk-field__hint { font-size: 10px; color: var(--gk-muted); margin-top: 4px; line-height: 1.4; }
+
+  /* ----- CARD ----- */
+  .gk-card { background: #fff; border: var(--gk-border); border-radius: 12px; padding: 13px; box-shadow: var(--gk-shadow-sm); }
+  .gk-card--select { border-color: var(--gk-orange); background: var(--gk-orange-tint); }
+  .gk-card--hero { background: var(--gk-navy); border-color: var(--gk-lime); }
+  .gk-hero__t { font-family: var(--gk-font-display); font-weight: 600; font-size: 16px; color: var(--gk-lime); }
+  .gk-hero__p { font-size: 12px; color: #fff; margin-top: 4px; }
+
+  .gk-router { display: flex; flex-direction: column; gap: 14px; justify-content: center; min-height: 100%; }
+  .gk-router__t { font-family: var(--gk-font-display); font-weight: 600; font-size: 16px; color: var(--gk-navy); }
+  .gk-router__t--o { color: var(--gk-orange); }
+  .gk-router__p { font-size: 11px; color: var(--gk-ink); margin-top: 4px; }
+
+  /* ----- SPLASH ----- */
+  .gk-splash { text-align: center; padding-top: 8px; }
+  .gk-splash__logo { width: 200px; max-width: 100%; margin: 0 auto 4px; display: block; }
+  .gk-splash__h { font-family: var(--gk-font-display); font-weight: 600; font-size: 23px; color: var(--gk-navy); margin-bottom: 10px; }
+  .gk-splash__p { font-size: 12px; color: var(--gk-muted); margin-bottom: 26px; padding: 0 8px; line-height: 1.5; }
+
+  /* ----- METRIC / LEAD ----- */
+  .gk-metric__k { font-size: 10px; font-weight: 700; color: var(--gk-muted); }
+  .gk-metric__v { font-family: var(--gk-font-display); font-weight: 600; font-size: 22px; color: var(--gk-navy); margin-top: 2px; }
+  .gk-metric__v--o { color: var(--gk-orange); }
+  .gk-lead__t { font-size: 13px; font-weight: 700; color: var(--gk-ink); }
+  .gk-lead__p { font-size: 11px; color: var(--gk-muted); margin-top: 2px; }
+  .gk-price { font-size: 12px; color: var(--gk-orange); font-weight: 700; margin-top: 3px; }
+  .gk-quote { font-size: 12px; color: var(--gk-ink); margin-top: 8px; line-height: 1.45; font-style: italic; }
+
+  /* ----- STATUS / BADGE ----- */
+  .gk-status { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; }
+  .gk-status__dot { width: 9px; height: 9px; border-radius: 50%; }
+  .gk-badge { display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; padding: 5px 11px; border-radius: 20px; border: 2px solid var(--gk-navy); box-shadow: var(--gk-shadow-xs); }
+  .gk-badge--lime { background: var(--gk-lime); color: var(--gk-navy); }
+  .gk-badge--orange { background: var(--gk-orange); color: #fff; }
+
+  /* ----- BEFORE/AFTER ----- */
+  .gk-split { display: flex; border: var(--gk-border); border-radius: 10px; overflow: hidden; }
+  .gk-split__before, .gk-split__after { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11px; font-weight: 700; text-align: center; padding: 4px; }
+  .gk-split__before { background: #CBD5E1; color: #475569; border-right: var(--gk-border); }
+  .gk-split__after { background: var(--gk-lime); color: var(--gk-navy); }
+  .gk-split__icon { font-size: 17px; }
+
+  /* ----- UPLOAD WELLS ----- */
+  .gk-upload { text-align: center; padding: 16px 6px; font-size: 10px; border-radius: 6px; font-weight: 700; cursor: pointer; }
+  .gk-upload small { font-weight: 500; }
+  .gk-upload--optional { border: 2px dashed #94A3B8; background: #F1F5F9; color: #64748B; }
+  .gk-upload--mandatory { border: 2px dashed var(--gk-orange); background: var(--gk-orange-tint); color: var(--gk-orange); }
+  .gk-upload--filled { border-style: solid; background: var(--gk-lime); color: var(--gk-navy); }
+
+  /* ----- CHAT ----- */
+  .gk-chat { display: flex; flex-direction: column; height: 100%; }
+  .gk-back { background: none; border: none; color: var(--gk-muted); font-family: var(--gk-font-body); font-weight: 700; font-size: 12px; cursor: pointer; padding: 0 0 8px; text-align: left; }
+  .gk-chat__feed { flex: 1; }
+  .gk-bubble { padding: 9px 13px; border-radius: 13px; font-size: 12px; max-width: 82%; margin-bottom: 9px; line-height: 1.4; }
+  .gk-bubble--them { background: #E2E8F0; color: var(--gk-ink); }
+  .gk-bubble--me { background: var(--gk-navy); color: #fff; margin-left: auto; }
+  .gk-chat__compose { display: flex; gap: 6px; margin-top: auto; align-items: center; }
+
+  /* ----- STARS ----- */
+  .gk-stars { font-size: 26px; color: #CBD5E1; margin: 8px 0 10px; cursor: pointer; }
+  .gk-stars .on { color: var(--gk-orange); }
+
+  /* ----- TOAST ----- */
+  .gk-toast {
+    position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%);
+    background: var(--gk-navy); color: #fff; font-weight: 600; font-size: 13px;
+    padding: 11px 18px; border-radius: 10px; border: 2px solid var(--gk-lime);
+    box-shadow: var(--gk-shadow-md); z-index: 90;
+  }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script type="text/babel" src="Primitives.jsx"></script>
+  <script type="text/babel" src="PhoneFrame.jsx"></script>
+  <script type="text/babel" src="Screens.jsx"></script>
+  <script type="text/babel">
+    const { useState } = React;
+    ReactDOM.createRoot(document.getElementById("root")).render(<GkApp />);
+  </script>
+</body>
+</html>

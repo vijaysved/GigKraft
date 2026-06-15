@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GigKraft.com - Comprehensive Platform Simulation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        /* --- GLOBAL BRAND DESIGN TOKENS --- */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        :root {
+            --primary: #FF6B00;       /* Electric Orange */
+            --secondary: #0A2540;     /* Deep Cobalt */
+            --accent: #CCFF00;        /* Hi-Vis Lime */
+            --bg-master: #0F172A;     /* Lab Command Center Dark Ground */
+            --bg-phone: #FAF8F5;      /* Mobile Studio Warm Cream */
+            --bg-web: #FAF8F5;        /* Desktop Web Warm Cream */
+            --card-bg: #FFFFFF;
+            --text-dark: #0A2540;
+            --text-muted: #627D98;
+            --border-bold: 3px solid #0A2540;
+            --shadow-neo: 4px 4px 0px #0A2540;
+        }
+        
+        body {
+            background-color: var(--bg-master);
+            color: #F8FAFC;
+            font-family: 'Quicksand', sans-serif;
+            padding: 0;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        /* --- PERSISTENT CONTROLLER PANEL HUB --- */
+        .control-hub {
+            background: #1E293B;
+            border-bottom: 4px solid var(--primary);
+            padding: 15px 30px;
+            position: sticky;
+            top: 0;
+            z-index: 9999;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        .hub-title {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 24px;
+            color: #FFF;
+        }
+        .hub-title span { color: var(--primary); }
+        .role-selector-group {
+            display: flex;
+            gap: 10px;
+        }
+        .btn-role-tab {
+            background: #334155;
+            color: #E2E8F0;
+            border: 2px solid #475569;
+            padding: 8px 16px;
+            font-family: 'Fredoka', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .btn-role-tab:hover {
+            border-color: var(--primary);
+            color: #FFF;
+        }
+        .btn-role-tab.active-role {
+            background: var(--primary);
+            color: #FFF;
+            border-color: var(--secondary);
+            box-shadow: 2px 2px 0px var(--secondary);
+        }
+
+        /* --- WORKSPACE CORE WRAPPER --- */
+        .workspace-stage {
+            max-width: 1400px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        /* --- INTERACTIVE RUNTIME ROLE TRACK PANELS --- */
+        .role-track-panel {
+            display: none;
+        }
+        .role-track-panel.active-panel {
+            display: block;
+        }
+
+        /* --- TWO-COLUMN SPECIFICATION CONTAINER --- */
+        .spec-container {
+            display: flex;
+            gap: 40px;
+            background: #1E293B;
+            border: 3px solid #334155;
+            border-radius: 24px;
+            padding: 35px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+        }
+        .pane-documentation {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+        .pane-simulation {
+            width: 420px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #334155;
+            border-radius: 18px;
+            padding: 30px;
+            border: 2px dashed #475569;
+        }
+        /* Desktop specific adjustment overrides */
+        .spec-container.desktop-spec-layout {
+            flex-direction: column;
+        }
+        .spec-container.desktop-spec-layout .pane-simulation {
+            width: 100%;
+            padding: 0;
+            background: transparent;
+            border: none;
+        }
+
+        /* --- METADATA & TYPOGRAPHY LOGS --- */
+        .badge-system {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            background: var(--accent);
+            color: var(--secondary);
+            padding: 4px 10px;
+            border-radius: 20px;
+            border: 2px solid var(--secondary);
+            margin-bottom: 12px;
+            box-shadow: 2px 2px 0px var(--secondary);
+        }
+        .meta-screen-name {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 28px;
+            color: #FFF;
+            margin-bottom: 15px;
+        }
+        .doc-section-label {
+            font-weight: 700;
+            font-size: 12px;
+            text-transform: uppercase;
+            color: var(--primary);
+            margin-top: 15px;
+            letter-spacing: 0.5px;
+        }
+        .doc-section-value {
+            font-size: 14px;
+            color: #CBD5E1;
+            line-height: 1.6;
+            margin-top: 4px;
+        }
+
+        /* --- CODE ARCHITECTURE PREVIEW DRAWER --- */
+        .tech-blueprint-drawer {
+            background: #0F172A;
+            border: 2px solid #334155;
+            border-radius: 12px;
+            padding: 14px;
+            margin-top: 20px;
+        }
+        .blueprint-header {
+            font-size: 10px;
+            font-weight: bold;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+            display: block;
+        }
+        pre.code-schema-box {
+            background: #020617;
+            color: #38BDF8;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-family: 'Courier New', Courier, monospace;
+            overflow-x: auto;
+            border: 1px solid #1E293B;
+            white-space: pre-wrap;
+        }
+
+        /* ===================================================================================================
+           HIGH-FIDELITY MOBILE DEVICE FRAME SIMULATOR
+           =================================================================================================== */
+        .phone-shell {
+            width: 340px;
+            height: 620px;
+            background: var(--bg-phone);
+            border: 8px solid var(--secondary);
+            border-radius: 42px;
+            position: relative;
+            box-shadow: 0px 20px 40px rgba(0,0,0,0.4);
+            padding: 30px 14px 60px 14px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            color: var(--text-dark);
+        }
+        .phone-notch {
+            width: 130px;
+            height: 16px;
+            background: var(--secondary);
+            border-bottom-left-radius: 12px;
+            border-bottom-right-radius: 12px;
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 999;
+        }
+        .phone-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px dashed var(--secondary);
+            padding-bottom: 6px;
+            margin-bottom: 12px;
+            flex-shrink: 0;
+        }
+        .phone-brand-logo {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 18px;
+            color: var(--secondary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .phone-brand-logo span { color: var(--primary); }
+        
+        .phone-scrollable-content {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 2px;
+        }
+
+        /* INTERNAL INTERACTIVE MOBILE CARDS */
+        .phone-ui-card {
+            background: var(--card-bg);
+            border: 2px solid var(--secondary);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 12px;
+            box-shadow: 2px 2px 0px var(--secondary);
+        }
+        .phone-card-title {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 14px;
+            color: var(--secondary);
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .phone-ui-input {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid var(--secondary);
+            border-radius: 6px;
+            font-size: 12px;
+            margin-bottom: 8px;
+            color: var(--text-dark);
+            font-family: inherit;
+        }
+        .phone-ui-btn {
+            display: block;
+            width: 100%;
+            background: var(--primary);
+            color: #FFFFFF;
+            border: 2px solid var(--secondary);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: bold;
+            font-family: 'Fredoka', sans-serif;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            box-shadow: 2px 2px 0px var(--secondary);
+        }
+        .phone-ui-btn:active {
+            transform: translate(1px, 1px);
+            box-shadow: 1px 1px 0px var(--secondary);
+        }
+        
+        /* PERSISTENT PHONE MENU SYSTEM CONTAINER */
+        .phone-tab-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 52px;
+            background: #FFFFFF;
+            border-top: 2px solid var(--secondary);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 99;
+        }
+        .phone-tab-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 9px;
+            font-weight: bold;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+        .phone-tab-item.active-tab {
+            color: var(--primary);
+        }
+        .phone-tab-icon {
+            font-size: 14px;
+            margin-bottom: 1px;
+        }
+
+        /* BEFORE / AFTER PROJECT SPLIT GRID VISUALS */
+        .split-showcase-element {
+            display: flex;
+            border: 2px solid var(--secondary);
+            border-radius: 8px;
+            overflow: hidden;
+            height: 90px;
+            margin-bottom: 8px;
+        }
+        .split-before {
+            flex: 1;
+            background: #CBD5E1;
+            color: #475569;
+            font-size: 10px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-right: 1px solid var(--secondary);
+        }
+        .split-after {
+            flex: 1;
+            background: var(--accent);
+            color: var(--secondary);
+            font-size: 10px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ===================================================================================================
+           HIGH-FIDELITY WEB DESKTOP FRAME SIMULATOR (For Community Node Manager)
+           =================================================================================================== */
+        .web-browser-shell {
+            width: 100%;
+            background: var(--bg-web);
+            border: 4px solid var(--secondary);
+            border-radius: 16px;
+            box-shadow: var(--shadow-neo);
+            overflow: hidden;
+            color: var(--text-dark);
+            display: flex;
+            flex-direction: column;
+        }
+        .browser-top-bar {
+            background: var(--secondary);
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .browser-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .browser-address-field {
+            background: rgba(255,255,255,0.15);
+            color: #FFF;
+            border-radius: 6px;
+            font-size: 11px;
+            padding: 4px 14px;
+            margin-left: 20px;
+            flex: 1;
+            font-family: monospace;
+        }
+        
+        /* DESKTOP WORKSPACE LAYOUT PANELS */
+        .desktop-app-layout {
+            display: flex;
+            height: 550px;
+        }
+        .desktop-sidebar {
+            width: 240px;
+            background: var(--secondary);
+            color: #FFFFFF;
+            padding: 20px;
+            border-right: 3px solid var(--secondary);
+        }
+        .desktop-nav-item {
+            padding: 10px 12px;
+            font-size: 13px;
+            font-weight: bold;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            cursor: pointer;
+        }
+        .desktop-nav-item.active-nav {
+            background: var(--primary);
+            color: #FFF;
+            box-shadow: 2px 2px 0px #000;
+        }
+        .desktop-main-canvas {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            background: var(--bg-web);
+        }
+
+        /* HIGH DENSITY OPERATIONAL TABLES */
+        .desktop-metrics-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .desktop-metric-tile {
+            background: #FFF;
+            border: 2px solid var(--secondary);
+            border-radius: 10px;
+            padding: 12px;
+            box-shadow: 2px 2px 0px var(--secondary);
+        }
+        .desktop-metric-num {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 24px;
+            color: var(--primary);
+            margin-top: 4px;
+        }
+        .gk-data-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: #FFF;
+            border: 2px solid var(--secondary);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .gk-data-table th {
+            background: var(--secondary);
+            color: #FFF;
+            padding: 10px 12px;
+            font-family: 'Fredoka', sans-serif;
+            font-size: 13px;
+            text-align: left;
+        }
+        .gk-data-table td {
+            padding: 10px 12px;
+            font-size: 12px;
+            border-bottom: 1px solid #E2E8F0;
+        }
+        .gk-data-table tr:last-child td { border-bottom: none; }
+        
+        .desktop-inline-btn {
+            background: var(--primary);
+            color: white;
+            border: 1px solid #000;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 1px 1px 0px #000;
+        }
+
+        /* CONDITIONAL SUB-SCREEN TAB ROUTING ENGINES */
+        .sub-view-state { display: none; }
+        .sub-view-state.active-state { display: block; }
+    </style>
+</head>
+<body>
+
+    <div class="control-hub">
+        <div class="hub-title">gigkraft<span>.lab</span></div>
+        <div class="role-selector-group">
+            <button class="btn-role-tab active-role" onclick="swapSystemRole('role-gate', this)">🔒 1. Guest Gateway</button>
+            <button class="btn-role-tab" onclick="swapSystemRole('role-worker', this)">👷‍♂️ 2. Handyman Pro</button>
+            <button class="btn-role-tab" onclick="swapSystemRole('role-client', this)">🏠 3. Consumer Client</button>
+            <button class="btn-role-tab" onclick="swapSystemRole('role-admin', this)">🌐 4. Node Manager (Web)</button>
+        </div>
+    </div>
+
+    <div class="workspace-stage">
+
+        <div id="role-gate" class="role-track-panel active-panel">
+            
+            <div class="spec-container">
+                <div class="pane-documentation">
+                    <span class="badge-system">Screen 1 of 4 • Onboarding</span>
+                    <h2 class="meta-screen-name">Landing / Splash Screen</h2>
+                    
+                    <div class="doc-section-label">Purpose & Objectives:</div>
+                    <div class="doc-section-value">Captures top-of-funnel users via immediate high-vibrancy baseline value hook. Explains regional node mechanics and instantly structures traffic paths.</div>
+
+                    <div class="doc-section-label">Communication Hook:</div>
+                    <div class="doc-section-value">Anonymous state. Drops pixel tracking and initial cookie telemetry to evaluate regional ad campaign click conversions.</div>
+
+                    <div class="tech-blueprint-drawer">
+                        <span class="blueprint-header">🗄️ Database Hook Tracking & Payload API Contracts</span>
+                        <pre class="code-schema-box">Session Context: Unauthenticated Local Storage Session State
+GET /api/v1/nodes/discover-proximity?lat=34.0522&lng=-118.2437
+Response: {"nearest_node_id": "southwest-us-04", "status": "ACTIVE"}</pre>
+                    </div>
+                </div>
+                <div class="pane-simulation">
+                    <div class="phone-shell">
+                        <div class="phone-notch"></div>
+                        <div class="phone-header"><span class="phone-brand-logo">gigkraft<span>.com</span></span><span style="font-size:10px; font-weight:bold;">📍 SW-04</span></div>
+                        <div class="phone-scrollable-content" style="text-align:center; padding-top:40px;">
+                            <h2 style="font-family:'Fredoka'; font-size:24px; margin-bottom:10px; color:var(--secondary);">Local Handyman Proof, Fast.</h2>
+                            <p style="font-size:12px; color:var(--text-muted); margin-bottom:30px; padding:0 10px;">Skip the reviews. See actual before/after invoices confirmed within your immediate zip code node.</p>
+                            <button class="phone-ui-btn" style="background:var(--secondary);" onclick="alert('Routing forward to onboarding options form...')">Enter Neighborhood Hub</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="spec-container">
+                <div class="pane-documentation">
+                    <span class="badge-system">Screen 2 of 4 • Onboarding</span>
+                    <h2 class="meta-screen-name">Role Router Split</h2>
+                    
+                    <div class="doc-section-label">Purpose & Objectives:</div>
+                    <div class="doc-section-value">Binary tap interface layout. Separates incoming user intent paths with highly emphasized layout blocks to guarantee clean route isolation.</div>
+
+                    <div class="doc-section-label">Communication Hook:</div>
+                    <div class="doc-section-value">Pre-populates downstream functional subscription pipelines based completely on user selection flag.</div>
+
+                    <div class="tech-blueprint-drawer">
+                        <span class="blueprint-header">🗄️ Database Hook Tracking & Payload API Contracts</span>
+                        <pre class="code-schema-box">Local Application State Modification Flag:
+{ "client_intent_route": "HANDYMAN_PRO" | "CONSUMER_CLIENT" }</pre>
+                    </div>
+                </div>
+                <div class="pane-simulation">
+                    <div class="phone-shell">
+                        <div class="phone-notch"></div>
+                        <div class="phone-header"><span class="phone-brand-logo">gigkraft</span><span>Intent Route</span></div>
+                        <div class="phone-scrollable-content" style="display:flex; flex-direction:column; gap:15px; justify-content:center; height:100%;">
+                            <div class="phone-ui-card" style="border-color:var(--primary); background:rgba(255,107,0,0.05); cursor:pointer; text-align:center;" onclick="alert('Route Saved: Navigating to Handyman Pro Account Track')">
+                                <h3 style="font-family:'Fredoka'; font-size:16px; color:var(--primary);">🔧 I am a Trade Pro</h3>
+                                <p style="font-size:11px; color:var(--text-dark); margin-top:4px;">Publish case studies & claim local leads for $19.99/mo.</p>
+                            </div>
+                            <div class="phone-ui-card" style="border-color:var(--secondary); background:rgba(10,37,64,0.02); cursor:pointer; text-align:center;" onclick="alert('Route Saved: Navigating to Client Account Track')">
+                                <h3 style="font-family:'Fredoka'; font-size:16px; color:var(--secondary);">🏠 I Need to Hire</h3>
+                                <p style="font-size:11px; color:var(--text-dark); margin-top:4px;">Search local project feeds and post emergency broadcasts.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="spec-container">
+                <div class="pane-documentation">
+                    <span class="badge-system">Screen 3 of 4 • Onboarding</span>
+                    <h2 class="meta-screen-name">Account Registration Form</h2>
+                    
+                    <div class="doc-section-label">Purpose & Objectives:</div>
+                    <div class="doc-section-value">Enforces clean data parameter capture via structural phone intake input form. Includes automated geofencing verification.</div>
+
+                    <div class="doc-section-label">Communication Hook:</div>
+                    <div class="doc-section-value">Instantly dispatches programmatic, high-priority cellular SMS OTP security tokens to clean and validate consumer database entries.</div>
+
+                    <div class="tech-blueprint-drawer">
+                        <span class="blueprint-header">🗄️ Database Hook Tracking & Payload API Contracts</span>
+                        <pre class="code-schema-box">CREATE TABLE temporary_prospect_sessions (
+    prospect_id VARCHAR(50) PRIMARY KEY,
+    phone_number VARCHAR(30) UNIQUE,
+    sms_otp_challenge VARCHAR(6),
+    verification_status VARCHAR(20) DEFAULT 'PENDING'
+);
+
+POST /api/v1/auth/issue-otp-challenge
+Payload: { "mobile_phone_terminal": "+15550149988", "node_isolation_id": "SW-04" }</pre>
+                    </div>
+                </div>
+                <div class="pane-simulation">
+                    <div class="phone-shell">
+                        <div class="phone-notch"></div>
+                        <div class="phone-header"><span class="phone-brand-logo">gigkraft</span><span>Secure Account</span></div>
+                        <div class="phone-scrollable-content">
+                            <div class="phone-ui-card">
+                                <label style="font-size:11px; font-weight:bold; display:block; margin-bottom:4px;">Enter Mobile Terminal Number</label>
+                                <input type="text" class="phone-ui-input" value="+1 (555) 014-9988">
+                                <p style="font-size:10px; color:var(--text-muted);">A secure 4-digit token authentication challenge will be issued instantly.</p>
+                            </div>
+                            <button class="phone-ui-btn" onclick="alert('Programmatic SMS Text Token broadcast triggered successfully.')">Issue Verification Token</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="spec-container">
+                <div class="pane-documentation">
+                    <span class="badge-system">Screen 4 of 4 • Onboarding</span>
+                    <h2 class="meta-screen-name">Handyman Onboarding & Paywall</h2>
+                    
+                    <div class="doc-section-label">Purpose & Objectives:</div>
+                    <div class="doc-section-value">Secures active commercial token parameters by enforcing credit card credential capture mapping to the foundational $19.99/month subscription tier.</div>
+
+                    <div class="doc-section-label">Communication Hook:</div>
+                    <div class="doc-section-value">Dispatches billing welcome confirmation receipt data package immediately with instructions to deploy first project asset.</div>
+
+                    <div class="tech-blueprint-drawer">
+                        <span class="blueprint-header">🗄️ Database Hook Tracking & Payload API Contracts</span>
+                        <pre class="code-schema-box">POST /api/v1/billing/initialize-pro-ledger-account
+Authorization: Bearer gk_pre_auth_session_token
+Payload: {
+    "stripe_payment_method_nonce": "pm_1Hj92bK",
+    "target_subscription_tier_id": "SUB_PRO_1999_MONTHLY"
+}</pre>
+                    </div>
+                </div>
+                <div class="pane-simulation">
+                    <div class="phone-shell">
+                        <div class="phone-notch"></div>
+                        <div class="phone-header"><span class="phone-brand-logo">gk<span>.pro</span></span><span>Ledger Setup</span></div>
+                        <div class="phone-scrollable-content">
+                            <div class="phone-ui-card" style="border-color:var(--accent); background:var(--secondary); color:#FFF;">
+                                <h3 style="font-family:'Fredoka'; font-size:15px; color:var(--accent);">GigKraft Pro Vault Tier</h3>
+                                <p style="font-size:12px; margin-top:4px;">$19.99 / Month Micro-Subscription Ledger</p>
+                            </div>
+                            <div class="phone-ui-card">
+                                <label style="font-size:10px; font-weight:bold; display:block; margin-bottom:2px;">Credit Card Number</label>
+                                <input type="text" class="phone-ui-input" value="4111 •••• •••• 8832">
+                                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                                    <input type="text" class="phone-ui-input" value="12/28">
+                                    <input type="text" class="phone-ui-input" value="092">
+                                </div>
+                            </div>
+                            <button class="phone-ui-btn" onclick="alert('Payment Method Vaulted: Account set to PRO ACTIVE state.')">Activate Account ($19.99)</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div id="role-worker" class="role-track-panel">
+            
+            <div class="spec-container">
+                <div class="pane-documentation">
+                    <span class="badge-system">Screen 1 of 4 • Handyman Track</span>
+                    <h2 class="meta-screen-name">Worker Operations Command</h2>
+                    
+                    <div class="doc-section-label">Purpose & Objectives:</div>
+                    <div class="doc-section-value">The central dashboard layout for workers. Displays high-priority workspace counts, real-time local regional profile views, and open regional project leads.</div>
+
+                    <div class="doc-section-label">Communication Hook:</div>
+                    <div class="doc-section-value">Maintains persistent Web Socket connections to display real-time client emergency broadcast requests targeting the local node zone.</div>
+
+                    <div class="tech-blueprint-drawer">
+                        <span class="blueprint-header">🗄️ Database Hook Tracking & Payload API Contracts</span>
+                        <pre class="code-schema-box">GET /api/v1/pro/metrics-summary
+Authorization: Bearer gk_pro_secure_worker_token
+Response: { "monthly_run_rate": 2838.58, "profile_views_last_24h": 42, "unrouted_local_leads": 3 }</pre>
+                    </div>
+                </div>
+                <div class="pane-simulation">
+                    <div class="phone-shell">
+                        <div class="phone-notch"></div>
+                        <div class="phone-header"><span class="phone-brand-logo">gk<span>.pro</span></span><span style="font-size:10px; font-weight:bold; color:#25D366;">● Active</span></div>
+                        <div class="phone-scrollable-content">
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
+                                <div class="phone-ui-card" style="text-align:center; margin-bottom:0;"><span style="font-size:10px; color:var(--text-muted);">VIEWS</span><div style="font-size:20px; font-family:'Fredoka'; color:var(--primary);">42 Pros</div></div>
+                                <div class="phone-ui-card" style="text-align:center; margin-bottom:0;"><span style="font-size:10px; color:var(--text-muted);">OPEN GIGS</span><div style="font-size:20px; font-family:'Fredoka'; color:var(--secondary);">3 Leads</div></div>
+                            </div>
+                            <p style="font-size:11px; font-weight:bold; color:var(--text-muted); text-transform:uppercase; margin-bottom:6px;">⚡ Live Local Pro Triage Alerts</p>
+                            <div class="phone-ui-card" style="border-left:4px solid var(--primary);">
+                                <div style="font-size:12px; font-weight:bold;">Kitchen Line Valve Leak</div>
+                                <p style="font-size:11px; color:var(--text-muted); margin-top:2px;">Proximity: 1.4 miles away • Downtown</p>
+                                <button class="phone-ui-btn" style="padding:4px; font-size:10px; margin-top:6px;" onclick="alert('Accessing customer chat link matrix...')">Claim Chat Routing</button>
+                            </div>
+                        </div>
+                        <div class="phone-tab-bar">
+                            <div class="phone-tab-item active-tab"><span class="phone-tab-icon">📊</span><span>Dashboard</span></div>
+                            <div class="phone-tab-item" onclick="alert('Routing to Add Kraft Screen View')"><span class="phone-tab-icon">➕</span><span>Add Kraft</span></div>
+                            <div class="phone-tab-item" onclick="alert('Routing to Billing Screen View')"><span class="phone-tab-icon">💳</span><span>Billing</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="spec-container">
+                <div class="pane-documentation">
+                    <span class="badge-system">Screen 2 of 4 • Handyman Track</span>
+                    <h2 class="meta-screen-name">Add Kraft (Project Showcase Form)</h2>
+                    
+                    <div class="doc-section-label">Frictionless Guardrails Optimization Parameters:</div>
+                    <div class="doc-section-value" style="color:var(--accent); font-weight:bold;">CRITICAL FLOW RULE: Eliminates standard multi-field resume entries. The interface enforces a MANDATORY "After" project image file capture, maintaining the "Before" slot as entirely optional. This guarantees instant proof formatting.</div>
+
+                    <div class="doc-section-label">Communication Hook:</div>
+                    <div class="doc-section-value">Compiles uploaded graphic payloads and instantly pushes automated portfolio update alerts directly to localized matching consumer search metrics.</div>
+
+                    <div class="tech-blueprint-drawer">
+                        <span class="blueprint-header">🗄️ Database Hook Tracking & Payload API Contracts</span>
+                        <pre class="code-schema-box">CREATE TABLE handymen_portfolio_assets (
+    asset_id VARCHAR(50) PRIMARY KEY,
+    handyman_id VARCHAR(50) REFERENCES handymen_ledger(handyman_id),
+    project_title VARCHAR(100),
+    optional_before_img_url VARCHAR(255) NULL,
+    mandatory_after_img_url VARCHAR(255) NOT NULL,
+    recorded_invoice_value DECIMAL(10,2)
+);
+
+POST /api/v1/portfolio/publish-case-study
+Payload: {
+    "project_title": "Copper Pipe Valve Resolder",
+    "optional_before_img_url": null,
+    "mandatory_after_img_url": "cdn://assets/nodes/sw04/img_902_after.jpg",
+    "recorded_invoice_value": 120.00
+}</pre>
+                    </div>
+                </div>
+                <div class="pane-simulation">
+                    <div class="phone-shell">
+                        <div class="phone-notch"></div>
+                        <div class="phone-header"><span class="phone-brand-logo">gk<span>.pro</span></span><span>Add Case Asset</span></div>
+                        <div class="phone-scrollable-content">
+                            <div class="phone-ui-card">
+                                <label style="font-size:11px; font-weight:bold; display:block; margin-bottom:4px;">Project Title Descriptor</label>
+                                <input type="text" class="phone-ui-input" value="Copper Pipe Valve Resolder">
+                                
+                                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:10px 0;">
+                                    <div style="border:2px dashed #94A3B8; text-align:center; padding:15px 0; font-size:10px; border-radius:6px; background:#F1F5F9; color:#64748B;">📷 Before<br>(Optional Slot)</div>
+                                    <div style="border:2px dashed var(--primary); text-align:center; padding:15px 0; font-size:10px; border-radius:6px; background:rgba(255,107,0,0.02); color:var(--primary); font-weight:bold;">✨ After Image<br>(MANDATORY)</div>
+                                </div>
+
+                                <label style="font-size:11px; font-weight:bold; display:block; margin-bottom:4px;">Real Final Job Cost ($)</label>
+                                <input type="text" class="phone-ui-input" value="120.00">
+                            </div>
+                            <button class="phone-ui-btn" onclick="alert('Verification Layer Satisfied: Case Study Published to Node Directory.')">Publish Portfolio Record</button>
+                        </div>
+                        <div class="phone-tab-bar">
+                            <div class="phone-tab-item" onclick="alert('Routing back to operations dashboard...')"><span class="phone-tab-icon">📊</span><span>Dashboard</span></div>
+                            <div class="phone-tab-item active-tab"><span class="phone-tab-icon">➕</span><span>Add Kraft</span></div>
+                            <div class="phone-tab-item" onclick="alert('Routing to Billing Screen View')"><span class="phone-tab-icon">💳</span><span>Billing</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="spec-container">
+                <div class="pane-documentation">
+                    <span class="badge-system">Screen 3 of 4 • Handyman Track</span>
+                    <h2 class="meta-screen-name">Pro Workspace Messenger</h2>
+                    
+                    <div class="doc-section-label">Purpose & Objectives:</div>
+                    <div class="doc-section-value">High-speed chat viewport layout explicitly structured for mobile one-handed ergonomics. Facilitates seamless sharing of estimates, project proofs, and pricing agreements.</div>
+
+                    <div class="doc-section-label">Communication Hook:</div>
+                    <div class="doc-section-value">Includes an automated fallback listener layer: if network connection state drops for more than 5 minutes, compiles unread queues and pushes a localized cellular carrier text string direct payload fallback.</div>
+
+                    <div class="tech-blueprint-drawer">
+                        <span class="blueprint-header">🗄️ Database Hook Tracking & Payload API Contracts</span>
+                        <pre class="code-schema-box">POST /api/v1/chat/send-message-packet
+Authorization: Bearer gk_pro_secure_worker_token
+Payload: {
+    "target_channel_id": "CH_JENKINS_8902",
+    "raw_text_payload": "I can head over to Downtown now. Resolder setup ready to roll.",
+    "fallback_carrier_sms_flag": true
+}</pre>
+                    </div>
+                </div>
+                <div class="pane-simulation">
+                    <div class="phone-shell">
+                        <div class="phone-notch"></div>
+                        <div class="phone-header"><span class="phone-brand-logo">gk<span>.chat</span></span><span style="font-size:11px; font-weight:bold;">T. Jenkins</span></div>
+                        <div class="phone-scrollable-content" style="display:flex; flex-direction:column; justify-content:between;">
+                            <div style="flex:1;">
+                                <div style="background:#E2E8F0; padding:8px 12px; border-radius:12px; font-size:12px; max-width:80%; margin-bottom:8px;">Water is still isolated at the street valve but kitchen floor is getting soggy. Can you fix today?</div>
+                                <div style="background:var(--secondary); color:#FFF; padding:8px 12px; border-radius:12px; font-size:12px; max-width:80%; margin-left:auto; margin-bottom:8px; text-align:right;">Yes, torch and solder fittings are loaded in my rig now. Sticking to the baseline $120 parameter.</div>
+                            </div>
+                            <div style="margin-top:auto; display:flex; gap:6px;">
+                                <input type="text" class="phone-ui-input" style="margin-bottom:0;" value="Heading out now...">
+                                <button class="phone-ui-btn" style="width:auto; padding:8px 12px;" onclick="alert('Message packet dispatched.')">➔</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="spec-container">
+                <div class="pane-documentation">
+                    <span class="badge-system">Screen 4 of 4 • Handyman Track</span>
+                    <h2 class="meta-screen-name">Subscription & Billing Engine</h2>
+                    
+                    <div class="doc-section-label">Purpose & Objectives:</div>
+                    <div class="doc-section-value">Self-service financial ledger space. Empowers tradespeople to independently track current invoice sequences, alter vaulted bank parameters, or process instant plan reactivation events.</div>
+
+                    <div class="doc-section-label">Communication Hook:</div>
+                    <div class="doc-section-value">Automatically builds transactional subscription invoices and pushes payment failure webhooks instantly to internal monitoring dashboards.</div>
+
+                    <div class="tech-blueprint-drawer">
+                        <span class="blueprint-header">🗄️ Database Hook Tracking & Payload API Contracts</span>
+                        <pre class="code-schema-box">GET /api/v1/billing/ledger-history
+Authorization: Bearer gk_pro_secure_worker_token
+Response: {
+    "stripe_subscription_state": "ACTIVE_PAID",
+    "next_invoice_timestamp": "2026-06-01T00:00:00Z",
+    "amount_due_usd": 19.99
+}</pre>
+                    </div>
+                </div>
+                <div class="pane-simulation">
+                    <div class="phone-shell">
+                        <div class="phone-notch"></div>
+                        <div class="phone-header"><span class="phone-brand-logo">gk<span>.vault</span></span><span>Ledger</span></div>
+                        <div class="phone-scrollable-content">
+                            <div class="phone-ui-card">
+                                <div style="font-size:11px; color:var(--text-muted);">CURRENT STATUS</div>
+                                <div style="font-size:18px; font-family:'Fredoka'; color:#25D366; font-weight:bold; margin-top:2px;">● Subscription Paid</div>
+                                <p style="font-size:11px; color:var(--text-dark); margin-top:4px;">Next billing recurrence cycle: <strong>June 1, 2026</strong></p>
+                            </div>
+                            <button class="phone-ui-btn" style="background:#FFF; color:var(--secondary); border-color:var(--secondary); margin-bottom:8px;" onclick="alert('Opening secure customer Stripe payment link...')">Update Card Credentials</button>
+                            <button class="phone-ui-btn" style="background:#EF4444; border-color:#000;" onclick="confirm('Pause subscription ledger state?')">Pause Account Subscription</button>
+                        </div>
+                        <div class="phone-tab-bar">
+                            <div class="phone-tab-item" onclick="alert('Routing back to operations dashboard...')"><span class="phone-tab-icon">📊</span><span>Dashboard</span></div>
+                            <div class="phone-tab-item" onclick="alert('Routing to Add Kraft Screen View')"><span class="phone-tab-icon">➕</span><span>Add Kraft</span></div>
+                            <div class="phone-tab-item active-tab"><span class="phone-tab-icon">💳</span><span>Billing</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div id="role-client" class="role-track-panel">
+            
+            <div class="spec-container">
+                <div class="pane-documentation">
+                    <span class="badge-system">Screen 1 of 4 • Consumer Track</span>
+                    <h2 class="meta-screen-name">Discovery Search & Map Feed</h2>
+                    
+                    <div class="doc-section-label">Purpose & Objectives:</div>
+                    <div class="doc-section-value">Visual grid layout focusing entirely on real portfolio project case records, completely bypassing old text-heavy business bio registries.</div>
+
+                    <div class="doc-section-label">Communication Hook:</div>
+                    <div class="doc-section-value">Tracks search query terms to surface the most active local craftsmen relative to specified trade criteria.</div>
+
+                    <div class="tech-blueprint-drawer">
+                        <span class="blueprint-header">🗄️ Database Hook Tracking & Payload API Contracts</span>
+                        <pre class="code-schema-box">GET /api/v1/discovery/feed?regional_node=southwest-us-04&trade_filter=PLUMBING
+Response Array: [
+    {"asset_id": "PRJ-902", "handyman_name": "Dave Miller", "invoice_total": 120.00}
+]</pre>
+                    </div>
+                </div>
+                <div class="pane-simulation">
+                    <div class="phone-shell">
+                        <div class="phone-notch"></div>
+                        <div class="phone-header"><span class="phone-brand-logo">gk<span>.feed</span></span><span>Plumbing</span></div>
+                        <div class="phone-scrollable-content">
+                            <input type="text" class="phone-ui-input" value="Search Plumbing Proof...">
+                            
+                            <div class="phone-ui-card" style="cursor:pointer;" onclick="alert('Loading comprehensive Before/After project details screen...')">
+                                <div class="split-showcase-element">
+                                    <div class="split-before">⚠️ LEAK VALVE</div>
+                                    <div class="split-after">✨ RESOLDER OK</div>
+                                </div>
+                                <div style="font-size:12px; font-weight:bold;">Dave Miller • Plumbing Pro</div>
+                                <div style="font-size:11px; color:var(--primary); font-weight:bold; margin-top:2px;">Verified Job Invoice: $120.00</div>
+                            </div>
+                        </div>
+                        <div class="phone-tab-bar">
+                            <div class="phone-tab-item active-tab"><span class="phone-tab-icon">🔍</span><span>Discover</span></div>
+                            <div class="phone-tab-item" onclick="alert('Routing forward to Quick Broadcast Form Desk...')"><span class="phone-tab-icon">🚨</span><span>Emergency</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="spec-container">
+                <div class="pane-documentation">
+                    <span class="badge-system">Screen 2 of 4 • Consumer Track</span>
+                    <h2 class="meta-screen-name">Interactive Split-Showcase View</h2>
+                    
+                    <div class="doc-section-label">Purpose & Objectives:</div>
+                    <div class="doc-section-value">High-contrast visual layout detailing specific historical field fixes, confirmed cost metrics, and authentic performance reviews.</div>
+
+                    <div class="doc-section-label">Communication Hook:</div>
+                    <div class="doc-section-value">Monitors deep engagement data metrics whenever an on-demand consumer initializes verification clicks.</div>
+
+                    <div class="tech-blueprint-drawer">
+                        <span class="blueprint-header">🗄️ Database Hook Tracking & Payload API Contracts</span>
+                        <pre class="code-schema-box">CREATE TABLE customer_leads_workspace (
+    lead_id VARCHAR(50) PRIMARY KEY,
+    consumer_client_id VARCHAR(50) REFERENCES clients_registry(client_id),
+    target_handyman_id VARCHAR(50) REFERENCES handymen_ledger(handyman_id),
+    source_portfolio_asset_reference VARCHAR(50)
+);
+
+POST /api/v1/chat/initialize-context-thread
+Payload: { "target_handyman_id": "WKR-4011", "context_portfolio_id": "PRJ-902" }</pre>
+                    </div>
+                </div>
+                <div class="pane-simulation">
+                    <div class="phone-shell">
+                        <div class="phone-notch"></div>
+                        <div class="phone-header"><span class="phone-brand-logo">gk<span>.proof</span></span><span>Case: #902</span></div>
+                        <div class="phone-scrollable-content">
+                            <div class="split-showcase-element" style="height:140px;">
+                                <div class="split-before">⚠️ GREY CORROSION<br>Main Line Rupture</div>
+                                <div class="split-after">✨ SHINY NEW PVC<br>Fittings Resoldered</div>
+                            </div>
+                            <div class="phone-ui-card">
+                                <h3 style="font-family:'Fredoka'; font-size:15px;">Dave Miller</h3>
+                                <p style="font-size:11px; color:var(--text-muted); margin-top:2px;">Verified Regional Invoice: $120.00 total</p>
+                                <p style="font-size:12px; color:var(--text-dark); margin-top:8px; line-height:1.4;">"Dave responded instantly during the valve rupture emergency and handled the line fitting isolation flawlessly."</p>
+                            </div>
+                            <button class="phone-ui-btn" onclick="alert('Context initialized. Opening secure peer messenger wireframe...')">Request Direct Quote From Pro</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="spec-container">
+                <div class="pane-documentation">
+                    <span class="badge-system">Screen 3 of 4 • Consumer Track</span>
+                    <h2 class="meta-screen-name">Quick Broadcast Desk</h2>
+                    
+                    <div class="doc-section-label">Purpose & Objectives:</div>
+                    <div class="doc-section-value">Emergency problem description interface. Streamlines structural task configuration input to immediately flag and alert nearby node networks.</div>
+
+                    <div class="doc-section-label">Communication Hook:</div>
+                    <div class="doc-section-value">Beams payload data components instantly onto Regional Node Community Manager control panels for multi-channel routing.</div>
+
+                    <div class="tech-blueprint-drawer">
+                        <span class="blueprint-header">🗄️ Database Hook Tracking & Payload API Contracts</span>
+                        <pre class="code-schema-box">CREATE TABLE broadcast_tasks (
+    task_id VARCHAR(50) PRIMARY KEY,
+    client_id VARCHAR(50) REFERENCES clients_registry(client_id),
+    region_node_id VARCHAR(30),
+    description TEXT,
+    budget_allocated DECIMAL(10,2),
+    routing_status VARCHAR(20) DEFAULT 'PENDING'
+);
+
+POST /api/v1/client/issue-emergency-broadcast
+Payload: {
+    "regional_node_id": "southwest-us-04",
+    "description_text": "Kitchen Pipe Main Valve Leak. Water pooling on flooring.",
+    "proposed_budget_parameter": 120.00
+}</pre>
+                    </div>
+                </div>
+                <div class="pane-simulation">
+                    <div class="phone-shell">
+                        <div class="phone-notch"></div>
+                        <div class="phone-header"><span class="phone-brand-logo">gk<span>.triage</span></span><span>Fast Post</span></div>
+                        <div class="phone-scrollable-content">
+                            <div class="phone-ui-card" style="border-color:var(--primary);">
+                                <label style="font-size:11px; font-weight:bold; display:block; margin-bottom:4px; color:var(--primary);">Describe Emergency Situation</label>
+                                <textarea class="phone-ui-input" style="height:70px; resize:none;">Kitchen Pipe Main Valve Leak. Water pooling on flooring. Immediate fitting isolation required.</textarea>
+                                
+                                <label style="font-size:11px; font-weight:bold; display:block; margin-bottom:4px; margin-top:6px;">Proposed Target Budget ($)</label>
+                                <input type="text" class="phone-ui-input" value="120.00">
+                            </div>
+                            <button class="phone-ui-btn" onclick="alert('Emergency Task Pipeline Activated: Broadcasting parameters onto regional admin logs...')">Broadcast to Local Matrix</button>
+                        </div>
+                        <div class="phone-tab-bar">
+                            <div class="phone-tab-item" onclick="alert('Routing back to visual discovery feed...')"><span class="phone-tab-icon">🔍</span><span>Discover</span></div>
+                            <div class="phone-tab-item active-tab"><span class="phone-tab-icon">🚨</span><span>Emergency</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="spec-container">
+                <div class="pane-documentation">
+                    <span class="badge-system">Screen 4 of 4 • Consumer Track</span>
+                    <h2 class="meta-screen-name">Review & Star Ledger</h2>
+                    
+                    <div class="doc-section-label">Purpose & Objectives:</div>
+                    <div class="doc-section-value">Post-job assessment workspace layout. Captures image-verified transaction records to generate authentic, immutable neighborhood directory performance profiles.</div>
+
+                    <div class="doc-section-label">Communication Hook:</div>
+                    <div class="doc-section-value">Triggered automatically via cell system push notifications immediately after a provider changes a job ticket status to "Complete".</div>
+
+                    <div class="tech-blueprint-drawer">
+                        <span class="blueprint-header">🗄️ Database Hook Tracking & Payload API Contracts</span>
+                        <pre class="code-schema-box">PATCH /api/v1/client/submit-verified-review
+Authorization: Bearer gk_client_secure_token
+Payload: {
+    "associated_task_id": "TSK-8902",
+    "evaluation_rating_score": 5,
+    "review_text_block": "Incredibly fast response and clean resolder line validation."
+}</pre>
+                    </div>
+                </div>
+                <div class="pane-simulation">
+                    <div class="phone-shell">
+                        <div class="phone-notch"></div>
+                        <div class="phone-header"><span class="phone-brand-logo">gk<span>.review</span></span><span>Job Close</span></div>
+                        <div class="phone-scrollable-content">
+                            <div class="phone-ui-card" style="text-align:center;">
+                                <div style="font-size:13px; font-weight:bold; margin-bottom:6px;">Rate Dave Miller's Fix</div>
+                                <div style="font-size:24px; color:var(--primary); margin-bottom:10px;">★★★★★</div>
+                                <textarea class="phone-ui-input" style="height:60px; resize:none;">Incredibly fast response and clean resolder line validation.</textarea>
+                            </div>
+                            <button class="phone-ui-btn" onclick="alert('Review captured. Thank you for validating local node quality.')">Submit Verified Ledger Entry</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div id="role-admin" class="role-track-panel">
+            <div class="spec-container desktop-spec-layout">
+                
+                <div class="pane-documentation" style="margin-bottom:25px;">
+                    <span class="badge-system">Screens 13, 14, & 15 • Multi-View Desktop Dashboard Console Environment</span>
+                    <h2 class="meta-screen-name">Community Node Manager Regional Core Workspace Portal</h2>
+                    <p style="font-size:14px; color:#CBD5E1; margin-bottom:10px;">The administration layout maps directly to a laptop-optimized screen configuration. Use the left menu bar within the live browser simulation below to switch across the 3 main system admin screen layouts.</p>
+                </div>
+
+                <div class="pane-simulation">
+                    
+                    <div class="web-browser-shell">
+                        <div class="browser-top-bar">
+                            <span class="browser-dot" style="background:#EF4444;"></span>
+                            <span class="browser-dot" style="background:#FBBF24;"></span>
+                            <span class="browser-dot" style="background:#34D399;"></span>
+                            <div class="browser-address-field">https://admin.gigkraft.com/node/southwest-us-04/control-panel</div>
+                        </div>
+                        
+                        <div class="desktop-app-layout">
+                            <div class="desktop-sidebar">
+                                <div style="font-family:'Fredoka'; font-size:20px; color:var(--primary); margin-bottom:25px;">gigkraft<span style="color:#FFF">.admin</span></div>
+                                <div id="desk-link-ops" class="desktop-nav-item active-nav" onclick="routeDesktopSubView('desk-view-ops', this)">⚡ 13. Regional Core Ops</div>
+                                <div id="desk-link-triage" class="desktop-nav-item" onclick="routeDesktopSubView('desk-view-triage', this)">📡 14. Cross-Channel Desk</div>
+                                <div id="desk-link-safety" class="desktop-nav-item" onclick="routeDesktopSubView('desk-view-safety', this)">⚠️ 15. Safety & Hygiene</div>
+                            </div>
+                            
+                            <div class="desktop-main-canvas">
+                                
+                                <div id="desk-view-ops" class="sub-view-state active-state">
+                                    <div style="display:flex; justify-content:between; align-items:center; margin-bottom:15px; border-bottom:2px dashed #0A2540; padding-bottom:8px;">
+                                        <h3 style="font-family:'Fredoka'; font-size:18px;">Regional Core Operations Command</h3>
+                                        <span style="font-size:10px; background:var(--accent); font-weight:bold; padding:2px 6px; border-radius:4px; border:1px solid #000;">HUB: Southwest US-04</span>
+                                    </div>
+                                    <div class="desktop-metrics-row">
+                                        <div class="desktop-metric-tile"><span style="font-size:10px; font-weight:bold; color:var(--text-muted);">PENDING TRIAGE</span><div class="desktop-metric-num">3 Tasks</div></div>
+                                        <div class="desktop-metric-tile"><span style="font-size:10px; font-weight:bold; color:var(--text-muted);">ACTIVE LEDGER PROS</span><div class="desktop-metric-num">142 Pros</div></div>
+                                        <div class="desktop-metric-tile"><span style="font-size:10px; font-weight:bold; color:var(--text-muted);">MONTHLY RUN RATE</span><div class="desktop-metric-num">$2,838.58</div></div>
+                                    </div>
+                                    <p style="font-size:12px; line-height:1.5; color:var(--text-dark);">This control screen monitors real-time regional key metrics. Programmatic alerts fire instantly if emergency requests sit unassigned for more than 15 minutes.</p>
+                                    
+                                    <div class="tech-blueprint-drawer" style="margin-top:15px;">
+                                        <span class="blueprint-header">🗄️ Associated System Database Table Structure Reference</span>
+                                        <pre class="code-schema-box">SELECT COUNT(*) AS unrouted_count FROM broadcast_tasks WHERE routing_status = 'PENDING' AND region_node_id = 'SW-04';</pre>
+                                    </div>
+                                </div>
+
+                                <div id="desk-view-triage" class="sub-view-state">
+                                    <div style="display:flex; justify-content:between; align-items:center; margin-bottom:15px; border-bottom:2px dashed #0A2540; padding-bottom:8px;">
+                                        <h3 style="font-family:'Fredoka'; font-size:18px;">Cross-Channel Outreach Triage Desk</h3>
+                                    </div>
+                                    <table class="gk-data-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Task ID</th>
+                                                <th>Context Parameters</th>
+                                                <th>Budget</th>
+                                                <th>Outbound Programmatic Link Triggers</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><strong>#TSK-8902</strong></td>
+                                                <td><strong>Kitchen Pipe Main Line Burst</strong><br>Water pooling on floor • Downtown Node</td>
+                                                <td style="color:var(--primary); font-weight:bold;">$120.00</td>
+                                                <td>
+                                                    <button class="desktop-inline-btn" style="background:#25D366;" onclick="alert('Triggering outbound WhatsApp Business automated messaging handshake payload...')">WhatsApp Blast</button>
+                                                    <button class="desktop-inline-btn" style="background:#00B4D8;" onclick="alert('Triggering outbound Twilio SMS cellular broadcast token stream...')">SMS Pin</button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+
+                                    <div class="tech-blueprint-drawer" style="margin-top:15px;">
+                                        <span class="blueprint-header">📡 Outbound Multi-Channel Orchestration Endpoint API Contract</span>
+                                        <pre class="code-schema-box">POST /api/v1/nodes/southwest-us-04/outreach-broadcast
+Content-Type: application/json
+Authorization: Bearer gk_admin_secure_token
+
+{
+    "task_id": "TSK-8902",
+    "channel_dispatch_targets": ["WHATSAPP_BUSINESS_API", "TWILIO_SMS_GATEWAY"],
+    "payload_message_string": "GigKraft Emergency Alert: Kitchen Pipe Leak. Budget $120. Claim now."
+}</pre>
+                    </div>
+                                </div>
+
+                                <div id="desk-view-safety" class="sub-view-state">
+                                    <div style="display:flex; justify-content:between; align-items:center; margin-bottom:15px; border-bottom:2px dashed #0A2540; padding-bottom:8px;">
+                                        <h3 style="font-family:'Fredoka'; font-size:18px;">Verification Compliance & Safety Queue</h3>
+                                    </div>
+                                    <table class="gk-data-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Log ID</th>
+                                                <th>Target Profile Block</th>
+                                                <th>Infraction Context</th>
+                                                <th>Administrative Override Options</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><strong>#DISP-302</strong></td>
+                                                <td>John Doe (Carpenter)</td>
+                                                <td style="color:#EF4444; font-weight:bold;">Reported off-platform excessive pricing variance vs visual portfolio parameters.</td>
+                                                <td>
+                                                    <button class="desktop-inline-btn" style="background:#34D399;" onclick="alert('Dispute log safely dismissed and archived.')">Dismiss</button>
+                                                    <button class="desktop-inline-btn" style="background:#EF4444;" onclick="alert('Profile status changed to HIDDEN_SUSPENDED in database system.')">Suspend Profile</button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+
+                                    <div class="tech-blueprint-drawer" style="margin-top:15px;">
+                                        <span class="blueprint-header">📡 Administrative Force Patch Lockout Management Request</span>
+                                        <pre class="code-schema-box">PATCH /api/v1/admin/moderation/enforce-account-lockout
+Authorization: Bearer gk_admin_secure_token
+Payload: { "target_handyman_id": "WKR-4019", "enforcement_action_type": "PROFILE_SUSPENSION_HIDDEN_FROM_DIRECTORY" }</pre>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // MASTER USER ROLE NAVIGATOR MUTATION CONTROLLER
+        function swapSystemRole(targetRoleId, buttonElement) {
+            // Hide all active user track blocks
+            document.querySelectorAll('.role-track-panel').forEach(panel => {
+                panel.classList.remove('active-panel');
+            });
+            // Show the targeted user experience panel
+            document.getElementById(targetRoleId).classList.add('active-panel');
+
+            // Reset navigation tab selection highlight class matrices
+            document.querySelectorAll('.btn-role-tab').forEach(btn => {
+                btn.classList.remove('active-role');
+            });
+            // Apply highlight focus state to active selector item
+            buttonElement.classList.add('active-role');
+        }
+
+        // DESKTOP SUB-VIEW ROUTING CONTROLLER (For Node Admin Interface)
+        function routeDesktopSubView(stateId, navElement) {
+            // Drop visibility filters for all sub-states
+            document.querySelectorAll('.sub-view-state').forEach(state => {
+                state.classList.remove('active-state');
+            });
+            // Render active targeted sub-view canvas
+            document.getElementById(stateId).classList.add('active-state');
+
+            // Reset active menu line background properties
+            document.querySelectorAll('.desktop-nav-item').forEach(link => {
+                link.classList.remove('active-nav');
+            });
+            // Focus current navigation link item
+            navElement.classList.add('active-nav');
+        }
+    </script>
+</body>
+</html>

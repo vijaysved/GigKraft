@@ -1,0 +1,87 @@
+# GigKraft local development stack (MVP target: local docker-compose only).
+#
+# Phase 1 status:
+#   - postgres, redis, and backend are functional.
+#   - frontend and mobile are placeholders; their build contexts
+#     will be enabled as each app is scaffolded (Milestones 3-4).
+#
+# Usage:
+#   cp .env.example .env
+#   docker compose up -d
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-gigkraft}
+      POSTGRES_USER: ${POSTGRES_USER:-gigkraft}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gigkraft}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gigkraft}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # --- Django + Django Ninja API (Milestone 2) ---
+  # Copy backend/.env.example to backend/.env for local overrides (optional;
+  # the container falls back to safe local defaults plus the overrides below).
+  backend:
+    build: ./backend
+    env_file:
+      - path: ./backend/.env
+        required: false
+    environment:
+      # Inside the compose network, postgres/redis hostnames replace localhost.
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gigkraft}:${POSTGRES_PASSWORD:-gigkraft}@postgres:5432/${POSTGRES_DB:-gigkraft}
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+
+  # --- Placeholder: React + Vite web app (Milestone 3) ---
+  # frontend:
+  #   build: ./frontend
+  #   env_file: ./frontend/.env
+  #   ports:
+  #     - "5173:5173"
+  #   depends_on:
+  #     - backend
+  #   volumes:
+  #     - ./frontend:/app
+
+  # --- Placeholder: Expo dev server (Milestone 4) ---
+  # Note: Expo typically runs on the host for device/simulator access;
+  # this containerized option is for web preview / CI only.
+  # mobile:
+  #   build: ./mobile
+  #   env_file: ./mobile/.env
+  #   ports:
+  #     - "8081:8081"
+  #   volumes:
+  #     - ./mobile:/app
+
+volumes:
+  postgres_data:
+  redis_data:

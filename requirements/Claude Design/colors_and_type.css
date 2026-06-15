@@ -1,0 +1,183 @@
+/* ============================================================================
+   GIGKRAFT DESIGN SYSTEM — Color & Type Foundations
+   ----------------------------------------------------------------------------
+   Source of truth: uploads/gemini-code-1780459101087.html (brand design tokens)
+   + hand-drawn brand mark (assets/gigkraft-logo.png).
+   Direction: warm, earthy, rugged "handyman portal" — neo-brutalist hard
+   shadows, friendly rounded type, hi-vis trade accents on warm cream paper.
+
+   Fonts: Fredoka (display / headings) + Quicksand (body / UI).
+   Both are genuine Google Fonts — load via the @import below or self-host
+   from /fonts. No substitution was needed.
+   ============================================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap');
+
+:root {
+  /* ----- BRAND CORE ------------------------------------------------------ */
+  --gk-orange:        #FF6B00;   /* Electric Orange — primary action / energy */
+  --gk-orange-press:  #E55F00;   /* darker press state                        */
+  --gk-orange-tint:   #FFF1E6;   /* faint orange wash for selected surfaces   */
+  --gk-navy:          #0A2540;   /* Deep Cobalt — ink, borders, structure     */
+  --gk-navy-press:    #061829;   /* darker navy press                         */
+  --gk-lime:          #CCFF00;   /* Hi-Vis Lime — verification / "proof" flag */
+
+  /* ----- WARM EARTH EXTENSION (rugged handyman palette) ------------------ */
+  --gk-kraft:         #E7D8C2;   /* kraft-paper tan — warm secondary surface  */
+  --gk-clay:          #C4622D;   /* terracotta clay — warm accent             */
+  --gk-timber:        #6B4A2B;   /* timber brown — earthy deep tone           */
+
+  /* ----- SURFACES -------------------------------------------------------- */
+  --gk-cream:         #FAF8F5;   /* warm cream — default app/web background    */
+  --gk-card:          #FFFFFF;   /* card / sheet surface                       */
+  --gk-command:       #0F172A;   /* dark "command center" ground (admin/lab)   */
+  --gk-panel:         #1E293B;   /* dark panel surface                         */
+  --gk-panel-2:       #334155;   /* dark raised surface / dashed wells         */
+
+  /* ----- TEXT ------------------------------------------------------------ */
+  --gk-ink:           #0A2540;   /* primary text on light                      */
+  --gk-muted:         #627D98;   /* secondary / muted text                     */
+  --gk-on-dark:       #F8FAFC;   /* primary text on dark                       */
+  --gk-on-dark-muted: #CBD5E1;   /* secondary text on dark                     */
+  --gk-on-orange:     #FFFFFF;   /* text on orange                             */
+
+  /* ----- SEMANTIC -------------------------------------------------------- */
+  --gk-success:       #25D366;   /* active / paid / WhatsApp green             */
+  --gk-info:          #00B4D8;   /* SMS / info cyan                            */
+  --gk-warn:          #FBBF24;   /* warning amber                              */
+  --gk-danger:        #EF4444;   /* destructive / suspend red                  */
+
+  /* ----- BORDERS & RADII (neo-brutalist) --------------------------------- */
+  --gk-border-w:      2px;
+  --gk-border-w-bold: 3px;
+  --gk-border:        var(--gk-border-w) solid var(--gk-navy);
+  --gk-border-bold:   var(--gk-border-w-bold) solid var(--gk-navy);
+  --gk-border-dash:   2px dashed var(--gk-navy);
+
+  --gk-radius-sm:     6px;
+  --gk-radius-md:     8px;
+  --gk-radius-lg:     12px;
+  --gk-radius-xl:     18px;
+  --gk-radius-2xl:    24px;
+  --gk-radius-pill:   999px;
+
+  /* ----- SHADOWS (hard offset "stamped" shadows) ------------------------- */
+  --gk-shadow-xs:     1px 1px 0 var(--gk-navy);
+  --gk-shadow-sm:     2px 2px 0 var(--gk-navy);
+  --gk-shadow-md:     4px 4px 0 var(--gk-navy);
+  --gk-shadow-lg:     6px 6px 0 var(--gk-navy);
+  --gk-shadow-soft:   0 10px 30px rgba(0,0,0,.25);   /* ambient on dark        */
+  --gk-shadow-float:  0 20px 40px rgba(0,0,0,.40);   /* floating device        */
+
+  /* ----- SPACING (4px base) --------------------------------------------- */
+  --gk-space-1: 4px;
+  --gk-space-2: 8px;
+  --gk-space-3: 12px;
+  --gk-space-4: 16px;
+  --gk-space-5: 20px;
+  --gk-space-6: 24px;
+  --gk-space-8: 32px;
+  --gk-space-10: 40px;
+
+  /* ----- TYPE FAMILIES --------------------------------------------------- */
+  --gk-font-display: 'Fredoka', system-ui, sans-serif;   /* headings, brand   */
+  --gk-font-body:    'Quicksand', system-ui, sans-serif; /* body, UI          */
+  --gk-font-mono:    'Courier New', ui-monospace, monospace; /* code / schema */
+
+  /* ----- TYPE SCALE (px) ------------------------------------------------- */
+  --gk-text-xs:   11px;
+  --gk-text-sm:   13px;
+  --gk-text-base: 15px;
+  --gk-text-md:   18px;
+  --gk-text-lg:   24px;
+  --gk-text-xl:   28px;
+  --gk-text-2xl:  36px;
+  --gk-text-3xl:  48px;
+
+  --gk-weight-reg:    400;
+  --gk-weight-med:    500;
+  --gk-weight-semi:   600;
+  --gk-weight-bold:   700;
+
+  --gk-tracking-cap:  1px;     /* uppercase eyebrow / badge tracking */
+  --gk-leading-tight: 1.15;
+  --gk-leading-body:  1.6;
+}
+
+/* ============================================================================
+   SEMANTIC TYPOGRAPHY ROLES
+   Apply directly, or copy the rules onto your own selectors.
+   ============================================================================ */
+
+.gk-display {
+  font-family: var(--gk-font-display);
+  font-weight: var(--gk-weight-semi);
+  font-size: var(--gk-text-3xl);
+  line-height: var(--gk-leading-tight);
+  color: var(--gk-ink);
+  letter-spacing: -.5px;
+}
+
+.gk-h1 {
+  font-family: var(--gk-font-display);
+  font-weight: var(--gk-weight-semi);
+  font-size: var(--gk-text-2xl);
+  line-height: var(--gk-leading-tight);
+  color: var(--gk-ink);
+}
+
+.gk-h2 {
+  font-family: var(--gk-font-display);
+  font-weight: var(--gk-weight-semi);
+  font-size: var(--gk-text-xl);
+  line-height: var(--gk-leading-tight);
+  color: var(--gk-ink);
+}
+
+.gk-h3 {
+  font-family: var(--gk-font-display);
+  font-weight: var(--gk-weight-semi);
+  font-size: var(--gk-text-md);
+  line-height: 1.25;
+  color: var(--gk-ink);
+}
+
+.gk-body {
+  font-family: var(--gk-font-body);
+  font-weight: var(--gk-weight-med);
+  font-size: var(--gk-text-base);
+  line-height: var(--gk-leading-body);
+  color: var(--gk-ink);
+}
+
+.gk-body-sm {
+  font-family: var(--gk-font-body);
+  font-weight: var(--gk-weight-med);
+  font-size: var(--gk-text-sm);
+  line-height: 1.5;
+  color: var(--gk-muted);
+}
+
+.gk-label {
+  font-family: var(--gk-font-body);
+  font-weight: var(--gk-weight-bold);
+  font-size: var(--gk-text-xs);
+  color: var(--gk-ink);
+}
+
+/* Eyebrow / badge — uppercase tracked label, used for "screen N of 4", tags */
+.gk-eyebrow {
+  font-family: var(--gk-font-body);
+  font-weight: var(--gk-weight-bold);
+  font-size: var(--gk-text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--gk-tracking-cap);
+  color: var(--gk-orange);
+}
+
+.gk-code {
+  font-family: var(--gk-font-mono);
+  font-size: var(--gk-text-xs);
+  line-height: 1.5;
+  color: var(--gk-info);
+}

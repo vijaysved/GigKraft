@@ -1,0 +1,231 @@
+/* ============================================================================
+   GIGKRAFT — Mantine-flavored "fintech-clean" design system
+   ----------------------------------------------------------------------------
+   Production direction for the GigKraft app handed to Cursor (Mantine + Tabler).
+   Crisp, lots of white, blue primary (#228be6 — Mantine blue.6), soft blurred
+   shadows, generous radii. Light + dark themes via [data-theme].
+   Font: Manrope (UI) + JetBrains Mono (data / codes / zips).
+   ============================================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  /* ---- Mantine blue scale (primary) ---- */
+  --blue-0:#e7f5ff; --blue-1:#d0ebff; --blue-2:#a5d8ff; --blue-3:#74c0fc;
+  --blue-4:#4dabf7; --blue-5:#339af0; --blue-6:#228be6; --blue-7:#1c7ed6;
+  --blue-8:#1971c2; --blue-9:#1864ab;
+
+  /* ---- Mantine gray scale ---- */
+  --gray-0:#f8f9fa; --gray-1:#f1f3f5; --gray-2:#e9ecef; --gray-3:#dee2e6;
+  --gray-4:#ced4da; --gray-5:#adb5bd; --gray-6:#868e96; --gray-7:#495057;
+  --gray-8:#343a40; --gray-9:#212529;
+
+  /* ---- Mantine dark scale ---- */
+  --dark-0:#c1c2c5; --dark-1:#a6a7ab; --dark-2:#909296; --dark-3:#5c5f66;
+  --dark-4:#373a40; --dark-5:#2c2e33; --dark-6:#25262b; --dark-7:#1a1b1e;
+  --dark-8:#141517; --dark-9:#101113;
+
+  /* ---- Semantic accents (shared by both themes) ---- */
+  --green-6:#2f9e44; --green-1:#d3f9d8; --green-light:#ebfbee;
+  --teal-6:#0ca678;  --teal-1:#c3fae8;
+  --red-6:#e03131;   --red-1:#ffe3e3; --red-light:#fff5f5;
+  --yellow-6:#f08c00; --yellow-1:#fff3bf; --yellow-light:#fff9db;
+  --grape-6:#ae3ec9; --grape-1:#f3d9fa;
+  --orange-6:#f76707;
+  --whatsapp:#25d366;
+
+  /* ---- Spacing (Mantine: xs..xl) ---- */
+  --sp-xs:8px; --sp-sm:12px; --sp-md:16px; --sp-lg:20px; --sp-xl:32px;
+
+  /* ---- Radius ---- */
+  --r-xs:4px; --r-sm:8px; --r-md:10px; --r-lg:14px; --r-xl:20px; --r-pill:999px;
+
+  /* ---- Type ---- */
+  --font:'Manrope', system-ui, -apple-system, sans-serif;
+  --mono:'JetBrains Mono', ui-monospace, 'SF Mono', monospace; /* @kind font */
+  --fz-xs:11px; --fz-sm:13px; --fz-md:15px; --fz-lg:18px; --fz-xl:22px;
+  --fz-2xl:28px; --fz-3xl:34px;
+
+  /* ---- Motion ---- */
+  --ease:cubic-bezier(.4,0,.2,1); /* @kind other */
+}
+
+/* ===========================  LIGHT THEME  ============================= */
+:root, [data-theme="light"] {
+  --bg:           var(--gray-0);   /* app canvas behind cards            */
+  --bg-2:         var(--gray-1);   /* subtle sunken fill                 */
+  --surface:      #ffffff;         /* card / sheet                       */
+  --surface-2:    var(--gray-0);   /* nested fill / input bg             */
+  --border:       var(--gray-2);   /* hairline                           */
+  --border-2:     var(--gray-3);   /* stronger hairline                  */
+  --text:         var(--gray-9);   /* primary ink                        */
+  --text-2:       var(--gray-7);   /* secondary                          */
+  --text-3:       var(--gray-6);   /* muted / placeholder                */
+  --primary:      var(--blue-6);
+  --primary-hover:var(--blue-7);
+  --primary-text: #ffffff;
+  --tint:         var(--blue-0);   /* primary light bg                   */
+  --tint-strong:  var(--blue-1);
+  --tint-text:    var(--blue-8);   /* text/icon on tint                  */
+  --shadow-xs:    0 1px 2px rgba(16,24,40,.06), 0 1px 1px rgba(16,24,40,.04);
+  --shadow-sm:    0 1px 3px rgba(16,24,40,.07), 0 1px 2px rgba(16,24,40,.04);
+  --shadow-md:    0 4px 12px rgba(16,24,40,.08), 0 2px 4px rgba(16,24,40,.04);
+  --shadow-lg:    0 12px 32px rgba(16,24,40,.12), 0 4px 8px rgba(16,24,40,.05);
+  --shadow-device:0 40px 80px -20px rgba(16,24,40,.35), 0 0 0 1px rgba(16,24,40,.04);
+  --green-bg:var(--green-light); --green-fg:#2b8a3e; --green-bd:#b2f2bb;
+  --red-bg:var(--red-light);     --red-fg:#c92a2a;  --red-bd:#ffc9c9;
+  --yellow-bg:var(--yellow-light); --yellow-fg:#e67700; --yellow-bd:#ffec99;
+}
+
+/* ============================  DARK THEME  ============================= */
+[data-theme="dark"] {
+  --bg:           var(--dark-9);
+  --bg-2:         var(--dark-8);
+  --surface:      var(--dark-7);
+  --surface-2:    var(--dark-6);
+  --border:       var(--dark-5);
+  --border-2:     var(--dark-4);
+  --text:         var(--dark-0);
+  --text-2:       var(--dark-1);
+  --text-3:       var(--dark-2);
+  --primary:      var(--blue-6);
+  --primary-hover:var(--blue-5);
+  --primary-text: #ffffff;
+  --tint:         rgba(34,139,230,.15);
+  --tint-strong:  rgba(34,139,230,.25);
+  --tint-text:    var(--blue-3);
+  --shadow-xs:    0 1px 2px rgba(0,0,0,.4);
+  --shadow-sm:    0 1px 3px rgba(0,0,0,.45);
+  --shadow-md:    0 4px 14px rgba(0,0,0,.5);
+  --shadow-lg:    0 14px 36px rgba(0,0,0,.6);
+  --shadow-device:0 40px 90px -20px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.04);
+  --green-bg:rgba(47,158,68,.14);  --green-fg:#69db7c; --green-bd:rgba(47,158,68,.4);
+  --red-bg:rgba(224,49,49,.14);    --red-fg:#ff8787;   --red-bd:rgba(224,49,49,.4);
+  --yellow-bg:rgba(240,140,0,.14); --yellow-fg:#ffd43b; --yellow-bd:rgba(240,140,0,.4);
+}
+
+* { box-sizing:border-box; }
+html, body { margin:0; padding:0; }
+body {
+  font-family:var(--font);
+  color:var(--text);
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+.ti { font-size:20px; line-height:1; display:inline-flex; }
+.mono { font-family:var(--mono); font-feature-settings:"tnum" 1; }
+
+/* ----------------------------------------------------------------------------
+   The component classes below double as the GigKraft UI-kit primitives.
+   They map 1:1 to Mantine components for an easy Cursor handoff.
+   ---------------------------------------------------------------------------- */
+
+/* ---- Button (Mantine Button) ---- */
+.gk-btn {
+  font-family:var(--font); font-weight:600; font-size:var(--fz-md);
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  border:1px solid transparent; border-radius:var(--r-sm);
+  padding:0 18px; height:46px; cursor:pointer; width:100%;
+  transition:background .15s var(--ease), border-color .15s var(--ease), transform .05s var(--ease), color .15s var(--ease);
+  -webkit-user-select:none; user-select:none;
+}
+.gk-btn:active { transform:translateY(1px); }
+.gk-btn .ti { font-size:19px; }
+.gk-btn--filled { background:var(--primary); color:var(--primary-text); }
+.gk-btn--filled:hover { background:var(--primary-hover); }
+.gk-btn--light { background:var(--tint); color:var(--tint-text); }
+.gk-btn--light:hover { background:var(--tint-strong); }
+.gk-btn--default { background:var(--surface); color:var(--text); border-color:var(--border-2); }
+.gk-btn--default:hover { background:var(--bg-2); }
+.gk-btn--subtle { background:transparent; color:var(--text-2); }
+.gk-btn--subtle:hover { background:var(--bg-2); }
+.gk-btn--danger { background:var(--red-bg); color:var(--red-fg); border-color:var(--red-bd); }
+.gk-btn--danger:hover { filter:brightness(1.05); }
+.gk-btn--sm { height:36px; font-size:var(--fz-sm); padding:0 14px; border-radius:var(--r-sm); }
+.gk-btn--xs { height:30px; font-size:var(--fz-xs); padding:0 10px; gap:5px; width:auto; }
+.gk-btn--auto { width:auto; }
+.gk-btn[disabled] { opacity:.45; cursor:not-allowed; }
+
+/* ---- Icon button ---- */
+.gk-iconbtn {
+  width:38px; height:38px; flex:0 0 auto; border-radius:var(--r-sm);
+  display:inline-flex; align-items:center; justify-content:center;
+  background:transparent; color:var(--text-2); border:1px solid transparent;
+  cursor:pointer; transition:background .15s var(--ease), color .15s;
+}
+.gk-iconbtn:hover { background:var(--bg-2); color:var(--text); }
+.gk-iconbtn .ti { font-size:21px; }
+
+/* ---- Paper / Card (Mantine Paper/Card) ---- */
+.gk-card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--r-lg); padding:var(--sp-md); box-shadow:var(--shadow-xs);
+}
+.gk-card--flat { box-shadow:none; }
+.gk-card--pad-lg { padding:var(--sp-lg); }
+.gk-card--press { cursor:pointer; transition:border-color .15s, box-shadow .15s, transform .08s; }
+.gk-card--press:hover { border-color:var(--border-2); box-shadow:var(--shadow-sm); }
+.gk-card--press:active { transform:scale(.992); }
+.gk-card--selected { border-color:var(--primary); background:var(--tint); }
+
+/* ---- Inputs (Mantine TextInput / Textarea / Select) ---- */
+.gk-field { display:flex; flex-direction:column; gap:6px; }
+.gk-field__label { font-size:var(--fz-sm); font-weight:600; color:var(--text); }
+.gk-field__req { color:var(--red-fg); margin-left:2px; }
+.gk-field__hint { font-size:var(--fz-xs); color:var(--text-3); line-height:1.45; }
+.gk-input {
+  font-family:var(--font); font-size:var(--fz-md); color:var(--text);
+  background:var(--surface); border:1px solid var(--border-2);
+  border-radius:var(--r-sm); height:46px; padding:0 13px; width:100%;
+  transition:border-color .15s var(--ease), box-shadow .15s var(--ease);
+}
+textarea.gk-input { height:auto; padding:11px 13px; resize:none; line-height:1.5; }
+.gk-input::placeholder { color:var(--text-3); }
+.gk-input:focus { outline:none; border-color:var(--primary); box-shadow:0 0 0 3px var(--tint); }
+.gk-input-wrap { position:relative; display:flex; align-items:center; }
+.gk-input-wrap .gk-input { padding-left:42px; }
+.gk-input-wrap__icon { position:absolute; left:13px; color:var(--text-3); font-size:19px; pointer-events:none; }
+select.gk-input { -webkit-appearance:none; appearance:none; cursor:pointer; padding-right:36px; }
+.gk-select-wrap { position:relative; }
+.gk-select-wrap::after { content:"\\ea5f"; font-family:"tabler-icons"; position:absolute; right:12px; top:50%; transform:translateY(-50%); color:var(--text-3); pointer-events:none; font-size:18px; }
+
+/* ---- Switch (Mantine Switch) ---- */
+.gk-switch { width:44px; height:26px; border-radius:var(--r-pill); background:var(--gray-4); position:relative; cursor:pointer; transition:background .18s var(--ease); flex:0 0 auto; border:none; }
+[data-theme="dark"] .gk-switch { background:var(--dark-4); }
+.gk-switch--on { background:var(--primary); }
+.gk-switch__dot { position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:#fff; box-shadow:var(--shadow-xs); transition:transform .18s var(--ease); }
+.gk-switch--on .gk-switch__dot { transform:translateX(18px); }
+
+/* ---- Segmented control (Mantine SegmentedControl) ---- */
+.gk-seg { display:flex; background:var(--bg-2); border-radius:var(--r-sm); padding:3px; gap:2px; }
+.gk-seg__item { flex:1; text-align:center; font-size:var(--fz-sm); font-weight:600; color:var(--text-3); padding:8px 6px; border-radius:6px; cursor:pointer; border:none; background:transparent; transition:color .15s; }
+.gk-seg__item--on { background:var(--surface); color:var(--text); box-shadow:var(--shadow-xs); }
+
+/* ---- Chip / Tag (Mantine Chip / Badge) ---- */
+.gk-chip { display:inline-flex; align-items:center; gap:6px; font-size:var(--fz-sm); font-weight:600; padding:7px 13px; border-radius:var(--r-pill); border:1px solid var(--border-2); background:var(--surface); color:var(--text-2); cursor:pointer; transition:all .15s; }
+.gk-chip--on { background:var(--tint); border-color:var(--primary); color:var(--tint-text); }
+.gk-chip .ti { font-size:15px; }
+
+.gk-badge { display:inline-flex; align-items:center; gap:5px; font-size:var(--fz-xs); font-weight:700; letter-spacing:.3px; text-transform:uppercase; padding:4px 9px; border-radius:var(--r-pill); background:var(--bg-2); color:var(--text-2); white-space:nowrap; }
+.gk-badge .ti { font-size:13px; }
+.gk-badge--blue { background:var(--tint); color:var(--tint-text); }
+.gk-badge--green { background:var(--green-bg); color:var(--green-fg); }
+.gk-badge--red { background:var(--red-bg); color:var(--red-fg); }
+.gk-badge--yellow { background:var(--yellow-bg); color:var(--yellow-fg); }
+
+/* ---- Avatar ---- */
+.gk-avatar { border-radius:50%; object-fit:cover; flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center; font-weight:700; color:#fff; background:var(--blue-6); overflow:hidden; }
+
+/* ---- Section label / eyebrow ---- */
+.gk-eyebrow { font-size:var(--fz-xs); font-weight:700; letter-spacing:.6px; text-transform:uppercase; color:var(--text-3); }
+
+/* ---- Divider ---- */
+.gk-divider { height:1px; background:var(--border); border:none; margin:0; }
+
+/* ---- Scrollbars inside phone ---- */
+.gk-scroll::-webkit-scrollbar { width:0; height:0; }
+.gk-scroll { scrollbar-width:none; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation:none !important; transition:none !important; }
+}

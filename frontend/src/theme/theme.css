@@ -1,0 +1,49 @@
+:root {
+  --gk-bg-canvas: #faf8f5;
+  --gk-bg-surface: #ffffff;
+  --gk-bg-sidebar: #0a2540;
+  --gk-bg-sidebar-active: linear-gradient(135deg, #3498db 0%, #f39c12 100%);
+  --gk-brand-gradient: linear-gradient(135deg, #3498db 0%, #7b8fa1 50%, #f39c12 100%);
+  --gk-accent-primary: #3498db;
+  --gk-accent-secondary: #f39c12;
+  --gk-text-sidebar: #f8fafc;
+  --gk-text-muted: #627d98;
+  --gk-border: #e2e8f0;
+  --gk-font-script: "Dancing Script", cursive;
+}
+
+body {
+  background-color: var(--gk-bg-canvas);
+}
+
+.gk-gradient-text {
+  background: var(--gk-brand-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.gk-gradient-bar {
+  background: var(--gk-brand-gradient);
+  border-radius: var(--mantine-radius-sm);
+}
+
+.gk-wallpaper-layer {
+  position: absolute;
+  inset: 0;
+  background-image: url("/brand/wallpaper-blueprint.png");
+  background-size: cover;
+  background-position: center;
+  pointer-events: none;
+}
+
+.gk-wallpaper-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(6, 24, 41, 0.88) 0%,
+    rgba(10, 37, 64, 0.94) 100%
+  );
+  pointer-events: none;
+}

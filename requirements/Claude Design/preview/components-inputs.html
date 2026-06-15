@@ -1,0 +1,25 @@
+<!-- @dsCard group="Components" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin:0; padding:24px; background:var(--gk-cream); font-family:var(--gk-font-body); }
+  .lbl { font-size:11px; font-weight:700; display:block; margin-bottom:5px; color:var(--gk-ink); }
+  .field { width:100%; padding:10px; border:var(--gk-border); border-radius:6px; font-size:13px; font-family:inherit; color:var(--gk-ink); margin-bottom:14px; background:#fff; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .focus { outline:none; border-color:var(--gk-orange); box-shadow:var(--gk-shadow-xs); }
+</style>
+</head>
+<body>
+  <label class="lbl">Project Title Descriptor</label>
+  <input class="field" value="Copper Pipe Valve Resolder">
+  <label class="lbl">Mobile Terminal Number <span style="color:var(--gk-orange)">(focused)</span></label>
+  <input class="field focus" value="+1 (555) 014-9988">
+  <div class="grid">
+    <div><label class="lbl">Final Cost ($)</label><input class="field" value="120.00"></div>
+    <div><label class="lbl">Node</label><input class="field" value="SW-04"></div>
+  </div>
+</body>
+</html>

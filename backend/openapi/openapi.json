@@ -1,0 +1,6327 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "GigKraft API",
+    "version": "0.2.0",
+    "description": "GigKraft backend API (MVP, Phase 1: integrations mocked)."
+  },
+  "paths": {
+    "/api/health": {
+      "get": {
+        "operationId": "common_api_health",
+        "summary": "Health",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthOut"
+                }
+              }
+            }
+          }
+        },
+        "description": "Liveness check; also reports which integrations are mocked.",
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/api/auth/register": {
+      "post": {
+        "operationId": "accounts_api_register",
+        "summary": "Register",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenPairOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "description": "Email/password registration (any role; primary path for node managers).",
+        "tags": [
+          "auth"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterIn"
+              }
+            }
+          },
+          "required": true
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "operationId": "accounts_api_login",
+        "summary": "Login",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenPairOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "description": "Email/password login.",
+        "tags": [
+          "auth"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginIn"
+              }
+            }
+          },
+          "required": true
+        }
+      }
+    },
+    "/api/auth/refresh": {
+      "post": {
+        "operationId": "accounts_api_refresh",
+        "summary": "Refresh",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessTokenOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "description": "Exchange a valid refresh token for a new access token.",
+        "tags": [
+          "auth"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshIn"
+              }
+            }
+          },
+          "required": true
+        }
+      }
+    },
+    "/api/auth/otp/request": {
+      "post": {
+        "operationId": "accounts_api_otp_request",
+        "summary": "Otp Request",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OTPRequestOut"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "description": "Request a phone OTP (pros/homeowners).\n\nMOCK (Phase 1): with MOCK_TWILIO=true the code is deterministic and\nreturned in `dev_code` so local clients can complete the flow.",
+        "tags": [
+          "auth"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OTPRequestIn"
+              }
+            }
+          },
+          "required": true
+        }
+      }
+    },
+    "/api/auth/otp/verify": {
+      "post": {
+        "operationId": "accounts_api_otp_verify",
+        "summary": "Otp Verify",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenPairOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "description": "Verify a phone OTP and sign in (creates the user on first login).",
+        "tags": [
+          "auth"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OTPVerifyIn"
+              }
+            }
+          },
+          "required": true
+        }
+      }
+    },
+    "/api/auth/google": {
+      "post": {
+        "operationId": "accounts_api_google_auth",
+        "summary": "Google Auth",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenPairOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "description": "Google sign-in for node managers.\n\nMOCK (Phase 1): with MOCK_GOOGLE_OAUTH=true the id_token must be\n\"mock-google:<email>\" and is validated deterministically.",
+        "tags": [
+          "auth"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleAuthIn"
+              }
+            }
+          },
+          "required": true
+        }
+      }
+    },
+    "/api/me": {
+      "get": {
+        "operationId": "accounts_api_me",
+        "summary": "Me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserOut"
+                }
+              }
+            }
+          }
+        },
+        "description": "Return the authenticated user's profile (JWT-protected sample).",
+        "tags": [
+          "me"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      },
+      "patch": {
+        "operationId": "accounts_api_patch_me",
+        "summary": "Patch Me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserOut"
+                }
+              }
+            }
+          }
+        },
+        "description": "Update the authenticated user's name fields.",
+        "tags": [
+          "me"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserPatchIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/me/notif-prefs": {
+      "get": {
+        "operationId": "accounts_home_api_get_notif_prefs",
+        "summary": "Get Notif Prefs",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotifPrefOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "me"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      },
+      "patch": {
+        "operationId": "accounts_home_api_update_notif_prefs",
+        "summary": "Update Notif Prefs",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotifPrefOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "me"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotifPrefIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/pros/me": {
+      "get": {
+        "operationId": "accounts_pros_api_my_pro_profile",
+        "summary": "My Pro Profile",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "pros"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      },
+      "patch": {
+        "operationId": "accounts_pros_api_update_pro_profile",
+        "summary": "Update Pro Profile",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "pros"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProProfileIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/pros/me/service-area": {
+      "patch": {
+        "operationId": "accounts_pros_api_update_service_area",
+        "summary": "Update Service Area",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "pros"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServiceAreaIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/pros/me/handle": {
+      "patch": {
+        "operationId": "accounts_pros_api_update_handle",
+        "summary": "Update Handle",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "pros"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HandleIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/pros": {
+      "get": {
+        "operationId": "accounts_pros_api_list_pros",
+        "summary": "List Pros",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "node",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Node"
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "trade",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Trade"
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "zip",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Zip"
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            },
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ProOut"
+                  },
+                  "title": "Response",
+                  "type": "array"
+                }
+              }
+            }
+          }
+        },
+        "description": "Discovery / B2B search (1.13). Filters by node, trade and ZIP.",
+        "tags": [
+          "pros"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/pros/{pro_id}": {
+      "get": {
+        "operationId": "accounts_pros_api_pro_detail",
+        "summary": "Pro Detail",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pro_id",
+            "schema": {
+              "title": "Pro Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "pros"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/pros/me/stats": {
+      "get": {
+        "operationId": "accounts_pros_api_my_performance",
+        "summary": "My Performance",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "range",
+            "schema": {
+              "default": "30d",
+              "title": "Range",
+              "type": "string"
+            },
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProPerformanceOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "pros"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/pros/by-handle/{handle}": {
+      "get": {
+        "operationId": "accounts_pros_api_pro_by_handle",
+        "summary": "Pro By Handle",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "handle",
+            "schema": {
+              "title": "Handle",
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "pros"
+        ]
+      }
+    },
+    "/api/krafts": {
+      "post": {
+        "operationId": "krafts_api_create_kraft",
+        "summary": "Create Kraft",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KraftOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "krafts"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KraftIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      },
+      "get": {
+        "operationId": "krafts_api_list_krafts",
+        "summary": "List Krafts",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "node",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Node"
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "mine",
+            "schema": {
+              "default": false,
+              "title": "Mine",
+              "type": "boolean"
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "trade",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Trade"
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            },
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/KraftOut"
+                  },
+                  "title": "Response",
+                  "type": "array"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "krafts"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/krafts/slug/{slug}": {
+      "get": {
+        "operationId": "krafts_api_kraft_detail_by_slug",
+        "summary": "Kraft Detail By Slug",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "schema": {
+              "title": "Slug",
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KraftOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "krafts"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/krafts/{kraft_id}": {
+      "get": {
+        "operationId": "krafts_api_kraft_detail",
+        "summary": "Kraft Detail",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kraft_id",
+            "schema": {
+              "title": "Kraft Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KraftOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "krafts"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      },
+      "patch": {
+        "operationId": "krafts_api_update_kraft",
+        "summary": "Update Kraft",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kraft_id",
+            "schema": {
+              "title": "Kraft Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KraftOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "krafts"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KraftUpdateIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/krafts/{kraft_id}/publish": {
+      "post": {
+        "operationId": "krafts_api_publish_kraft",
+        "summary": "Publish Kraft",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kraft_id",
+            "schema": {
+              "title": "Kraft Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KraftOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "description": "Publish the Kraft. Requires \u22651 photo. Sets status VERIFIED directly.",
+        "tags": [
+          "krafts"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/krafts/{kraft_id}/verify": {
+      "post": {
+        "operationId": "krafts_api_verify_kraft",
+        "summary": "Verify Kraft",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kraft_id",
+            "schema": {
+              "title": "Kraft Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KraftOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "krafts"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/krafts/{kraft_id}/reject": {
+      "post": {
+        "operationId": "krafts_api_reject_kraft",
+        "summary": "Reject Kraft",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kraft_id",
+            "schema": {
+              "title": "Kraft Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KraftOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "krafts"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/krafts/by-pro/{pro_id}": {
+      "get": {
+        "operationId": "krafts_api_krafts_by_pro",
+        "summary": "Krafts By Pro",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pro_id",
+            "schema": {
+              "title": "Pro Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/KraftPublicOut"
+                  },
+                  "title": "Response",
+                  "type": "array"
+                }
+              }
+            }
+          }
+        },
+        "description": "Public: return the verified Krafts for a pro (shown on public profile).",
+        "tags": [
+          "krafts"
+        ]
+      }
+    },
+    "/api/leads": {
+      "get": {
+        "operationId": "leads_api_list_leads",
+        "summary": "List Leads",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            },
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/LeadOut"
+                  },
+                  "title": "Response",
+                  "type": "array"
+                }
+              }
+            }
+          }
+        },
+        "description": "Role-aware list: pros see their leads, homeowners see theirs.",
+        "tags": [
+          "leads"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "leads_api_create_lead",
+        "summary": "Create Lead",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "description": "Homeowner requests a quote from a pro (screen 2.2 footer).\n\nSets respond_by = created_at + pro.response_hours (the SLA timer).",
+        "tags": [
+          "leads"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeadCreateIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/leads/{lead_id}": {
+      "get": {
+        "operationId": "leads_api_lead_detail",
+        "summary": "Lead Detail",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lead_id",
+            "schema": {
+              "title": "Lead Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "leads"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/leads/{lead_id}/messages": {
+      "get": {
+        "operationId": "leads_api_list_messages",
+        "summary": "List Messages",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lead_id",
+            "schema": {
+              "title": "Lead Id",
+              "type": "integer"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "since",
+            "schema": {
+              "default": 0,
+              "title": "Since",
+              "type": "integer"
+            },
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MessageOut"
+                  },
+                  "title": "Response",
+                  "type": "array"
+                }
+              }
+            }
+          }
+        },
+        "description": "Poll endpoint: pass ?since=<last message id> for increments.",
+        "tags": [
+          "leads"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "leads_api_send_message",
+        "summary": "Send Message",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lead_id",
+            "schema": {
+              "title": "Lead Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "leads"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessageIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/leads/{lead_id}/quotes": {
+      "post": {
+        "operationId": "leads_api_send_quote",
+        "summary": "Send Quote",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lead_id",
+            "schema": {
+              "title": "Lead Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "description": "Pro sends a quote (or invoice) into the chat (screen 1.10).",
+        "tags": [
+          "leads"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuoteIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/leads/quotes/{quote_id}/accept": {
+      "post": {
+        "operationId": "leads_api_accept_quote",
+        "summary": "Accept Quote",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "quote_id",
+            "schema": {
+              "title": "Quote Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "description": "Homeowner accepts a quote (screen 2.4).",
+        "tags": [
+          "leads"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/leads/{lead_id}/complete": {
+      "post": {
+        "operationId": "leads_api_mark_complete",
+        "summary": "Mark Complete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lead_id",
+            "schema": {
+              "title": "Lead Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadOut"
+                }
+              }
+            }
+          }
+        },
+        "description": "Pro marks the job complete -> lead won (screen 1.10 quick action).",
+        "tags": [
+          "leads"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/leads/{lead_id}/archive": {
+      "post": {
+        "operationId": "leads_api_archive_lead",
+        "summary": "Archive Lead",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lead_id",
+            "schema": {
+              "title": "Lead Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "leads"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/emergencies": {
+      "post": {
+        "operationId": "emergencies_api_create_broadcast",
+        "summary": "Create Broadcast",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BroadcastOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "emergencies"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BroadcastIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/emergencies/open": {
+      "get": {
+        "operationId": "emergencies_api_open_broadcasts",
+        "summary": "Open Broadcasts",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/BroadcastOut"
+                  },
+                  "title": "Response",
+                  "type": "array"
+                }
+              }
+            }
+          }
+        },
+        "description": "Open (unclaimed) broadcasts a pro can claim.",
+        "tags": [
+          "emergencies"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/emergencies/{broadcast_id}": {
+      "get": {
+        "operationId": "emergencies_api_broadcast_detail",
+        "summary": "Broadcast Detail",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "broadcast_id",
+            "schema": {
+              "title": "Broadcast Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BroadcastOut"
+                }
+              }
+            }
+          }
+        },
+        "description": "Poll endpoint for the success state (claim list updates).",
+        "tags": [
+          "emergencies"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/emergencies/{broadcast_id}/claim": {
+      "post": {
+        "operationId": "emergencies_api_claim_broadcast",
+        "summary": "Claim Broadcast",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "broadcast_id",
+            "schema": {
+              "title": "Broadcast Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BroadcastOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "description": "First pro to claim wins: opens a Lead + chat, sets claimed_by.",
+        "tags": [
+          "emergencies"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/recommendations/request": {
+      "post": {
+        "operationId": "recommendations_api_request_recommendation",
+        "summary": "Request Recommendation",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecommendationOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "description": "Pro sends a magic review link to a past client (screen 1.7).",
+        "tags": [
+          "recommendations"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/recommendations/review/{token}": {
+      "get": {
+        "operationId": "recommendations_api_review_context",
+        "summary": "Review Context",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewContextOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "description": "Public: load the review screen context from a magic link (2.5).",
+        "tags": [
+          "recommendations"
+        ]
+      },
+      "post": {
+        "operationId": "recommendations_api_submit_review",
+        "summary": "Submit Review",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecommendationOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "description": "Public: submit stars + text + optional photos via the magic link.",
+        "tags": [
+          "recommendations"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewSubmitIn"
+              }
+            }
+          },
+          "required": true
+        }
+      }
+    },
+    "/api/recommendations": {
+      "get": {
+        "operationId": "recommendations_api_list_recommendations",
+        "summary": "List Recommendations",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            },
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RecommendationOut"
+                  },
+                  "title": "Response",
+                  "type": "array"
+                }
+              }
+            }
+          }
+        },
+        "description": "Pro's own recommendations; ?status=submitted for the moderation\nqueue (screen 1.8).",
+        "tags": [
+          "recommendations"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/recommendations/{rec_id}/approve": {
+      "post": {
+        "operationId": "recommendations_api_approve_recommendation",
+        "summary": "Approve Recommendation",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rec_id",
+            "schema": {
+              "title": "Rec Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecommendationOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "description": "Pro approves -> the recommendation goes public on the profile.",
+        "tags": [
+          "recommendations"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/recommendations/{rec_id}/hide": {
+      "post": {
+        "operationId": "recommendations_api_hide_recommendation",
+        "summary": "Hide Recommendation",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rec_id",
+            "schema": {
+              "title": "Rec Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecommendationOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "recommendations"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/recommendations/by-handle/{handle}": {
+      "get": {
+        "operationId": "recommendations_api_public_recommendations",
+        "summary": "Public Recommendations",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "handle",
+            "schema": {
+              "title": "Handle",
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PublicRecOut"
+                  },
+                  "title": "Response",
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "description": "Return approved recommendations for a pro's public profile.",
+        "tags": [
+          "recommendations"
+        ]
+      }
+    },
+    "/api/home/account": {
+      "get": {
+        "operationId": "accounts_home_api_home_account",
+        "summary": "Home Account",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HomeAccountOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "home"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/home/saved-pros": {
+      "get": {
+        "operationId": "accounts_home_api_list_saved_pros",
+        "summary": "List Saved Pros",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ProOut"
+                  },
+                  "title": "Response",
+                  "type": "array"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "home"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/home/saved-pros/{pro_id}": {
+      "post": {
+        "operationId": "accounts_home_api_save_pro",
+        "summary": "Save Pro",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pro_id",
+            "schema": {
+              "title": "Pro Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "home"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "accounts_home_api_unsave_pro",
+        "summary": "Unsave Pro",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pro_id",
+            "schema": {
+              "title": "Pro Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "home"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/home/jobs": {
+      "get": {
+        "operationId": "accounts_home_api_home_jobs",
+        "summary": "Home Jobs",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/HomeJobOut"
+                  },
+                  "title": "Response",
+                  "type": "array"
+                }
+              }
+            }
+          }
+        },
+        "description": "Past leads/quotes with invoice amounts (screen 2.6 'Past jobs').",
+        "tags": [
+          "home"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/home/addresses": {
+      "get": {
+        "operationId": "accounts_home_api_list_addresses",
+        "summary": "List Addresses",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AddressOut"
+                  },
+                  "title": "Response",
+                  "type": "array"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "home"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "accounts_home_api_create_address",
+        "summary": "Create Address",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddressOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "home"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddressIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/home/addresses/{address_id}": {
+      "patch": {
+        "operationId": "accounts_home_api_update_address",
+        "summary": "Update Address",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "address_id",
+            "schema": {
+              "title": "Address Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddressOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "home"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddressPatchIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "accounts_home_api_delete_address",
+        "summary": "Delete Address",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "address_id",
+            "schema": {
+              "title": "Address Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "home"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/metrics": {
+      "get": {
+        "operationId": "nodes_admin_api_metrics",
+        "summary": "Metrics",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "node",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Node"
+            },
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricsOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "admin"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/triage": {
+      "get": {
+        "operationId": "nodes_admin_api_triage",
+        "summary": "Triage",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "node",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Node"
+            },
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TriageOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "admin"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/triage/{broadcast_id}/pin": {
+      "post": {
+        "operationId": "nodes_admin_api_pin_triage",
+        "summary": "Pin Triage",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "broadcast_id",
+            "schema": {
+              "title": "Broadcast Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BroadcastOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "description": "SMS-pin: mark the emergency as manually routed (removes from queue).",
+        "tags": [
+          "admin"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/triage/{broadcast_id}/blast": {
+      "post": {
+        "operationId": "nodes_admin_api_blast_triage",
+        "summary": "Blast Triage",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "broadcast_id",
+            "schema": {
+              "title": "Broadcast Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BroadcastOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "description": "WhatsApp blast: re-dispatch the broadcast to eligible pros (mock).",
+        "tags": [
+          "admin"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/safety": {
+      "get": {
+        "operationId": "nodes_admin_api_safety",
+        "summary": "Safety",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "node",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Node"
+            },
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SafetyOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "admin"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/safety/{log_id}/dismiss": {
+      "post": {
+        "operationId": "nodes_admin_api_dismiss_safety",
+        "summary": "Dismiss Safety",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "log_id",
+            "schema": {
+              "title": "Log Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SafetyRow"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "admin"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/safety/{log_id}/suspend": {
+      "post": {
+        "operationId": "nodes_admin_api_suspend_safety",
+        "summary": "Suspend Safety",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "log_id",
+            "schema": {
+              "title": "Log Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SafetyRow"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "admin"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/pros": {
+      "get": {
+        "operationId": "nodes_admin_api_pro_ledger",
+        "summary": "Pro Ledger",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "node",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Node"
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            },
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/LedgerRow"
+                  },
+                  "title": "Response",
+                  "type": "array"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "admin"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/node-settings": {
+      "get": {
+        "operationId": "nodes_admin_api_node_settings",
+        "summary": "Node Settings",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "node",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Node"
+            },
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NodeSettingsOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "admin"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      },
+      "patch": {
+        "operationId": "nodes_admin_api_update_node_settings",
+        "summary": "Update Node Settings",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "node",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Node"
+            },
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NodeSettingsOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NodeSettingsIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/billing": {
+      "get": {
+        "operationId": "nodes_admin_api_node_billing",
+        "summary": "Node Billing",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "node",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Node"
+            },
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NodeBillingOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "admin"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/billing/subscription": {
+      "get": {
+        "operationId": "billing_api_my_subscription",
+        "summary": "My Subscription",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "billing"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/billing/plan": {
+      "post": {
+        "operationId": "billing_api_switch_plan",
+        "summary": "Switch Plan",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "billing"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/billing/coupon": {
+      "post": {
+        "operationId": "billing_api_apply_coupon",
+        "summary": "Apply Coupon",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "billing"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CouponIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/billing/history": {
+      "get": {
+        "operationId": "billing_api_billing_history",
+        "summary": "Billing History",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/InvoiceOut"
+                  },
+                  "title": "Response",
+                  "type": "array"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "billing"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HealthOut": {
+        "properties": {
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "debug": {
+            "title": "Debug",
+            "type": "boolean"
+          },
+          "mocks": {
+            "additionalProperties": true,
+            "title": "Mocks",
+            "type": "object"
+          }
+        },
+        "required": [
+          "status",
+          "debug",
+          "mocks"
+        ],
+        "title": "HealthOut",
+        "type": "object"
+      },
+      "TokenPairOut": {
+        "properties": {
+          "access": {
+            "title": "Access",
+            "type": "string"
+          },
+          "refresh": {
+            "title": "Refresh",
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserOut"
+          }
+        },
+        "required": [
+          "access",
+          "refresh",
+          "user"
+        ],
+        "title": "TokenPairOut",
+        "type": "object"
+      },
+      "UserOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          },
+          "first_name": {
+            "title": "First Name",
+            "type": "string"
+          },
+          "last_name": {
+            "title": "Last Name",
+            "type": "string"
+          },
+          "node_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Node Id"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "phone",
+          "role",
+          "first_name",
+          "last_name"
+        ],
+        "title": "UserOut",
+        "type": "object"
+      },
+      "ErrorOut": {
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          }
+        },
+        "required": [
+          "detail"
+        ],
+        "title": "ErrorOut",
+        "type": "object"
+      },
+      "RegisterIn": {
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "password": {
+            "title": "Password",
+            "type": "string"
+          },
+          "role": {
+            "default": "node_manager",
+            "title": "Role",
+            "type": "string"
+          },
+          "first_name": {
+            "default": "",
+            "title": "First Name",
+            "type": "string"
+          },
+          "last_name": {
+            "default": "",
+            "title": "Last Name",
+            "type": "string"
+          },
+          "node_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Node Id"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "RegisterIn",
+        "type": "object"
+      },
+      "LoginIn": {
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "password": {
+            "title": "Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "LoginIn",
+        "type": "object"
+      },
+      "AccessTokenOut": {
+        "properties": {
+          "access": {
+            "title": "Access",
+            "type": "string"
+          }
+        },
+        "required": [
+          "access"
+        ],
+        "title": "AccessTokenOut",
+        "type": "object"
+      },
+      "RefreshIn": {
+        "properties": {
+          "refresh": {
+            "title": "Refresh",
+            "type": "string"
+          }
+        },
+        "required": [
+          "refresh"
+        ],
+        "title": "RefreshIn",
+        "type": "object"
+      },
+      "OTPRequestOut": {
+        "properties": {
+          "sent": {
+            "title": "Sent",
+            "type": "boolean"
+          },
+          "mock": {
+            "title": "Mock",
+            "type": "boolean"
+          },
+          "dev_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dev Code"
+          }
+        },
+        "required": [
+          "sent",
+          "mock"
+        ],
+        "title": "OTPRequestOut",
+        "type": "object"
+      },
+      "OTPRequestIn": {
+        "properties": {
+          "phone": {
+            "title": "Phone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "phone"
+        ],
+        "title": "OTPRequestIn",
+        "type": "object"
+      },
+      "OTPVerifyIn": {
+        "properties": {
+          "phone": {
+            "title": "Phone",
+            "type": "string"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "role": {
+            "default": "homeowner",
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "phone",
+          "code"
+        ],
+        "title": "OTPVerifyIn",
+        "type": "object"
+      },
+      "GoogleAuthIn": {
+        "properties": {
+          "id_token": {
+            "title": "Id Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id_token"
+        ],
+        "title": "GoogleAuthIn",
+        "type": "object"
+      },
+      "UserPatchIn": {
+        "properties": {
+          "first_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Name"
+          },
+          "last_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Name"
+          }
+        },
+        "title": "UserPatchIn",
+        "type": "object"
+      },
+      "NotifPrefOut": {
+        "properties": {
+          "sms_alerts": {
+            "title": "Sms Alerts",
+            "type": "boolean"
+          },
+          "whatsapp_dispatch": {
+            "title": "Whatsapp Dispatch",
+            "type": "boolean"
+          },
+          "weekly_digest": {
+            "title": "Weekly Digest",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "sms_alerts",
+          "whatsapp_dispatch",
+          "weekly_digest"
+        ],
+        "title": "NotifPrefOut",
+        "type": "object"
+      },
+      "NotifPrefIn": {
+        "properties": {
+          "sms_alerts": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sms Alerts"
+          },
+          "whatsapp_dispatch": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Whatsapp Dispatch"
+          },
+          "weekly_digest": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weekly Digest"
+          }
+        },
+        "title": "NotifPrefIn",
+        "type": "object"
+      },
+      "ProOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "handle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Handle"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "business_name": {
+            "title": "Business Name",
+            "type": "string"
+          },
+          "primary_trade": {
+            "title": "Primary Trade",
+            "type": "string"
+          },
+          "skill_tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Skill Tags",
+            "type": "array"
+          },
+          "bio": {
+            "title": "Bio",
+            "type": "string"
+          },
+          "base_zip": {
+            "title": "Base Zip",
+            "type": "string"
+          },
+          "service_mode": {
+            "title": "Service Mode",
+            "type": "string"
+          },
+          "service_zips": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Service Zips",
+            "type": "array"
+          },
+          "service_center_zip": {
+            "title": "Service Center Zip",
+            "type": "string"
+          },
+          "service_radius_miles": {
+            "title": "Service Radius Miles",
+            "type": "integer"
+          },
+          "response_hours": {
+            "title": "Response Hours",
+            "type": "integer"
+          },
+          "licensed": {
+            "title": "Licensed",
+            "type": "boolean"
+          },
+          "license_number": {
+            "title": "License Number",
+            "type": "string"
+          },
+          "insured": {
+            "title": "Insured",
+            "type": "boolean"
+          },
+          "availability": {
+            "title": "Availability",
+            "type": "string"
+          },
+          "wallpaper_id": {
+            "title": "Wallpaper Id",
+            "type": "integer"
+          },
+          "wallpaper_url": {
+            "title": "Wallpaper Url",
+            "type": "string"
+          },
+          "avatar_url": {
+            "title": "Avatar Url",
+            "type": "string"
+          },
+          "is_verified": {
+            "title": "Is Verified",
+            "type": "boolean"
+          },
+          "is_suspended": {
+            "title": "Is Suspended",
+            "type": "boolean"
+          },
+          "node_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Node Id"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/ProStatsSummary"
+          }
+        },
+        "required": [
+          "id",
+          "handle",
+          "name",
+          "business_name",
+          "primary_trade",
+          "skill_tags",
+          "bio",
+          "base_zip",
+          "service_mode",
+          "service_zips",
+          "service_center_zip",
+          "service_radius_miles",
+          "response_hours",
+          "licensed",
+          "license_number",
+          "insured",
+          "availability",
+          "wallpaper_id",
+          "wallpaper_url",
+          "avatar_url",
+          "is_verified",
+          "is_suspended",
+          "node_id",
+          "stats"
+        ],
+        "title": "ProOut",
+        "type": "object"
+      },
+      "ProStatsSummary": {
+        "properties": {
+          "krafts_verified": {
+            "title": "Krafts Verified",
+            "type": "integer"
+          },
+          "recs_approved": {
+            "title": "Recs Approved",
+            "type": "integer"
+          },
+          "avg_stars": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Stars"
+          }
+        },
+        "required": [
+          "krafts_verified",
+          "recs_approved",
+          "avg_stars"
+        ],
+        "title": "ProStatsSummary",
+        "type": "object"
+      },
+      "ProProfileIn": {
+        "description": "Partial update for onboarding screens 1.3-1.5.",
+        "properties": {
+          "business_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Business Name"
+          },
+          "primary_trade": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primary Trade"
+          },
+          "skill_tags": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skill Tags"
+          },
+          "bio": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bio"
+          },
+          "response_hours": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Response Hours"
+          },
+          "licensed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Licensed"
+          },
+          "license_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "License Number"
+          },
+          "insured": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Insured"
+          },
+          "availability": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Availability"
+          },
+          "wallpaper_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wallpaper Id"
+          },
+          "wallpaper_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wallpaper Url"
+          },
+          "avatar_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar Url"
+          }
+        },
+        "title": "ProProfileIn",
+        "type": "object"
+      },
+      "ServiceAreaIn": {
+        "description": "Service area (screen 1.2): ZIP list + radius only, no map.",
+        "properties": {
+          "base_zip": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Zip"
+          },
+          "service_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Service Mode"
+          },
+          "service_zips": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Service Zips"
+          },
+          "service_center_zip": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Service Center Zip"
+          },
+          "service_radius_miles": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Service Radius Miles"
+          }
+        },
+        "title": "ServiceAreaIn",
+        "type": "object"
+      },
+      "HandleIn": {
+        "properties": {
+          "handle": {
+            "title": "Handle",
+            "type": "string"
+          }
+        },
+        "required": [
+          "handle"
+        ],
+        "title": "HandleIn",
+        "type": "object"
+      },
+      "ProPerformanceOut": {
+        "properties": {
+          "range": {
+            "title": "Range",
+            "type": "string"
+          },
+          "profile_views": {
+            "$ref": "#/components/schemas/StatDelta"
+          },
+          "search_appearances": {
+            "$ref": "#/components/schemas/StatDelta"
+          },
+          "link_clicks": {
+            "$ref": "#/components/schemas/StatDelta"
+          },
+          "won_jobs": {
+            "$ref": "#/components/schemas/StatDelta"
+          },
+          "revenue_total": {
+            "title": "Revenue Total",
+            "type": "number"
+          },
+          "revenue_points": {
+            "items": {
+              "$ref": "#/components/schemas/RevenuePoint"
+            },
+            "title": "Revenue Points",
+            "type": "array"
+          },
+          "conversion_pct": {
+            "title": "Conversion Pct",
+            "type": "integer"
+          },
+          "avg_response_minutes": {
+            "title": "Avg Response Minutes",
+            "type": "integer"
+          },
+          "sla_target_hours": {
+            "title": "Sla Target Hours",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "range",
+          "profile_views",
+          "search_appearances",
+          "link_clicks",
+          "won_jobs",
+          "revenue_total",
+          "revenue_points",
+          "conversion_pct",
+          "avg_response_minutes",
+          "sla_target_hours"
+        ],
+        "title": "ProPerformanceOut",
+        "type": "object"
+      },
+      "RevenuePoint": {
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "amount": {
+            "title": "Amount",
+            "type": "number"
+          }
+        },
+        "required": [
+          "label",
+          "amount"
+        ],
+        "title": "RevenuePoint",
+        "type": "object"
+      },
+      "StatDelta": {
+        "properties": {
+          "value": {
+            "title": "Value",
+            "type": "integer"
+          },
+          "delta_pct": {
+            "title": "Delta Pct",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "value",
+          "delta_pct"
+        ],
+        "title": "StatDelta",
+        "type": "object"
+      },
+      "KraftOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "skill": {
+            "title": "Skill",
+            "type": "string"
+          },
+          "gig_type": {
+            "title": "Gig Type",
+            "type": "string"
+          },
+          "location": {
+            "title": "Location",
+            "type": "string"
+          },
+          "start_month": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Month"
+          },
+          "start_year": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Year"
+          },
+          "end_month": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Month"
+          },
+          "end_year": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Year"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "review_note": {
+            "title": "Review Note",
+            "type": "string"
+          },
+          "has_after": {
+            "title": "Has After",
+            "type": "boolean"
+          },
+          "photos": {
+            "items": {
+              "$ref": "#/components/schemas/KraftPhotoOut"
+            },
+            "title": "Photos",
+            "type": "array"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "pro": {
+            "$ref": "#/components/schemas/ProOut"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "title",
+          "description",
+          "skill",
+          "gig_type",
+          "location",
+          "start_month",
+          "start_year",
+          "end_month",
+          "end_year",
+          "status",
+          "review_note",
+          "has_after",
+          "photos",
+          "created_at",
+          "pro"
+        ],
+        "title": "KraftOut",
+        "type": "object"
+      },
+      "KraftPhotoOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "image_url": {
+            "title": "Image Url",
+            "type": "string"
+          },
+          "order": {
+            "title": "Order",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "image_url",
+          "order"
+        ],
+        "title": "KraftPhotoOut",
+        "type": "object"
+      },
+      "KraftIn": {
+        "properties": {
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "description": {
+            "default": "",
+            "title": "Description",
+            "type": "string"
+          },
+          "skill": {
+            "default": "",
+            "title": "Skill",
+            "type": "string"
+          },
+          "gig_type": {
+            "default": "",
+            "title": "Gig Type",
+            "type": "string"
+          },
+          "location": {
+            "default": "",
+            "title": "Location",
+            "type": "string"
+          },
+          "start_month": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Month"
+          },
+          "start_year": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Year"
+          },
+          "end_month": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Month"
+          },
+          "end_year": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Year"
+          },
+          "photos": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/KraftPhotoIn"
+            },
+            "title": "Photos",
+            "type": "array"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "title": "KraftIn",
+        "type": "object"
+      },
+      "KraftPhotoIn": {
+        "properties": {
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "image_url": {
+            "title": "Image Url",
+            "type": "string"
+          },
+          "order": {
+            "default": 0,
+            "title": "Order",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "kind",
+          "image_url"
+        ],
+        "title": "KraftPhotoIn",
+        "type": "object"
+      },
+      "KraftUpdateIn": {
+        "properties": {
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "skill": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skill"
+          },
+          "gig_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gig Type"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
+          },
+          "start_month": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Month"
+          },
+          "start_year": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Year"
+          },
+          "end_month": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Month"
+          },
+          "end_year": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Year"
+          },
+          "photos": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/KraftPhotoIn"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photos"
+          }
+        },
+        "title": "KraftUpdateIn",
+        "type": "object"
+      },
+      "RejectIn": {
+        "properties": {
+          "note": {
+            "default": "",
+            "title": "Note",
+            "type": "string"
+          }
+        },
+        "title": "RejectIn",
+        "type": "object"
+      },
+      "KraftPublicOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "skill": {
+            "title": "Skill",
+            "type": "string"
+          },
+          "gig_type": {
+            "title": "Gig Type",
+            "type": "string"
+          },
+          "location": {
+            "title": "Location",
+            "type": "string"
+          },
+          "start_month": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Month"
+          },
+          "start_year": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Year"
+          },
+          "end_month": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Month"
+          },
+          "end_year": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Year"
+          },
+          "before_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Before Url"
+          },
+          "after_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "After Url"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "description",
+          "skill",
+          "gig_type",
+          "location",
+          "start_month",
+          "start_year",
+          "end_month",
+          "end_year",
+          "before_url",
+          "after_url"
+        ],
+        "title": "KraftPublicOut",
+        "type": "object"
+      },
+      "LeadOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "job_title": {
+            "title": "Job Title",
+            "type": "string"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "distance_mi": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Distance Mi"
+          },
+          "respond_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Respond By"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "homeowner": {
+            "$ref": "#/components/schemas/PartyOut"
+          },
+          "pro": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PartyOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Message"
+          },
+          "unread_hint": {
+            "title": "Unread Hint",
+            "type": "integer"
+          },
+          "quotes": {
+            "items": {
+              "$ref": "#/components/schemas/QuoteOut"
+            },
+            "title": "Quotes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "job_title",
+          "detail",
+          "status",
+          "distance_mi",
+          "respond_by",
+          "created_at",
+          "homeowner",
+          "pro",
+          "last_message",
+          "unread_hint",
+          "quotes"
+        ],
+        "title": "LeadOut",
+        "type": "object"
+      },
+      "PartyOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "avatar_url": {
+            "title": "Avatar Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "avatar_url"
+        ],
+        "title": "PartyOut",
+        "type": "object"
+      },
+      "QuoteLineItem": {
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "amount": {
+            "title": "Amount",
+            "type": "number"
+          }
+        },
+        "required": [
+          "label",
+          "amount"
+        ],
+        "title": "QuoteLineItem",
+        "type": "object"
+      },
+      "QuoteOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "lead_id": {
+            "title": "Lead Id",
+            "type": "integer"
+          },
+          "line_items": {
+            "items": {
+              "$ref": "#/components/schemas/QuoteLineItem"
+            },
+            "title": "Line Items",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "number"
+          },
+          "accepted": {
+            "title": "Accepted",
+            "type": "boolean"
+          },
+          "is_invoice": {
+            "title": "Is Invoice",
+            "type": "boolean"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "lead_id",
+          "line_items",
+          "total",
+          "accepted",
+          "is_invoice",
+          "created_at"
+        ],
+        "title": "QuoteOut",
+        "type": "object"
+      },
+      "LeadCreateIn": {
+        "properties": {
+          "pro_id": {
+            "title": "Pro Id",
+            "type": "integer"
+          },
+          "job_title": {
+            "title": "Job Title",
+            "type": "string"
+          },
+          "detail": {
+            "default": "",
+            "title": "Detail",
+            "type": "string"
+          }
+        },
+        "required": [
+          "pro_id",
+          "job_title"
+        ],
+        "title": "LeadCreateIn",
+        "type": "object"
+      },
+      "MessageOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "lead_id": {
+            "title": "Lead Id",
+            "type": "integer"
+          },
+          "sender_id": {
+            "title": "Sender Id",
+            "type": "integer"
+          },
+          "sender_name": {
+            "title": "Sender Name",
+            "type": "string"
+          },
+          "is_mine": {
+            "title": "Is Mine",
+            "type": "boolean"
+          },
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "image_url": {
+            "title": "Image Url",
+            "type": "string"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "lead_id",
+          "sender_id",
+          "sender_name",
+          "is_mine",
+          "body",
+          "image_url",
+          "created_at"
+        ],
+        "title": "MessageOut",
+        "type": "object"
+      },
+      "MessageIn": {
+        "properties": {
+          "body": {
+            "default": "",
+            "title": "Body",
+            "type": "string"
+          },
+          "image_url": {
+            "default": "",
+            "title": "Image Url",
+            "type": "string"
+          }
+        },
+        "title": "MessageIn",
+        "type": "object"
+      },
+      "QuoteIn": {
+        "properties": {
+          "line_items": {
+            "items": {
+              "$ref": "#/components/schemas/QuoteLineItem"
+            },
+            "title": "Line Items",
+            "type": "array"
+          },
+          "is_invoice": {
+            "default": false,
+            "title": "Is Invoice",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "line_items"
+        ],
+        "title": "QuoteIn",
+        "type": "object"
+      },
+      "BroadcastOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "address": {
+            "title": "Address",
+            "type": "string"
+          },
+          "zip": {
+            "title": "Zip",
+            "type": "string"
+          },
+          "budget_ceiling": {
+            "title": "Budget Ceiling",
+            "type": "number"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "claimed_by_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Claimed By Id"
+          },
+          "claimed_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Claimed By Name"
+          },
+          "claimed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Claimed At"
+          },
+          "lead_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lead Id"
+          },
+          "dispatches": {
+            "items": {
+              "$ref": "#/components/schemas/DispatchOut"
+            },
+            "title": "Dispatches",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "description",
+          "address",
+          "zip",
+          "budget_ceiling",
+          "status",
+          "created_at",
+          "claimed_by_id",
+          "claimed_by_name",
+          "claimed_at",
+          "lead_id",
+          "dispatches"
+        ],
+        "title": "BroadcastOut",
+        "type": "object"
+      },
+      "DispatchOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "pro_id": {
+            "title": "Pro Id",
+            "type": "integer"
+          },
+          "pro_name": {
+            "title": "Pro Name",
+            "type": "string"
+          },
+          "pro_trade": {
+            "title": "Pro Trade",
+            "type": "string"
+          },
+          "channel": {
+            "title": "Channel",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "pro_id",
+          "pro_name",
+          "pro_trade",
+          "channel",
+          "status",
+          "created_at"
+        ],
+        "title": "DispatchOut",
+        "type": "object"
+      },
+      "BroadcastIn": {
+        "properties": {
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "address": {
+            "title": "Address",
+            "type": "string"
+          },
+          "zip": {
+            "default": "",
+            "title": "Zip",
+            "type": "string"
+          },
+          "budget_ceiling": {
+            "title": "Budget Ceiling",
+            "type": "number"
+          }
+        },
+        "required": [
+          "kind",
+          "description",
+          "address",
+          "budget_ceiling"
+        ],
+        "title": "BroadcastIn",
+        "type": "object"
+      },
+      "RecommendationOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "client_name": {
+            "title": "Client Name",
+            "type": "string"
+          },
+          "client_contact": {
+            "title": "Client Contact",
+            "type": "string"
+          },
+          "channel": {
+            "title": "Channel",
+            "type": "string"
+          },
+          "stars": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stars"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "photo_urls": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Photo Urls",
+            "type": "array"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "token": {
+            "title": "Token",
+            "type": "string"
+          },
+          "magic_link": {
+            "title": "Magic Link",
+            "type": "string"
+          },
+          "job_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Title"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "submitted_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Submitted At"
+          },
+          "expires_at": {
+            "title": "Expires At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "client_name",
+          "client_contact",
+          "channel",
+          "stars",
+          "text",
+          "photo_urls",
+          "status",
+          "token",
+          "magic_link",
+          "job_title",
+          "created_at",
+          "submitted_at",
+          "expires_at"
+        ],
+        "title": "RecommendationOut",
+        "type": "object"
+      },
+      "RequestIn": {
+        "properties": {
+          "client_name": {
+            "title": "Client Name",
+            "type": "string"
+          },
+          "client_contact": {
+            "default": "",
+            "title": "Client Contact",
+            "type": "string"
+          },
+          "channel": {
+            "default": "sms",
+            "title": "Channel",
+            "type": "string"
+          },
+          "lead_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lead Id"
+          }
+        },
+        "required": [
+          "client_name"
+        ],
+        "title": "RequestIn",
+        "type": "object"
+      },
+      "ReviewContextOut": {
+        "properties": {
+          "pro_name": {
+            "title": "Pro Name",
+            "type": "string"
+          },
+          "pro_trade": {
+            "title": "Pro Trade",
+            "type": "string"
+          },
+          "client_name": {
+            "title": "Client Name",
+            "type": "string"
+          },
+          "job_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Title"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "pro_name",
+          "pro_trade",
+          "client_name",
+          "job_title",
+          "status"
+        ],
+        "title": "ReviewContextOut",
+        "type": "object"
+      },
+      "ReviewSubmitIn": {
+        "properties": {
+          "stars": {
+            "title": "Stars",
+            "type": "integer"
+          },
+          "text": {
+            "default": "",
+            "title": "Text",
+            "type": "string"
+          },
+          "photo_urls": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Photo Urls",
+            "type": "array"
+          }
+        },
+        "required": [
+          "stars"
+        ],
+        "title": "ReviewSubmitIn",
+        "type": "object"
+      },
+      "PublicRecOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "client_name": {
+            "title": "Client Name",
+            "type": "string"
+          },
+          "stars": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stars"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "submitted_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Submitted At"
+          }
+        },
+        "required": [
+          "id",
+          "client_name",
+          "stars",
+          "text",
+          "submitted_at"
+        ],
+        "title": "PublicRecOut",
+        "type": "object"
+      },
+      "HomeAccountOut": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "avatar_url": {
+            "title": "Avatar Url",
+            "type": "string"
+          },
+          "primary_address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primary Address"
+          },
+          "default_zip": {
+            "title": "Default Zip",
+            "type": "string"
+          },
+          "address_count": {
+            "title": "Address Count",
+            "type": "integer"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/HomeStatsOut"
+          }
+        },
+        "required": [
+          "name",
+          "email",
+          "phone",
+          "avatar_url",
+          "primary_address",
+          "default_zip",
+          "address_count",
+          "stats"
+        ],
+        "title": "HomeAccountOut",
+        "type": "object"
+      },
+      "HomeStatsOut": {
+        "properties": {
+          "jobs_hired": {
+            "title": "Jobs Hired",
+            "type": "integer"
+          },
+          "saved_pros": {
+            "title": "Saved Pros",
+            "type": "integer"
+          },
+          "recs_given": {
+            "title": "Recs Given",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "jobs_hired",
+          "saved_pros",
+          "recs_given"
+        ],
+        "title": "HomeStatsOut",
+        "type": "object"
+      },
+      "OkOut": {
+        "properties": {
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "title": "OkOut",
+        "type": "object"
+      },
+      "HomeJobOut": {
+        "properties": {
+          "lead_id": {
+            "title": "Lead Id",
+            "type": "integer"
+          },
+          "job_title": {
+            "title": "Job Title",
+            "type": "string"
+          },
+          "pro_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pro Id"
+          },
+          "pro_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pro Name"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "invoice_total": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invoice Total"
+          },
+          "after_photo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "After Photo Url"
+          },
+          "recommended": {
+            "title": "Recommended",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "lead_id",
+          "job_title",
+          "pro_id",
+          "pro_name",
+          "status",
+          "completed_at",
+          "created_at",
+          "invoice_total",
+          "after_photo_url",
+          "recommended"
+        ],
+        "title": "HomeJobOut",
+        "type": "object"
+      },
+      "AddressOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "line1": {
+            "title": "Line1",
+            "type": "string"
+          },
+          "zip": {
+            "title": "Zip",
+            "type": "string"
+          },
+          "is_primary": {
+            "title": "Is Primary",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "line1",
+          "zip",
+          "is_primary"
+        ],
+        "title": "AddressOut",
+        "type": "object"
+      },
+      "AddressIn": {
+        "properties": {
+          "label": {
+            "default": "",
+            "title": "Label",
+            "type": "string"
+          },
+          "line1": {
+            "title": "Line1",
+            "type": "string"
+          },
+          "zip": {
+            "title": "Zip",
+            "type": "string"
+          },
+          "is_primary": {
+            "default": false,
+            "title": "Is Primary",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "line1",
+          "zip"
+        ],
+        "title": "AddressIn",
+        "type": "object"
+      },
+      "AddressPatchIn": {
+        "properties": {
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "line1": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Line1"
+          },
+          "zip": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Zip"
+          },
+          "is_primary": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Primary"
+          }
+        },
+        "title": "AddressPatchIn",
+        "type": "object"
+      },
+      "ActivityRow": {
+        "properties": {
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "at": {
+            "title": "At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "text",
+          "at"
+        ],
+        "title": "ActivityRow",
+        "type": "object"
+      },
+      "ChartPoint": {
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "label",
+          "value"
+        ],
+        "title": "ChartPoint",
+        "type": "object"
+      },
+      "MetricsOut": {
+        "properties": {
+          "node_id": {
+            "title": "Node Id",
+            "type": "string"
+          },
+          "node_name": {
+            "title": "Node Name",
+            "type": "string"
+          },
+          "pending_triage": {
+            "title": "Pending Triage",
+            "type": "integer"
+          },
+          "active_pros": {
+            "title": "Active Pros",
+            "type": "integer"
+          },
+          "avg_response_minutes": {
+            "title": "Avg Response Minutes",
+            "type": "integer"
+          },
+          "monthly_run_rate": {
+            "title": "Monthly Run Rate",
+            "type": "number"
+          },
+          "throughput": {
+            "items": {
+              "$ref": "#/components/schemas/ChartPoint"
+            },
+            "title": "Throughput",
+            "type": "array"
+          },
+          "jobs_won_30d": {
+            "title": "Jobs Won 30D",
+            "type": "integer"
+          },
+          "win_rate_pct": {
+            "title": "Win Rate Pct",
+            "type": "integer"
+          },
+          "repeat_rate_pct": {
+            "title": "Repeat Rate Pct",
+            "type": "integer"
+          },
+          "sla_pct": {
+            "title": "Sla Pct",
+            "type": "integer"
+          },
+          "sla_by_trade": {
+            "items": {
+              "$ref": "#/components/schemas/TradeSla"
+            },
+            "title": "Sla By Trade",
+            "type": "array"
+          },
+          "activity": {
+            "items": {
+              "$ref": "#/components/schemas/ActivityRow"
+            },
+            "title": "Activity",
+            "type": "array"
+          }
+        },
+        "required": [
+          "node_id",
+          "node_name",
+          "pending_triage",
+          "active_pros",
+          "avg_response_minutes",
+          "monthly_run_rate",
+          "throughput",
+          "jobs_won_30d",
+          "win_rate_pct",
+          "repeat_rate_pct",
+          "sla_pct",
+          "sla_by_trade",
+          "activity"
+        ],
+        "title": "MetricsOut",
+        "type": "object"
+      },
+      "TradeSla": {
+        "properties": {
+          "trade": {
+            "title": "Trade",
+            "type": "string"
+          },
+          "pct": {
+            "title": "Pct",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "trade",
+          "pct"
+        ],
+        "title": "TradeSla",
+        "type": "object"
+      },
+      "TriageOut": {
+        "properties": {
+          "unrouted": {
+            "title": "Unrouted",
+            "type": "integer"
+          },
+          "claimed_today": {
+            "title": "Claimed Today",
+            "type": "integer"
+          },
+          "avg_claim_minutes": {
+            "title": "Avg Claim Minutes",
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/TriageRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "unrouted",
+          "claimed_today",
+          "avg_claim_minutes",
+          "rows"
+        ],
+        "title": "TriageOut",
+        "type": "object"
+      },
+      "TriageRow": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "address": {
+            "title": "Address",
+            "type": "string"
+          },
+          "budget_ceiling": {
+            "title": "Budget Ceiling",
+            "type": "number"
+          },
+          "age_minutes": {
+            "title": "Age Minutes",
+            "type": "integer"
+          },
+          "homeowner_name": {
+            "title": "Homeowner Name",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "description",
+          "address",
+          "budget_ceiling",
+          "age_minutes",
+          "homeowner_name",
+          "status"
+        ],
+        "title": "TriageRow",
+        "type": "object"
+      },
+      "SafetyOut": {
+        "properties": {
+          "open_count": {
+            "title": "Open Count",
+            "type": "integer"
+          },
+          "suspended_count": {
+            "title": "Suspended Count",
+            "type": "integer"
+          },
+          "hygiene_score": {
+            "title": "Hygiene Score",
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/SafetyRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "open_count",
+          "suspended_count",
+          "hygiene_score",
+          "rows"
+        ],
+        "title": "SafetyOut",
+        "type": "object"
+      },
+      "SafetyRow": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "pro_id": {
+            "title": "Pro Id",
+            "type": "integer"
+          },
+          "pro_name": {
+            "title": "Pro Name",
+            "type": "string"
+          },
+          "pro_trade": {
+            "title": "Pro Trade",
+            "type": "string"
+          },
+          "infraction": {
+            "title": "Infraction",
+            "type": "string"
+          },
+          "severity": {
+            "title": "Severity",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "pro_id",
+          "pro_name",
+          "pro_trade",
+          "infraction",
+          "severity",
+          "status",
+          "created_at"
+        ],
+        "title": "SafetyRow",
+        "type": "object"
+      },
+      "LedgerRow": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "trade": {
+            "title": "Trade",
+            "type": "string"
+          },
+          "avatar_url": {
+            "title": "Avatar Url",
+            "type": "string"
+          },
+          "krafts_verified": {
+            "title": "Krafts Verified",
+            "type": "integer"
+          },
+          "recs_approved": {
+            "title": "Recs Approved",
+            "type": "integer"
+          },
+          "avg_sla_minutes": {
+            "title": "Avg Sla Minutes",
+            "type": "integer"
+          },
+          "plan": {
+            "title": "Plan",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "trade",
+          "avatar_url",
+          "krafts_verified",
+          "recs_approved",
+          "avg_sla_minutes",
+          "plan",
+          "status"
+        ],
+        "title": "LedgerRow",
+        "type": "object"
+      },
+      "NodeSettingsOut": {
+        "properties": {
+          "node_id": {
+            "title": "Node Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "auto_blast": {
+            "title": "Auto Blast",
+            "type": "boolean"
+          },
+          "escalation_enabled": {
+            "title": "Escalation Enabled",
+            "type": "boolean"
+          },
+          "escalation_minutes": {
+            "title": "Escalation Minutes",
+            "type": "integer"
+          },
+          "default_sla_hours": {
+            "title": "Default Sla Hours",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "node_id",
+          "name",
+          "auto_blast",
+          "escalation_enabled",
+          "escalation_minutes",
+          "default_sla_hours"
+        ],
+        "title": "NodeSettingsOut",
+        "type": "object"
+      },
+      "NodeSettingsIn": {
+        "properties": {
+          "auto_blast": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auto Blast"
+          },
+          "escalation_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Escalation Enabled"
+          },
+          "escalation_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Escalation Minutes"
+          },
+          "default_sla_hours": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Sla Hours"
+          }
+        },
+        "title": "NodeSettingsIn",
+        "type": "object"
+      },
+      "BillingBreakdownRow": {
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "pros": {
+            "title": "Pros",
+            "type": "integer"
+          },
+          "amount": {
+            "title": "Amount",
+            "type": "number"
+          }
+        },
+        "required": [
+          "label",
+          "pros",
+          "amount"
+        ],
+        "title": "BillingBreakdownRow",
+        "type": "object"
+      },
+      "NodeBillingOut": {
+        "properties": {
+          "node_id": {
+            "title": "Node Id",
+            "type": "string"
+          },
+          "monthly_run_rate": {
+            "title": "Monthly Run Rate",
+            "type": "number"
+          },
+          "active_subscriptions": {
+            "title": "Active Subscriptions",
+            "type": "integer"
+          },
+          "breakdown": {
+            "items": {
+              "$ref": "#/components/schemas/BillingBreakdownRow"
+            },
+            "title": "Breakdown",
+            "type": "array"
+          }
+        },
+        "required": [
+          "node_id",
+          "monthly_run_rate",
+          "active_subscriptions",
+          "breakdown"
+        ],
+        "title": "NodeBillingOut",
+        "type": "object"
+      },
+      "SubscriptionOut": {
+        "properties": {
+          "plan": {
+            "title": "Plan",
+            "type": "string"
+          },
+          "plan_label": {
+            "title": "Plan Label",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "renews_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Renews At"
+          },
+          "card_last4": {
+            "title": "Card Last4",
+            "type": "string"
+          },
+          "monthly_value": {
+            "title": "Monthly Value",
+            "type": "number"
+          },
+          "coupon_code": {
+            "title": "Coupon Code",
+            "type": "string"
+          },
+          "discount_pct": {
+            "title": "Discount Pct",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "plan",
+          "plan_label",
+          "status",
+          "renews_at",
+          "card_last4",
+          "monthly_value",
+          "coupon_code",
+          "discount_pct"
+        ],
+        "title": "SubscriptionOut",
+        "type": "object"
+      },
+      "PlanIn": {
+        "properties": {
+          "plan": {
+            "title": "Plan",
+            "type": "string"
+          }
+        },
+        "required": [
+          "plan"
+        ],
+        "title": "PlanIn",
+        "type": "object"
+      },
+      "CouponIn": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "title": "CouponIn",
+        "type": "object"
+      },
+      "InvoiceOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "amount": {
+            "title": "Amount",
+            "type": "number"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "period_label": {
+            "title": "Period Label",
+            "type": "string"
+          },
+          "issued_at": {
+            "title": "Issued At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "amount",
+          "status",
+          "period_label",
+          "issued_at"
+        ],
+        "title": "InvoiceOut",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "JWTAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  },
+  "servers": []
+}

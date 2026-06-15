@@ -1,0 +1,24 @@
+<!-- @dsCard group="Spacing" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin:0; padding:26px; background:var(--gk-cream); font-family:var(--gk-font-body); }
+  .row { display:flex; gap:30px; align-items:flex-end; }
+  .item { text-align:center; }
+  .box { width:96px; height:56px; background:var(--gk-card); border:var(--gk-border); border-radius:10px; }
+  .lbl { font-size:11px; font-weight:600; color:var(--gk-muted); margin-top:12px; }
+  .lbl b { display:block; color:var(--gk-ink); font-family:var(--gk-font-display); font-size:13px; }
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="item"><div class="box" style="box-shadow:var(--gk-shadow-xs);"></div><div class="lbl"><b>xs · 1px</b>inline btn</div></div>
+    <div class="item"><div class="box" style="box-shadow:var(--gk-shadow-sm);"></div><div class="lbl"><b>sm · 2px</b>cards, btns</div></div>
+    <div class="item"><div class="box" style="box-shadow:var(--gk-shadow-md);"></div><div class="lbl"><b>md · 4px</b>shells</div></div>
+    <div class="item"><div class="box" style="box-shadow:var(--gk-shadow-lg);"></div><div class="lbl"><b>lg · 6px</b>emphasis</div></div>
+  </div>
+</body>
+</html>

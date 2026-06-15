@@ -1,0 +1,24 @@
+<!-- @dsCard group="Components" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin:0; padding:24px; background:var(--gk-cream); font-family:var(--gk-font-body); }
+  .tabbar { background:#fff; border:var(--gk-border); border-radius:12px; box-shadow:var(--gk-shadow-sm); height:58px; display:flex; justify-content:space-around; align-items:center; }
+  .item { display:flex; flex-direction:column; align-items:center; gap:2px; font-size:10px; font-weight:700; color:var(--gk-muted); }
+  .item.active { color:var(--gk-orange); }
+  .ic { font-size:17px; }
+</style>
+</head>
+<body>
+  <div class="tabbar">
+    <div class="item active"><span class="ic">📊</span><span>Dashboard</span></div>
+    <div class="item"><span class="ic">➕</span><span>Add Kraft</span></div>
+    <div class="item"><span class="ic">💳</span><span>Billing</span></div>
+    <div class="item"><span class="ic">🔍</span><span>Discover</span></div>
+    <div class="item"><span class="ic">🚨</span><span>Emergency</span></div>
+  </div>
+</body>
+</html>

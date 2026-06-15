@@ -1,0 +1,24 @@
+<!-- @dsCard group="Components" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin:0; padding:22px; background:var(--gk-cream); font-family:var(--gk-font-body); }
+  .split { display:flex; border:var(--gk-border); border-radius:10px; overflow:hidden; height:96px; }
+  .before { flex:1; background:#CBD5E1; color:#475569; border-right:var(--gk-border); }
+  .after { flex:1; background:var(--gk-lime); color:var(--gk-navy); }
+  .half { display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:12px; font-weight:700; gap:3px; }
+  .half .lg { font-size:18px; }
+  .cap { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.8px; color:var(--gk-muted); margin-bottom:10px; }
+</style>
+</head>
+<body>
+  <div class="cap">Before / After proof — the core visual unit</div>
+  <div class="split">
+    <div class="half before"><span class="lg">📷</span>⚠️ Grey Corrosion<br>Main Line Rupture</div>
+    <div class="half after"><span class="lg">✨</span>Shiny New PVC<br>Fittings Resoldered</div>
+  </div>
+</body>
+</html>

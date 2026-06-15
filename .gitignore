@@ -1,0 +1,52 @@
+# --- Environment / secrets ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# --- Python / Django ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+db.sqlite3
+media/
+staticfiles/
+
+# --- Node / frontend ---
+node_modules/
+dist/
+build/
+.vite/
+*.tsbuildinfo
+.eslintcache
+
+# --- Expo / React Native ---
+.expo/
+.expo-shared/
+expo-env.d.ts
+android/
+ios/
+*.jks
+*.p8
+*.p12
+*.mobileprovision
+
+# --- Docker ---
+docker-compose.override.yml
+
+# --- Logs / OS / editor ---
+*.log
+npm-debug.log*
+yarn-error.log*
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

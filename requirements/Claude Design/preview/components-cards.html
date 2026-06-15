@@ -1,0 +1,26 @@
+<!-- @dsCard group="Components" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin:0; padding:22px; background:var(--gk-cream); font-family:var(--gk-font-body); display:flex; gap:14px; }
+  .card { flex:1; border:var(--gk-border); border-radius:12px; padding:13px; box-shadow:var(--gk-shadow-sm); }
+  .default { background:#fff; }
+  .selected { background:var(--gk-orange-tint); border-color:var(--gk-orange); }
+  .hero { background:var(--gk-navy); border-color:var(--gk-lime); }
+  .t { font-family:var(--gk-font-display); font-weight:600; font-size:15px; color:var(--gk-ink); }
+  .t.o { color:var(--gk-orange); }
+  .t.l { color:var(--gk-lime); }
+  .p { font-size:12px; color:var(--gk-muted); margin-top:4px; line-height:1.4; }
+  .p.d { color:#fff; }
+  .tag { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--gk-muted); }
+</style>
+</head>
+<body>
+  <div class="card default"><div class="tag">Default</div><div class="t">Dave Miller</div><div class="p">Plumbing Pro · 1.4 mi away</div></div>
+  <div class="card selected"><div class="tag" style="color:var(--gk-orange)">Selected</div><div class="t o">🔧 I am a Trade Pro</div><div class="p">Publish &amp; claim local leads</div></div>
+  <div class="card hero"><div class="tag" style="color:var(--gk-lime)">Premium</div><div class="t l">GigKraft Pro Vault</div><div class="p d">$19.99 / mo micro-subscription</div></div>
+</body>
+</html>

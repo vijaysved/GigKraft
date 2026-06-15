@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<!-- @dsCard group="UI Kit — Web Admin" name="Admin Console Kit" subtitle="Community Node Manager desktop console" viewport="1000x600" -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GigKraft — Admin Console UI Kit</title>
+<link rel="stylesheet" href="../../colors_and_type.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--gk-font-body); background: #2a2018; padding: 36px 24px; }
+
+  .ad-stage { max-width: 1100px; margin: 0 auto; }
+
+  /* ----- BROWSER SHELL ----- */
+  .ad-browser { background: var(--gk-cream); border: 4px solid var(--gk-navy); border-radius: 16px; box-shadow: var(--gk-shadow-md); overflow: hidden; }
+  .ad-browser__bar { background: var(--gk-navy); padding: 11px 18px; display: flex; align-items: center; gap: 7px; }
+  .ad-dot { width: 12px; height: 12px; border-radius: 50%; }
+  .ad-browser__url { background: rgba(255,255,255,.15); color: #fff; border-radius: 6px; font-size: 11px; padding: 5px 14px; margin-left: 18px; flex: 1; font-family: var(--gk-font-mono); }
+  .ad-browser__body { display: flex; }
+
+  /* ----- LAYOUT ----- */
+  .ad-layout { display: flex; width: 100%; min-height: 560px; }
+  .ad-sidebar { width: 250px; background: var(--gk-navy); color: #fff; padding: 22px 18px; display: flex; flex-direction: column; flex-shrink: 0; }
+  .ad-sidebar__brand { font-family: var(--gk-font-display); font-weight: 600; font-size: 20px; color: var(--gk-orange); margin-bottom: 26px; }
+  .ad-sidebar__brand span { color: #fff; }
+  .ad-nav { display: flex; align-items: center; gap: 9px; padding: 11px 13px; font-size: 13px; font-weight: 700; border-radius: 7px; margin-bottom: 7px; cursor: pointer; color: #CBD5E1; transition: background .15s ease; }
+  .ad-nav:hover { background: rgba(255,255,255,.07); color: #fff; }
+  .ad-nav--active { background: var(--gk-orange); color: #fff; box-shadow: var(--gk-shadow-xs); }
+  .ad-sidebar__foot { margin-top: auto; padding-top: 20px; border-top: 1px solid rgba(255,255,255,.12); }
+  .ad-node { font-family: var(--gk-font-display); font-weight: 600; font-size: 14px; color: var(--gk-lime); }
+  .ad-node__sub { font-size: 11px; color: #94A3B8; margin-top: 2px; }
+
+  .ad-canvas { flex: 1; padding: 26px; overflow-y: auto; background: var(--gk-cream); }
+
+  /* ----- SECTION HEAD ----- */
+  .ad-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 18px; border-bottom: var(--gk-border-dash); padding-bottom: 12px; }
+  .ad-head__t { font-family: var(--gk-font-display); font-weight: 600; font-size: 20px; color: var(--gk-ink); line-height: 1.2; }
+  .ad-head__badge { flex-shrink: 0; margin-top: 3px; font-size: 10px; font-weight: 700; letter-spacing: .5px; background: var(--gk-lime); color: var(--gk-navy); padding: 4px 9px; border-radius: 5px; border: 1.5px solid var(--gk-navy); box-shadow: var(--gk-shadow-xs); white-space: nowrap; }
+
+  /* ----- METRIC TILES ----- */
+  .ad-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
+  .ad-tile { background: #fff; border: var(--gk-border); border-radius: 10px; padding: 14px; box-shadow: var(--gk-shadow-sm); }
+  .ad-tile__k { font-size: 10px; font-weight: 700; letter-spacing: .5px; color: var(--gk-muted); }
+  .ad-tile__v { font-family: var(--gk-font-display); font-weight: 600; font-size: 26px; color: var(--gk-navy); margin-top: 5px; }
+
+  .ad-note { font-size: 13px; line-height: 1.55; color: var(--gk-ink); margin-top: 4px; }
+  .ad-feed-head { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--gk-muted); margin: 22px 0 10px; }
+  .ad-activity { display: flex; flex-direction: column; gap: 9px; }
+  .ad-act { display: flex; align-items: center; gap: 11px; background: #fff; border: var(--gk-border); border-radius: 9px; padding: 11px 13px; box-shadow: var(--gk-shadow-xs); font-size: 13px; color: var(--gk-ink); }
+  .ad-act__dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .ad-act__t { margin-left: auto; font-size: 11px; color: var(--gk-muted); white-space: nowrap; }
+
+  /* ----- TABLE ----- */
+  .ad-table { width: 100%; border-collapse: separate; border-spacing: 0; background: #fff; border: var(--gk-border); border-radius: 12px; overflow: hidden; box-shadow: var(--gk-shadow-sm); }
+  .ad-table th { background: var(--gk-navy); color: #fff; padding: 11px 14px; font-family: var(--gk-font-display); font-weight: 600; font-size: 13px; text-align: left; }
+  .ad-table td { padding: 13px 14px; font-size: 13px; border-bottom: 1px solid #E2E8F0; color: var(--gk-ink); vertical-align: top; }
+  .ad-table tr:last-child td { border-bottom: none; }
+  .ad-sub { font-size: 11px; color: var(--gk-muted); }
+  .ad-price { color: var(--gk-orange); font-weight: 700; }
+  .ad-infraction { color: var(--gk-danger); font-weight: 600; max-width: 280px; }
+  .ad-actions { display: flex; gap: 7px; flex-wrap: wrap; }
+  .ad-ibtn { color: #fff; border: 1.5px solid var(--gk-navy); padding: 5px 10px; border-radius: 5px; font-size: 11px; font-weight: 700; font-family: var(--gk-font-body); cursor: pointer; box-shadow: var(--gk-shadow-xs); transition: transform .05s ease, box-shadow .05s ease; }
+  .ad-ibtn:active { transform: translate(1px,1px); box-shadow: none; }
+
+  /* ----- TOAST ----- */
+  .ad-toast { position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%); background: var(--gk-navy); color: #fff; font-weight: 600; font-size: 13px; padding: 11px 18px; border-radius: 10px; border: 2px solid var(--gk-lime); box-shadow: var(--gk-shadow-md); z-index: 90; }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script type="text/babel" src="AdminComponents.jsx"></script>
+  <script type="text/babel" src="AdminViews.jsx"></script>
+  <script type="text/babel">
+    ReactDOM.createRoot(document.getElementById("root")).render(<AdminApp />);
+  </script>
+</body>
+</html>

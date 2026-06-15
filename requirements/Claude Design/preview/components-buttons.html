@@ -1,0 +1,24 @@
+<!-- @dsCard group="Components" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin:0; padding:24px; background:var(--gk-cream); font-family:var(--gk-font-body); display:flex; flex-wrap:wrap; gap:16px; align-items:center; }
+  .btn { font-family:var(--gk-font-display); font-weight:700; font-size:13px; padding:11px 18px; border-radius:8px; border:var(--gk-border); cursor:pointer; }
+  .primary { background:var(--gk-orange); color:#fff; box-shadow:var(--gk-shadow-sm); }
+  .secondary { background:#fff; color:var(--gk-navy); box-shadow:var(--gk-shadow-sm); }
+  .danger { background:var(--gk-danger); color:#fff; box-shadow:var(--gk-shadow-sm); }
+  .pressed { background:var(--gk-orange); color:#fff; transform:translate(1px,1px); box-shadow:var(--gk-shadow-xs); }
+  .cap { width:100%; font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--gk-muted); }
+</style>
+</head>
+<body>
+  <div class="cap">Buttons — primary · secondary · destructive · pressed (translate + shadow collapse)</div>
+  <button class="btn primary">Claim Chat Routing</button>
+  <button class="btn secondary">Update Card</button>
+  <button class="btn danger">Suspend Profile</button>
+  <button class="btn pressed">Activate ($19.99)</button>
+</body>
+</html>

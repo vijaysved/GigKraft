@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GigKraft — App Launcher</title>
+<link rel="stylesheet" href="styles.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css" />
+<style>
+  html, body { height: 100%; }
+  body { background: var(--bg); display: flex; flex-direction: column; }
+  a { text-decoration: none; color: inherit; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 48px 32px 80px; width: 100%; }
+  .head { display: flex; align-items: center; gap: 16px; margin-bottom: 8px; }
+  .logo { width: 46px; height: 46px; border-radius: 12px; background: var(--primary); display: flex; align-items: center; justify-content: center; }
+  .roles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 36px; }
+  .role { display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; overflow: hidden; box-shadow: var(--shadow-xs); transition: transform .12s var(--ease), box-shadow .12s var(--ease), border-color .12s; }
+  .role:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); border-color: var(--border-2); }
+  .role__top { padding: 22px 22px 18px; color: #fff; position: relative; }
+  .role__icon { width: 42px; height: 42px; border-radius: 11px; background: rgba(255,255,255,.2); display: flex; align-items: center; justify-content: center; margin-bottom: 14px; }
+  .role__title { font-size: 20px; font-weight: 800; letter-spacing: -.4px; }
+  .role__sub { font-size: 13px; opacity: .9; margin-top: 3px; }
+  .role__count { position: absolute; top: 22px; right: 22px; font-size: 12px; font-weight: 700; background: rgba(255,255,255,.22); padding: 5px 11px; border-radius: 999px; }
+  .role__list { padding: 14px 10px; display: flex; flex-direction: column; gap: 1px; flex: 1; }
+  .row { display: flex; align-items: center; gap: 11px; padding: 8px 12px; border-radius: 9px; }
+  .row__num { font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--text-3); width: 30px; }
+  .row__label { font-size: 13.5px; font-weight: 500; color: var(--text-2); }
+  .role__cta { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 4px 16px 18px; height: 44px; border-radius: 10px; background: var(--primary); color: #fff; font-weight: 700; font-size: 14px; }
+  .meta { display: flex; gap: 28px; margin-top: 44px; padding-top: 28px; border-top: 1px solid var(--border); flex-wrap: wrap; }
+  .meta__item { display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--text-2); }
+  .meta__item .ti { color: var(--text-3); }
+  .themebtn { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--border-2); background: var(--surface); color: var(--text-2); cursor: pointer; font-weight: 600; font-size: 13px; font-family: var(--font); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div class="logo"><i class="ti ti-tools" style="font-size:26px;color:#fff"></i></div>
+    <div>
+      <div style="font-size:26px;font-weight:800;letter-spacing:-.6px;line-height:1">GigKraft</div>
+      <div style="font-size:14px;color:var(--text-3);font-weight:600;margin-top:3px">Handyman marketplace · clickable prototype</div>
+    </div>
+    <button class="themebtn" id="themebtn"><i class="ti ti-moon" style="font-size:17px"></i><span id="themelabel">Dark</span></button>
+  </div>
+  <p style="font-size:15px;color:var(--text-2);max-width:680px;line-height:1.6;margin:18px 0 0">
+    Three role tracks, <strong>25 screens</strong>, built in the Mantine + Tabler visual stack for a clean React/Vite handoff. Click a track to open its interactive app — every screen is reachable from the in-app navigation and the left index rail.
+  </p>
+
+  <div class="roles">
+    <!-- HANDYMAN -->
+    <a class="role" href="screens/handyman/index.html">
+      <div class="role__top" style="background:linear-gradient(135deg,var(--blue-6),var(--blue-8))">
+        <div class="role__count">13 screens</div>
+        <div class="role__icon"><i class="ti ti-tools" style="font-size:22px"></i></div>
+        <div class="role__title">Handyman Pro</div>
+        <div class="role__sub">Mobile · onboarding → leads → business</div>
+      </div>
+      <div class="role__list">
+        <div class="row"><span class="row__num">1.1–5</span><span class="row__label">Onboarding &amp; credentials</span></div>
+        <div class="row"><span class="row__num">1.6–8</span><span class="row__label">Krafts &amp; recommendations</span></div>
+        <div class="row"><span class="row__num">1.9–10</span><span class="row__label">Leads &amp; direct chat</span></div>
+        <div class="row"><span class="row__num">1.11–13</span><span class="row__label">Analytics, billing, network</span></div>
+      </div>
+      <div class="role__cta">Open Handyman app <i class="ti ti-arrow-right" style="font-size:17px"></i></div>
+    </a>
+
+    <!-- CONSUMER -->
+    <a class="role" href="screens/consumer/index.html">
+      <div class="role__top" style="background:linear-gradient(135deg,var(--teal-6),#087f5b)">
+        <div class="role__count">6 screens</div>
+        <div class="role__icon"><i class="ti ti-home" style="font-size:22px"></i></div>
+        <div class="role__title">Homeowner</div>
+        <div class="role__sub">Mobile · discover proof → hire → review</div>
+      </div>
+      <div class="role__list">
+        <div class="row"><span class="row__num">2.1</span><span class="row__label">Discovery feed</span></div>
+        <div class="row"><span class="row__num">2.2</span><span class="row__label">Proof detail</span></div>
+        <div class="row"><span class="row__num">2.3</span><span class="row__label">Emergency broadcast</span></div>
+        <div class="row"><span class="row__num">2.4</span><span class="row__label">Request a quote</span></div>
+        <div class="row"><span class="row__num">2.5</span><span class="row__label">Leave a recommendation</span></div>
+        <div class="row"><span class="row__num">2.6</span><span class="row__label">Your account</span></div>
+      </div>
+      <div class="role__cta" style="background:var(--teal-6)">Open Homeowner app <i class="ti ti-arrow-right" style="font-size:17px"></i></div>
+    </a>
+
+    <!-- ADMIN -->
+    <a class="role" href="screens/admin/index.html">
+      <div class="role__top" style="background:linear-gradient(135deg,var(--gray-8),var(--gray-9))">
+        <div class="role__count">6 screens</div>
+        <div class="role__icon"><i class="ti ti-layout-dashboard" style="font-size:22px"></i></div>
+        <div class="role__title">Node Admin</div>
+        <div class="role__sub">Desktop · node manager console</div>
+      </div>
+      <div class="role__list">
+        <div class="row"><span class="row__num">3.1</span><span class="row__label">Regional core ops</span></div>
+        <div class="row"><span class="row__num">3.2</span><span class="row__label">Cross-channel triage desk</span></div>
+        <div class="row"><span class="row__num">3.3</span><span class="row__label">Safety &amp; hygiene</span></div>
+        <div class="row"><span class="row__num">3.4</span><span class="row__label">Pro ledger</span></div>
+        <div class="row"><span class="row__num">3.5</span><span class="row__label">Kraft verification</span></div>
+        <div class="row"><span class="row__num">3.6</span><span class="row__label">Node settings &amp; billing</span></div>
+      </div>
+      <div class="role__cta" style="background:var(--gray-9)">Open Admin console <i class="ti ti-arrow-right" style="font-size:17px"></i></div>
+    </a>
+  </div>
+
+  <div class="meta">
+    <div class="meta__item"><i class="ti ti-palette"></i> Mantine-flavored UI · blue #228be6</div>
+    <div class="meta__item"><i class="ti ti-icons"></i> Tabler icons</div>
+    <div class="meta__item"><i class="ti ti-moon"></i> Light + dark themes</div>
+    <div class="meta__item"><i class="ti ti-cursor-text"></i> Tokens in <span class="mono" style="font-size:12px">styles.css</span></div>
+  </div>
+</div>
+
+<script>
+  const root = document.documentElement;
+  const saved = localStorage.getItem("gk_theme") || "light";
+  root.setAttribute("data-theme", saved);
+  const btn = document.getElementById("themebtn");
+  const sync = () => {
+    const t = root.getAttribute("data-theme");
+    document.getElementById("themelabel").textContent = t === "light" ? "Dark" : "Light";
+    btn.querySelector("i").className = "ti " + (t === "light" ? "ti-moon" : "ti-sun");
+  };
+  sync();
+  btn.addEventListener("click", () => {
+    const next = root.getAttribute("data-theme") === "light" ? "dark" : "light";
+    root.setAttribute("data-theme", next); localStorage.setItem("gk_theme", next); sync();
+  });
+</script>
+</body>
+</html>

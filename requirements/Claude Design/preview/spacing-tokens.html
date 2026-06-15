@@ -1,0 +1,27 @@
+<!-- @dsCard group="Spacing" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin:0; padding:24px; background:var(--gk-cream); font-family:var(--gk-font-body); }
+  .scale { display:flex; flex-direction:column; gap:9px; }
+  .row { display:flex; align-items:center; gap:14px; }
+  .bar { height:14px; background:var(--gk-orange); border:1.5px solid var(--gk-navy); border-radius:3px; }
+  .lbl { font-size:12px; font-weight:600; color:var(--gk-ink); }
+  .lbl span { color:var(--gk-muted); font-weight:500; }
+</style>
+</head>
+<body>
+  <div class="scale">
+    <div class="row"><div class="bar" style="width:4px;"></div><div class="lbl">1 <span>· 4px</span></div></div>
+    <div class="row"><div class="bar" style="width:8px;"></div><div class="lbl">2 <span>· 8px</span></div></div>
+    <div class="row"><div class="bar" style="width:12px;"></div><div class="lbl">3 <span>· 12px · card padding</span></div></div>
+    <div class="row"><div class="bar" style="width:16px;"></div><div class="lbl">4 <span>· 16px</span></div></div>
+    <div class="row"><div class="bar" style="width:24px;"></div><div class="lbl">6 <span>· 24px</span></div></div>
+    <div class="row"><div class="bar" style="width:32px;"></div><div class="lbl">8 <span>· 32px</span></div></div>
+    <div class="row"><div class="bar" style="width:40px;"></div><div class="lbl">10 <span>· 40px</span></div></div>
+  </div>
+</body>
+</html>

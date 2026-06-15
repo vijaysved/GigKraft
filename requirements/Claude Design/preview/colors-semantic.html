@@ -1,0 +1,25 @@
+<!-- @dsCard group="Colors" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin:0; padding:22px; background:var(--gk-cream); font-family:var(--gk-font-body); }
+  .row { display:flex; gap:14px; }
+  .sw { flex:1; border:var(--gk-border); border-radius:var(--gk-radius-lg); box-shadow:var(--gk-shadow-sm); overflow:hidden; }
+  .chip { height:64px; display:flex; align-items:center; justify-content:center; font-size:20px; }
+  .meta { padding:7px 10px; background:var(--gk-card); }
+  .name { font-family:var(--gk-font-display); font-weight:600; font-size:13px; color:var(--gk-ink); }
+  .hex { font-size:10px; color:var(--gk-muted); letter-spacing:.5px; text-transform:uppercase; }
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="sw"><div class="chip" style="background:var(--gk-success)">●</div><div class="meta"><div class="name">Success</div><div class="hex">#25D366</div></div></div>
+    <div class="sw"><div class="chip" style="background:var(--gk-info)">📡</div><div class="meta"><div class="name">Info / SMS</div><div class="hex">#00B4D8</div></div></div>
+    <div class="sw"><div class="chip" style="background:var(--gk-warn)">⚠️</div><div class="meta"><div class="name">Warning</div><div class="hex">#FBBF24</div></div></div>
+    <div class="sw"><div class="chip" style="background:var(--gk-danger)">✕</div><div class="meta"><div class="name">Danger</div><div class="hex">#EF4444</div></div></div>
+  </div>
+</body>
+</html>

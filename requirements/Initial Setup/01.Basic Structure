@@ -1,0 +1,342 @@
+# GigKraft — Initial Basic Structure
+
+## Final Decisions (Locked)
+
+- **Repository layout:** Monorepo-style folders under:
+  - `GigKraft/dev/backend`
+  - `GigKraft/dev/frontend`
+  - `GigKraft/dev/mobile`
+- **Delivery model for MVP:** Phased approach
+  - Phase 1: backend + UI with mocks/stubs
+  - Phase 2: live integrations (Twilio/Stripe/S3/FCM/Google OAuth)
+- **Service area UI (MVP):** ZIP list + radius slider only (no map UI)
+- **Mobile strategy:** One mobile app with role-based flows
+- **Auth model:** JWT + one `User` model with role (`pro`, `homeowner`, `node_manager`)
+- **Node manager auth:** Google sign-in + email/password
+- **Realtime strategy (MVP):** Polling first (WebSocket later in Phase 2+)
+- **Credentials status:** Missing/incomplete locally; integration services mocked in development
+- **WhatsApp:** Mock in local/dev until approval is available
+- **Geography model:** Multi-node support
+- **Homeowner billing/payments:** Not in MVP (no homeowner quote/invoice payment flow)
+- **Design direction:** Keep color system; fonts can change; support 4 themes (including one dark)
+- **Infrastructure target (MVP):** Local `docker-compose` only
+
+---
+
+## Execution Dashboard
+
+| Milestone | Owner | Status | ETA | Last Updated |
+|---|---|---|---|---|
+| M0 - Requirements Alignment | Product + Engineering | COMPLETED | Done | 2026-06-12 |
+| M1 - Monorepo Scaffolding | Engineering | COMPLETED | Done | 2026-06-12 |
+| M2 - Backend Foundation | Engineering | COMPLETED | Done | 2026-06-12 |
+| M3 - Frontend Foundation | Engineering | COMPLETED | Done | 2026-06-12 |
+| M4 - Mobile Foundation | Engineering | COMPLETED | Done | 2026-06-12 |
+| M5 - Core MVP Domain Flows | Engineering | PENDING | TBD | 2026-06-12 |
+| M6 - Integrations (Phase 2) | Engineering | PENDING | TBD | 2026-06-12 |
+| M7 - Quality, Validation, and Handoff | Engineering | PENDING | TBD | 2026-06-12 |
+
+### Dashboard Legend
+
+- **Status values:** `PENDING` -> `IN_PROGRESS` -> `COMPLETED`
+- **ETA format:** target date (`YYYY-MM-DD`) or `TBD`
+- **Update rule:** refresh this table whenever milestone status changes
+
+---
+
+## Milestones and Task Status
+
+### Milestone 0 - Requirements Alignment
+**Status:** `COMPLETED`
+
+#### Completed Tasks
+- [x] Reviewed initial setup requirement file
+- [x] Reviewed Claude design handoff bundle
+- [x] Confirmed MVP constraints and scope boundaries
+- [x] Resolved architecture and product decisions with product owner
+- [x] Documented final setup decisions in this file
+
+#### Pending Tasks
+- [ ] None
+
+#### How to Test
+- [ ] Open `dev/requirements/Initial Setup/01.Basic Structure` and confirm "Final Decisions (Locked)" matches latest decisions.
+- [ ] Confirm decision traceability against `dev/requirements/Claude Design/design_handoff_cursor/README.md`.
+
+---
+
+### Milestone 1 - Monorepo Scaffolding
+**Status:** `COMPLETED`
+
+#### Completed Tasks
+- [x] Created base folder structure under `dev/backend`, `dev/frontend`, `dev/mobile`
+- [x] Added root-level standards: `prod/README.md`, `prod/.gitignore`
+- [x] Added local env templates: `prod/.env.example`, plus app-level `.env.example` files
+- [x] Added `prod/docker-compose.yml` with working local infra (`postgres`, `redis`) and app placeholders
+
+#### Pending Tasks
+- [ ] Optionally add root task runner scripts (Makefile or npm workspace scripts)
+
+#### How to Test
+- [ ] Verify file scaffold exists:
+  - `prod/README.md`, `prod/.gitignore`, `prod/.env.example`, `prod/docker-compose.yml`
+  - `dev/backend/README.md`, `dev/backend/.env.example`
+  - `dev/frontend/README.md`, `dev/frontend/.env.example`
+  - `dev/mobile/README.md`, `dev/mobile/.env.example`
+- [ ] From `GigKraft/prod`, run:
+  - `docker compose config`
+  - Expected: valid configuration output, no errors
+- [ ] Start infra:
+  - `docker compose up -d postgres redis`
+  - `docker compose ps`
+  - Expected: both services healthy/up
+- [ ] Stop infra:
+  - `docker compose down`
+
+---
+
+### Milestone 2 - Backend Foundation (`dev/backend`)
+**Status:** `COMPLETED`
+
+#### Completed Tasks
+- [x] Scaffolded Django + Django Ninja + PostgreSQL-ready backend project
+- [x] Implemented single custom `User` model with role support via `AUTH_USER_MODEL`
+- [x] Configured JWT auth (access + refresh) and protected `/api/me`
+- [x] Added auth flows: phone OTP (mock), Google (mock), email/password
+- [x] Added node-aware base models and migrations (`Node`, role profiles)
+- [x] Added OpenAPI docs (`/api/docs`) and schema export command/pipeline
+
+#### Pending Tasks
+- [ ] Optional hardening: refresh-token rotation/blacklist
+- [ ] Optional hardening: role-based authorization helpers/decorators for future endpoints
+
+#### Validation Completed
+- [x] Django checks pass
+- [x] Migrations created and applied
+- [x] Test suite passes (13 tests)
+- [x] Live endpoint smoke tests pass (`/api/health`, `/api/docs`, auth flows, `/api/me`)
+- [x] OpenAPI export generated (`backend/openapi/openapi.json`)
+
+#### How to Test
+- [ ] From `GigKraft/prod`, start infra:
+  - `docker compose up -d postgres redis`
+- [ ] In `GigKraft/dev/backend`, create and activate venv, then install deps:
+  - `py -3.13 -m venv .venv`
+  - `.venv\Scripts\activate`
+  - `pip install -r requirements.txt`
+- [ ] Run checks and tests:
+  - `python manage.py check`
+  - `python manage.py migrate`
+  - `python manage.py test`
+- [ ] Start API:
+  - `python manage.py runserver`
+- [ ] Verify endpoints:
+  - `GET /api/health`
+  - `GET /api/docs`
+  - `POST /api/auth/register`
+  - `POST /api/auth/login`
+  - `POST /api/auth/refresh`
+  - `GET /api/me` with bearer token
+  - `POST /api/auth/otp/request`, `POST /api/auth/otp/verify` (mock mode)
+  - `POST /api/auth/google` (mock mode)
+- [ ] Export OpenAPI schema:
+  - `python manage.py export_openapi`
+
+---
+
+### Milestone 3 - Frontend Foundation (`dev/frontend`)
+**Status:** `COMPLETED`
+
+#### Completed Tasks
+- [x] Scaffolded React + Vite + TypeScript + Mantine frontend
+- [x] Added 4-theme system (3 light + 1 dark) with localStorage persistence
+- [x] Implemented node manager auth shell (email/password + mock Google)
+- [x] Integrated typed API client generated from backend OpenAPI
+- [x] Added protected dashboard route with JWT session handling and route guard
+
+#### Pending Tasks
+- [ ] Optional hardening: replace mock Google with real OAuth flow in Phase 2
+- [ ] Optional hardening: move token storage from localStorage to hardened approach for production
+
+#### Validation Completed
+- [x] API types generated from `backend/openapi/openapi.json`
+- [x] Typecheck passes
+- [x] Lint passes
+- [x] Production build passes
+- [x] Dev server smoke check returns HTTP 200
+
+#### How to Test
+- [ ] In `GigKraft/dev/frontend`, install and generate API client:
+  - `npm install`
+  - `npm run generate:api`
+- [ ] Run quality gates:
+  - `npm run typecheck`
+  - `npm run lint`
+  - `npm run build`
+- [ ] Start frontend:
+  - `npm run dev`
+- [ ] Verify auth shell:
+  - login via email/password
+  - login via mock Google
+  - invalid credentials show error state
+- [ ] Verify protected routing:
+  - unauthenticated access to `/` redirects to `/login`
+  - after auth, access to dashboard succeeds
+- [ ] Verify theme system:
+  - switch all 4 themes
+  - refresh browser and confirm selected theme persists
+- [ ] Verify backend API wiring:
+  - dashboard loads health/profile via typed API wrappers when backend is running
+
+---
+
+### Milestone 4 - Mobile Foundation (`dev/mobile`)
+**Status:** `COMPLETED`
+
+#### Completed Tasks
+- [x] Scaffolded Expo SDK 56 + React Native + TypeScript app with Expo Router file-based navigation
+- [x] Implemented one-app role-based routing (ProShell, HomeShell, web-admin redirect for node_manager)
+- [x] Added 4-theme system (3 light + 1 dark) with AsyncStorage persistence, aligned to design tokens
+- [x] Implemented JWT session handling (expo-secure-store), session restore on app open with refresh retry
+- [x] Built auth screens: splash/role entry, login (email/password + mock OTP), register
+- [x] Built shared primitive components: GkButton, GkCard, GkField, GkSelect, GkBadge, GkAvatar, PhoneScaffold
+- [x] Added typed API client generated from backend OpenAPI spec
+- [x] Added ProShell + HomeShell with placeholder tab screens (M5 will fill content)
+
+#### Pending Tasks
+- [ ] Optional: add ESLint config (`expo lint` interactive setup)
+- [ ] Optional: brand icons/splash assets (using default Expo assets for now)
+- [ ] Optional: prune unused Expo template packages
+
+#### Validation Completed
+- [x] `npx expo-doctor` — 21/21 checks passed
+- [x] `npm run typecheck` — passes
+- [x] `npm run generate:api` — types generated from backend spec
+- [x] `npx expo export --platform web` — all 27 routes bundled successfully
+
+#### How to Test
+- [ ] In `GigKraft/dev/mobile`, install deps:
+  - `npm install`
+  - `npm run generate:api`
+- [ ] Run quality gates:
+  - `npm run typecheck`
+  - `npx expo-doctor`
+- [ ] Start app:
+  - `npx expo start`
+  - Press `w` for web preview or scan QR for device/emulator
+- [ ] Verify role routing:
+  - register/login as `pro` -> lands on ProShell (Leads tab)
+  - register/login as `homeowner` -> lands on HomeShell (Discover tab)
+  - login as `node_manager` -> sees "use the web admin" message
+- [ ] Verify session restore:
+  - sign in, close app, reopen -> session restored without re-login
+- [ ] Verify theme switching:
+  - open Account tab, switch all 4 themes
+  - reload app and confirm theme persists
+- [ ] Verify mock OTP:
+  - request OTP on login screen (phone tab)
+  - enter `123456` (dev_code shown inline)
+
+---
+
+### Milestone 5 - Core MVP Domain Flows
+**Status:** `PENDING`
+
+#### Completed Tasks
+- [ ] None
+
+#### Pending Tasks
+- [ ] Implement Kraft core guardrail: mandatory After + confirmed invoice to publish/verify
+- [ ] Implement ZIP/radius service-area setup (no map UI)
+- [ ] Implement emergency broadcast flow with mocked channels
+- [ ] Implement homeowner discover/profile/account (without homeowner payments)
+- [ ] Implement admin triage and Kraft verification screens
+
+#### How to Test
+- [ ] Kraft guardrail:
+  - create Kraft without After -> publish blocked
+  - create Kraft with After but no confirmed invoice -> publish blocked
+  - create Kraft with both -> publish succeeds
+- [ ] Service area:
+  - configure explicit ZIP list
+  - configure center ZIP + radius slider
+  - verify no map UI appears
+- [ ] Emergency flow:
+  - create emergency broadcast
+  - verify mock SMS/WhatsApp dispatch records created
+  - verify claim changes status and opens lead/chat
+- [ ] Homeowner account:
+  - verify saved pros, past jobs, dispatch toggles
+  - verify no in-app homeowner payment flow is exposed
+
+---
+
+### Milestone 6 - Integrations (Phase 2)
+**Status:** `PENDING`
+
+#### Completed Tasks
+- [ ] None
+
+#### Pending Tasks
+- [ ] Replace OTP mock with Twilio Verify
+- [ ] Replace broadcast mocks with Twilio SMS/WhatsApp live wiring
+- [ ] Add Stripe live subscription webhooks for pro billing
+- [ ] Add S3 presigned upload flow
+- [ ] Add FCM device token + notification delivery
+- [ ] Add Google OAuth validation endpoints and clients
+
+#### How to Test
+- [ ] Twilio Verify: request + verify OTP end-to-end in test mode.
+- [ ] Broadcast: send SMS live; WhatsApp live only after approval (otherwise keep mocked).
+- [ ] Stripe:
+  - create checkout/payment flow
+  - receive webhook events and verify subscription state transitions
+- [ ] S3:
+  - request presigned URL
+  - upload asset directly
+  - persist and render uploaded URL
+- [ ] FCM:
+  - register device token
+  - send test push and confirm delivery
+- [ ] Google OAuth:
+  - login from frontend/mobile
+  - verify backend token validation and account linking
+
+---
+
+### Milestone 7 - Quality, Validation, and Handoff
+**Status:** `PENDING`
+
+#### Completed Tasks
+- [ ] None
+
+#### Pending Tasks
+- [ ] Add unit/integration tests for core business rules
+- [ ] Add smoke tests for auth and role routing
+- [ ] Add local runbook and setup instructions
+- [ ] Validate parity with design reference and requirements
+
+#### How to Test
+- [ ] Run backend tests with coverage threshold for critical rules.
+- [ ] Run frontend/mobile smoke tests for auth, routing, and theme switching.
+- [ ] Execute an end-to-end local checklist from clean clone:
+  - copy env files
+  - run docker compose infra
+  - start backend/frontend/mobile
+  - complete core user journeys for pro, homeowner, admin
+- [ ] Run requirement parity review against:
+  - `dev/requirements/Claude Design/design_handoff_cursor/02_SCREENS.md`
+  - `dev/requirements/Claude Design/design_handoff_cursor/03_BACKEND.md`
+  - `dev/requirements/Claude Design/design_handoff_cursor/04_MOBILE.md`
+
+---
+
+## Progress Log
+
+- **2026-06-12:** Architecture and MVP decisions finalized and recorded.
+- **2026-06-12:** Basic structure plan initialized with milestone tracking.
+- **2026-06-12:** Milestone 1 scaffold completed in `prod/` and test criteria added for all milestones.
+- **2026-06-12:** Milestone 2 backend foundation completed and validated (checks, migrations, tests, endpoint smoke, OpenAPI export).
+- **2026-06-12:** Milestone 3 frontend foundation completed and validated (API generation, typecheck, lint, build, dev smoke).
+- **2026-06-12:** Milestone 4 mobile foundation completed and validated (expo-doctor 21/21, typecheck, API generation, 27-route web export).
+- **2026-06-12:** All code relocated from `prod/` to `dev/` (backend, frontend, mobile, root infra files). All milestone paths updated. `prod/` folder is now deleted (locked runtime files `.venv`/`node_modules` may need manual cleanup after closing terminals).
