@@ -45,7 +45,7 @@ jobs:
       - name: Run Backend Test Suite
         env:
           DJANGO_SECRET_KEY: 'ci-test-key-safe-to-expose'
-          DATABASE_URL: 'postgresql://gigkraft:gigkraft@localhost:5432/gigkraft_test'
+          DATABASE_URL: 'postgresql://gigkraft:gigkraft@localhost:5432/gigkraft_test?sslmode=disable'
           DJANGO_SETTINGS_MODULE: config.settings.local
         run: |
           cd backend
