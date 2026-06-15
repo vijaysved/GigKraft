@@ -1,24 +1,19 @@
 import {
   Alert,
   Box,
-  Button,
   Card,
   Center,
-  Divider,
   Group,
   Paper,
-  PasswordInput,
   Stack,
   Text,
-  TextInput,
   Title,
   UnstyledButton,
 } from "@mantine/core";
 import { IconHammer, IconHome } from "@tabler/icons-react";
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 
-import { ApiError, register } from "../../api/endpoints";
 import { GkLogo } from "../../brand/GkLogo";
 import { WallpaperBackground } from "../../brand/WallpaperBackground";
 import { useAuth } from "../../auth/AuthContext";
@@ -27,42 +22,14 @@ import { GoogleSignInButton } from "../../components/GoogleSignInButton";
 type Role = "pro" | "homeowner";
 
 export function RegisterPage() {
-  const { status, loginWithPassword, loginWithGoogle } = useAuth();
+  const { status, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
 
   const [role, setRole] = useState<Role | null>(null);
-  const [googleRole, setGoogleRole] = useState<Role>("homeowner");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
 
   if (status === "authenticated") {
     return <Navigate to="/" replace />;
-  }
-
-  async function handleRegister(e: FormEvent) {
-    e.preventDefault();
-    if (!role) return;
-    setError(null);
-    setSubmitting(true);
-    try {
-      await register({
-        email,
-        password,
-        role,
-        first_name: firstName,
-        last_name: lastName,
-      });
-      await loginWithPassword(email, password);
-      navigate(role === "pro" ? "/pro/onboarding" : "/home/discover", { replace: true });
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Registration failed.");
-    } finally {
-      setSubmitting(false);
-    }
   }
 
   return (
@@ -77,110 +44,75 @@ export function RegisterPage() {
           <Paper withBorder shadow="md" p="lg" radius="lg" bg="var(--gk-bg-surface)">
             <Stack>
               <Title order={4}>Create account</Title>
+              <Text size="sm" c="dimmed">I am a…</Text>
 
-              {!role ? (
-                <Stack gap="sm">
-                  <Text size="sm" c="dimmed">I am a…</Text>
-                  <Group grow>
-                    <UnstyledButton onClick={() => setRole("pro")}>
-                      <Card withBorder radius="md" padding="md" style={{ cursor: "pointer", textAlign: "center" }}>
-                        <Stack align="center" gap="xs">
-                          <IconHammer size={32} color="var(--gk-accent-primary)" />
-                          <Text fw={700}>Handyman Pro</Text>
-                          <Text size="xs" c="dimmed">I do the work</Text>
-                        </Stack>
-                      </Card>
-                    </UnstyledButton>
-                    <UnstyledButton onClick={() => setRole("homeowner")}>
-                      <Card withBorder radius="md" padding="md" style={{ cursor: "pointer", textAlign: "center" }}>
-                        <Stack align="center" gap="xs">
-                          <IconHome size={32} color="var(--gk-accent-secondary)" />
-                          <Text fw={700}>Homeowner</Text>
-                          <Text size="xs" c="dimmed">I need work done</Text>
-                        </Stack>
-                      </Card>
-                    </UnstyledButton>
-                  </Group>
-                  <Divider label="or sign up with Google" labelPosition="center" />
-                  <Stack gap="xs">
-                    <Group grow>
-                      <Button
-                        size="xs"
-                        variant={googleRole === "homeowner" ? "filled" : "light"}
-                        leftSection={<IconHome size={14} />}
-                        onClick={() => setGoogleRole("homeowner")}
-                      >
-                        Homeowner
-                      </Button>
-                      <Button
-                        size="xs"
-                        variant={googleRole === "pro" ? "filled" : "light"}
-                        leftSection={<IconHammer size={14} />}
-                        onClick={() => setGoogleRole("pro")}
-                      >
-                        Pro
-                      </Button>
-                    </Group>
-                    <GoogleSignInButton
-                      label="signup_with"
-                      fullWidth
-                      onSuccess={(idToken) => loginWithGoogle(idToken, googleRole).then(() =>
-                        navigate(googleRole === "pro" ? "/pro/onboarding" : "/home/discover", { replace: true })
-                      )}
-                      onError={(msg) => setError(msg)}
-                    />
-                  </Stack>
-                  <Text size="sm" ta="center">
-                    Already have an account? <Link to="/login">Sign in</Link>
-                  </Text>
-                </Stack>
-              ) : (
-                <form onSubmit={handleRegister}>
-                  <Stack>
-                    <Group gap="xs" style={{ background: "var(--gk-bg-canvas)", borderRadius: 8, padding: "8px 12px" }}>
-                      {role === "pro" ? <IconHammer size={16} /> : <IconHome size={16} />}
-                      <Text size="sm" fw={600}>{role === "pro" ? "Handyman Pro" : "Homeowner"}</Text>
-                      <Button size="xs" variant="subtle" ml="auto" onClick={() => setRole(null)}>Change</Button>
-                    </Group>
+              {error && <Alert color="red" variant="light">{error}</Alert>}
 
-                    {error && <Alert color="red" variant="light">{error}</Alert>}
+              <Group grow>
+                <UnstyledButton onClick={() => setRole("pro")}>
+                  <Card
+                    withBorder
+                    radius="md"
+                    padding="md"
+                    style={{
+                      cursor: "pointer",
+                      textAlign: "center",
+                      borderColor: role === "pro" ? "var(--gk-accent-primary)" : undefined,
+                      borderWidth: role === "pro" ? 2 : 1,
+                      background: role === "pro"
+                        ? "color-mix(in srgb, var(--gk-accent-primary) 8%, transparent)"
+                        : undefined,
+                    }}
+                  >
+                    <Stack align="center" gap="xs">
+                      <IconHammer size={32} color="var(--gk-accent-primary)" />
+                      <Text fw={700}>Handyman Pro</Text>
+                      <Text size="xs" c="dimmed">I do the work</Text>
+                    </Stack>
+                  </Card>
+                </UnstyledButton>
 
-                    <Group grow>
-                      <TextInput
-                        label="First name"
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.currentTarget.value)}
-                      />
-                      <TextInput
-                        label="Last name"
-                        value={lastName}
-                        onChange={(e) => setLastName(e.currentTarget.value)}
-                      />
-                    </Group>
-                    <TextInput
-                      label="Email"
-                      type="email"
-                      placeholder="you@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.currentTarget.value)}
-                      required
-                    />
-                    <PasswordInput
-                      label="Password"
-                      placeholder="Min 8 characters"
-                      value={password}
-                      onChange={(e) => setPassword(e.currentTarget.value)}
-                      required
-                    />
-                    <Button type="submit" loading={submitting} fullWidth>
-                      Create account
-                    </Button>
-                    <Text size="sm" ta="center">
-                      Already have an account? <Link to="/login">Sign in</Link>
-                    </Text>
-                  </Stack>
-                </form>
-              )}
+                <UnstyledButton onClick={() => setRole("homeowner")}>
+                  <Card
+                    withBorder
+                    radius="md"
+                    padding="md"
+                    style={{
+                      cursor: "pointer",
+                      textAlign: "center",
+                      borderColor: role === "homeowner" ? "var(--gk-accent-secondary)" : undefined,
+                      borderWidth: role === "homeowner" ? 2 : 1,
+                      background: role === "homeowner"
+                        ? "color-mix(in srgb, var(--gk-accent-secondary) 8%, transparent)"
+                        : undefined,
+                    }}
+                  >
+                    <Stack align="center" gap="xs">
+                      <IconHome size={32} color="var(--gk-accent-secondary)" />
+                      <Text fw={700}>Homeowner</Text>
+                      <Text size="xs" c="dimmed">I need work done</Text>
+                    </Stack>
+                  </Card>
+                </UnstyledButton>
+              </Group>
+
+              <GoogleSignInButton
+                label="signup_with"
+                fullWidth
+                onSuccess={async (idToken) => {
+                  try {
+                    await loginWithGoogle(idToken, role ?? "homeowner");
+                    navigate(role === "pro" ? "/pro/onboarding" : "/home/discover", { replace: true });
+                  } catch {
+                    setError("Google sign-up failed. Please try again.");
+                  }
+                }}
+                onError={(msg) => setError(msg)}
+              />
+
+              <Text size="sm" ta="center">
+                Already have an account? <Link to="/login">Sign in</Link>
+              </Text>
             </Stack>
           </Paper>
         </Stack>

@@ -11,13 +11,19 @@ import {
   Title,
 } from "@mantine/core";
 import { IconX } from "@tabler/icons-react";
-import { useState } from "react";
+import { forwardRef, useImperativeHandle, useState } from "react";
 
-export function ProServiceAreaPage() {
+import { client } from "../../api/client";
+
+export interface ProServiceAreaHandle {
+  save: () => Promise<void>;
+}
+
+export const ProServiceAreaPage = forwardRef<ProServiceAreaHandle>(function ProServiceAreaPage(_props, ref) {
   const [mode, setMode] = useState<"zips" | "radius">("zips");
-  const [zips, setZips] = useState<string[]>(["78701"]);
+  const [zips, setZips] = useState<string[]>([]);
   const [zipInput, setZipInput] = useState("");
-  const [centerZip, setCenterZip] = useState("78701");
+  const [centerZip, setCenterZip] = useState("");
   const [radius, setRadius] = useState(25);
   const [saved, setSaved] = useState(false);
 
@@ -32,10 +38,20 @@ export function ProServiceAreaPage() {
     setZips(zips.filter((x) => x !== z));
   }
 
-  function save() {
+  async function save() {
+    await client.PATCH("/api/pros/me/service-area", {
+      body: {
+        service_mode: mode === "radius" ? "radial" : "explicit",
+        service_zips: mode === "zips" ? zips : undefined,
+        service_center_zip: mode === "radius" ? centerZip : undefined,
+        service_radius_miles: mode === "radius" ? radius : undefined,
+      },
+    });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   }
+
+  useImperativeHandle(ref, () => ({ save }));
 
   return (
     <Stack maw={560}>
@@ -106,9 +122,9 @@ export function ProServiceAreaPage() {
         )}
       </Card>
 
-      <Button onClick={save} color={saved ? "green" : undefined}>
+      <Button onClick={() => void save()} color={saved ? "green" : undefined}>
         {saved ? "Saved!" : "Save service area"}
       </Button>
     </Stack>
   );
-}
+});

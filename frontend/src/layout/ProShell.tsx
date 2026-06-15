@@ -12,6 +12,7 @@ import {
 import {
   IconChartBar,
   IconChevronUp,
+  IconCreditCard,
   IconLogout,
   IconNetwork,
   IconPhoto,
@@ -24,11 +25,12 @@ import { useAuth } from "../auth/AuthContext";
 import { useProAvatar } from "../hooks/useProAvatar";
 
 const NAV_ITEMS = [
-  { label: "Reviews", icon: IconStar,     to: "/pro/reviews" },
-  { label: "Krafts",  icon: IconPhoto,    to: "/pro/krafts" },
-  { label: "Stats",   icon: IconChartBar, to: "/pro/stats" },
-  { label: "Network", icon: IconNetwork,  to: "/pro/network" },
-  { label: "Account", icon: IconUser,     to: "/pro/account" },
+  { label: "Reviews", icon: IconStar,        to: "/pro/reviews" },
+  { label: "Krafts",  icon: IconPhoto,       to: "/pro/krafts" },
+  { label: "Stats",   icon: IconChartBar,    to: "/pro/stats" },
+  { label: "Network", icon: IconNetwork,     to: "/pro/network" },
+  { label: "Billing", icon: IconCreditCard,  to: "/pro/billing" },
+  { label: "Account", icon: IconUser,        to: "/pro/account" },
 ];
 
 const navLinkStyles = (_theme: unknown, { active }: { active?: boolean }) => ({

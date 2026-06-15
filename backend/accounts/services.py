@@ -35,7 +35,7 @@ def verify_otp(phone, code):
 
 
 def verify_google_token(id_token):
-    """Validate a Google id_token and return the account email, or None."""
+    """Validate a Google id_token and return (email, first_name, last_name), or (None, '', '')."""
     try:
         from google.auth.transport import requests as google_requests
         from google.oauth2 import id_token as google_id_token
@@ -44,9 +44,12 @@ def verify_google_token(id_token):
         idinfo = google_id_token.verify_oauth2_token(
             id_token, request, settings.GOOGLE_CLIENT_ID
         )
-        return idinfo.get("email", "").lower() or None
+        email = idinfo.get("email", "").lower() or None
+        first_name = idinfo.get("given_name", "")
+        last_name = idinfo.get("family_name", "")
+        return email, first_name, last_name
     except Exception:
-        return None
+        return None, "", ""
 
 
 def ensure_role_profile(user):
@@ -70,12 +73,12 @@ def get_or_create_phone_user(phone, role):
 
 
 @transaction.atomic
-def get_or_create_google_user(email, role=User.Role.HOMEOWNER):
+def get_or_create_google_user(email, role=User.Role.HOMEOWNER, first_name="", last_name=""):
     user, created = User.objects.get_or_create(
-        email=email, defaults={"role": role}
+        email=email, defaults={"role": role, "first_name": first_name, "last_name": last_name}
     )
     if created:
         user.set_unusable_password()
         user.save(update_fields=["password"])
         ensure_role_profile(user)
-    return user
+    return user, created

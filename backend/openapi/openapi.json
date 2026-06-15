@@ -291,7 +291,7 @@
             }
           }
         },
-        "description": "Google sign-in for node managers.\n\nMOCK (Phase 1): with MOCK_GOOGLE_OAUTH=true the id_token must be\n\"mock-google:<email>\" and is validated deterministically.",
+        "description": "Google Sign-In: verify id_token and return a JWT pair.",
         "tags": [
           "auth"
         ],
@@ -348,9 +348,19 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
           }
         },
-        "description": "Update the authenticated user's name fields.",
+        "description": "Update the authenticated user's profile fields.",
         "tags": [
           "me"
         ],
@@ -4229,6 +4239,11 @@
           },
           "user": {
             "$ref": "#/components/schemas/UserOut"
+          },
+          "created": {
+            "default": false,
+            "title": "Created",
+            "type": "boolean"
           }
         },
         "required": [
@@ -4509,6 +4524,17 @@
               }
             ],
             "title": "Last Name"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
           }
         },
         "title": "UserPatchIn",

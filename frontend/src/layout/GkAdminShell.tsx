@@ -12,6 +12,7 @@ import {
 } from "@mantine/core";
 import {
   IconAddressBook,
+  IconBrandStripe,
   IconChevronUp,
   IconLayoutDashboard,
   IconLogout,
@@ -29,6 +30,7 @@ const NAV_ITEMS = [
   { label: "Nodes", icon: IconMapPin, to: "/gk-admin/nodes" },
   { label: "Safety", icon: IconShield, to: "/gk-admin/safety" },
   { label: "Vendor CRM", icon: IconAddressBook, to: "/gk-admin/vendors" },
+  { label: "Stripe", icon: IconBrandStripe, to: "/gk-admin/stripe" },
 ];
 
 const navLinkStyles = {

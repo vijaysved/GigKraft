@@ -103,6 +103,14 @@ export async function getMe(): Promise<UserOut> {
   return data;
 }
 
+export async function patchMe(body: { role?: string; first_name?: string; last_name?: string }): Promise<UserOut> {
+  const { data, error, response } = await client.PATCH("/api/me", { body });
+  if (!data) {
+    throw new ApiError(response.status, detailOf(error, "Failed to update profile."));
+  }
+  return data;
+}
+
 export async function getAdminMetrics(): Promise<MetricsOut> {
   const { data, error, response } = await client.GET("/api/admin/metrics");
   if (!data) {
@@ -319,6 +327,15 @@ export interface GkUserRow {
   last_name: string;
   node_id: string | null;
   is_active: boolean;
+  date_joined: string;
+  primary_zip: string | null;
+  service_zips: string[];
+  pro_handle: string | null;
+}
+
+export interface GkUserList {
+  total: number;
+  items: GkUserRow[];
 }
 
 export async function getGkPlatformMetrics(): Promise<GkPlatformMetrics> {
@@ -327,15 +344,43 @@ export async function getGkPlatformMetrics(): Promise<GkPlatformMetrics> {
   return data as GkPlatformMetrics;
 }
 
-export async function getGkUsers(role?: string, search?: string): Promise<GkUserRow[]> {
+export async function getGkUsers(opts: {
+  role?: string;
+  search?: string;
+  zip?: string;
+  page?: number;
+  page_size?: number;
+}): Promise<GkUserList> {
   const params: Record<string, string> = {};
-  if (role) params.role = role;
-  if (search) params.search = search;
+  if (opts.role) params.role = opts.role;
+  if (opts.search) params.search = opts.search;
+  if (opts.zip) params.zip = opts.zip;
+  if (opts.page) params.page = String(opts.page);
+  if (opts.page_size) params.page_size = String(opts.page_size);
   const { data, error, response } = await client.GET("/api/gk-admin/users" as never, {
     params: { query: params },
   } as never);
   if (!data) throw new ApiError(response.status, detailOf(error, "Failed to load users."));
-  return data as GkUserRow[];
+  return data as GkUserList;
+}
+
+export async function getGkUserZipcodes(): Promise<string[]> {
+  const { data, error, response } = await client.GET("/api/gk-admin/users/zipcodes" as never);
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to load zipcodes."));
+  return data as string[];
+}
+
+export async function deleteGkUser(userId: number): Promise<void> {
+  const { response } = await client.DELETE(`/api/gk-admin/users/${userId}` as never);
+  if (response.status !== 204 && !response.ok) {
+    throw new ApiError(response.status, "Failed to delete user.");
+  }
+}
+
+export async function setGkUserAdmin(userId: number): Promise<GkUserRow> {
+  const { data, error, response } = await client.PATCH(`/api/gk-admin/users/${userId}/set-admin` as never);
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to set admin."));
+  return data as GkUserRow;
 }
 
 export async function getGkNodes(): Promise<GkNodeSummary[]> {

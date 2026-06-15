@@ -87,6 +87,7 @@ class TokenPairOut(Schema):
     access: str
     refresh: str
     user: UserOut
+    created: bool = False
 
 
 class AccessTokenOut(Schema):

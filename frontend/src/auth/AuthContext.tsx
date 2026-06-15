@@ -17,6 +17,7 @@ import {
   type UserOut,
 } from "../api/endpoints";
 import { clearTokens, getAccessToken, getRefreshToken, setTokens } from "../api/tokens";
+import { clearAvatar } from "../hooks/useProAvatar";
 
 export type AuthStatus = "loading" | "authenticated" | "anonymous";
 
@@ -24,7 +25,7 @@ interface AuthContextValue {
   status: AuthStatus;
   user: UserOut | null;
   loginWithPassword: (email: string, password: string) => Promise<void>;
-  loginWithGoogle: (idToken: string, role?: string) => Promise<void>;
+  loginWithGoogle: (idToken: string, role?: string) => Promise<{ created: boolean }>;
   logout: () => void;
   updateUser: (patch: Partial<UserOut>) => void;
 }
@@ -96,13 +97,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginWithGoogle = useCallback(async (idToken: string, role = "homeowner") => {
     const pair = await googleAuth(idToken, role);
+    if (pair.created) clearAvatar();
     setTokens(pair.access, pair.refresh);
     setUser(pair.user);
     setStatus("authenticated");
+    return { created: pair.created ?? false };
   }, []);
 
   const logout = useCallback(() => {
     clearTokens();
+    clearAvatar();
     setUser(null);
     setStatus("anonymous");
   }, []);

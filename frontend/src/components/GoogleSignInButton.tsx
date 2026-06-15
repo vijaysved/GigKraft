@@ -1,4 +1,5 @@
 import { GoogleLogin } from "@react-oauth/google";
+import { useEffect, useRef, useState } from "react";
 
 interface Props {
   label?: "signin_with" | "signup_with" | "continue_with";
@@ -8,13 +9,32 @@ interface Props {
 }
 
 export function GoogleSignInButton({ label = "continue_with", onSuccess, onError, fullWidth }: Props) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [buttonWidth, setButtonWidth] = useState(300);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width;
+      if (w) setButtonWidth(Math.round(w));
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <div style={{ width: fullWidth ? "100%" : undefined }}>
+    <div
+      ref={containerRef}
+      style={{
+        width: fullWidth ? "100%" : undefined,
+      }}
+    >
       <GoogleLogin
         text={label}
         shape="rectangular"
         size="large"
-        width={fullWidth ? "400" : undefined}
+        width={buttonWidth}
+        logo_alignment="left"
         onSuccess={async ({ credential }) => {
           if (!credential) { onError?.("Google did not return a credential."); return; }
           try { await onSuccess(credential); }

@@ -37,7 +37,6 @@ import { useAuth } from "../../auth/AuthContext";
 import { GoogleSignInButton } from "../../components/GoogleSignInButton";
 import { KraftCard } from "../../components/KraftCard";
 import { ReviewsSection } from "../../components/ReviewsSection";
-import { loadAvatar } from "../../hooks/useProAvatar";
 
 const WALLPAPERS = [
   "var(--gk-brand-gradient)",
@@ -95,12 +94,9 @@ export function ProPublicProfilePage() {
   const [notFound, setNotFound] = useState(false);
   const [krafts, setKrafts] = useState<KraftPublicOut[]>([]);
   const [googleError, setGoogleError] = useState<string | null>(null);
-  const [contactRole, setContactRole] = useState<"homeowner" | "pro">("homeowner");
 
   const isLoggedIn = status === "authenticated";
   const profileUrl = window.location.href;
-  const localAvatar = loadAvatar();
-
   // Inject OG meta tags so sharing picks up name / avatar / description
   useEffect(() => {
     if (!pro) return;
@@ -230,7 +226,7 @@ export function ProPublicProfilePage() {
                 {/* Avatar — overlaps banner */}
                 <Avatar
                   size={88}
-                  src={pro.avatar_url || localAvatar || undefined}
+                  src={pro.avatar_url || undefined}
                   color="blue"
                   radius="xl"
                   style={{
@@ -241,7 +237,7 @@ export function ProPublicProfilePage() {
                     left: 20,
                   }}
                 >
-                  {!(pro.avatar_url || localAvatar) && pro.name[0]?.toUpperCase()}
+                  {!pro.avatar_url && pro.name[0]?.toUpperCase()}
                 </Avatar>
 
                 {/* Name + handle row — right of avatar */}
@@ -328,28 +324,12 @@ export function ProPublicProfilePage() {
                               <Group gap={6}><IconMessage size={14} /><Text size="sm">+1 (512) 555-0192</Text></Group>
                             </Stack>
                           </Box>
-                          <Group gap="xs">
-                            <Button
-                              size="xs"
-                              variant={contactRole === "homeowner" ? "filled" : "light"}
-                              onClick={() => setContactRole("homeowner")}
-                            >
-                              I'm a homeowner
-                            </Button>
-                            <Button
-                              size="xs"
-                              variant={contactRole === "pro" ? "filled" : "light"}
-                              onClick={() => setContactRole("pro")}
-                            >
-                              I'm a pro
-                            </Button>
-                          </Group>
                           {googleError && <Text size="xs" c="red">{googleError}</Text>}
                           <GoogleSignInButton
                             label="signup_with"
                             fullWidth
                             onSuccess={(idToken) =>
-                              loginWithGoogle(idToken, contactRole).then(() =>
+                              loginWithGoogle(idToken, "homeowner").then(() =>
                                 navigate(window.location.pathname, { replace: true })
                               )
                             }
@@ -478,16 +458,18 @@ export function ProPublicProfilePage() {
                   <Text size="sm" c="white" opacity={0.85}>
                     Create a free account to message, request a quote, and see contact info.
                   </Text>
-                  <GoogleSignInButton
-                    label="signup_with"
-                    fullWidth
-                    onSuccess={(idToken) =>
-                      loginWithGoogle(idToken, "homeowner").then(() =>
-                        navigate(window.location.pathname, { replace: true })
-                      )
-                    }
-                    onError={setGoogleError}
-                  />
+                  <Box w="100%" maw={400}>
+                    <GoogleSignInButton
+                      label="signup_with"
+                      fullWidth
+                      onSuccess={(idToken) =>
+                        loginWithGoogle(idToken, "homeowner").then(() =>
+                          navigate(window.location.pathname, { replace: true })
+                        )
+                      }
+                      onError={setGoogleError}
+                    />
+                  </Box>
                   <Group gap="sm">
                     <Button component={Link} to="/register" color="white" variant="white"
                       style={{ color: "var(--gk-accent-primary)" }}>

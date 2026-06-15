@@ -138,10 +138,7 @@ export interface paths {
         put?: never;
         /**
          * Google Auth
-         * @description Google sign-in for node managers.
-         *
-         *     MOCK (Phase 1): with MOCK_GOOGLE_OAUTH=true the id_token must be
-         *     "mock-google:<email>" and is validated deterministically.
+         * @description Google Sign-In: verify id_token and return a JWT pair.
          */
         post: operations["accounts_api_google_auth"];
         delete?: never;
@@ -169,7 +166,7 @@ export interface paths {
         head?: never;
         /**
          * Patch Me
-         * @description Update the authenticated user's name fields.
+         * @description Update the authenticated user's profile fields.
          */
         patch: operations["accounts_api_patch_me"];
         trace?: never;
@@ -1360,6 +1357,11 @@ export interface components {
             /** Refresh */
             refresh: string;
             user: components["schemas"]["UserOut"];
+            /**
+             * Created
+             * @default false
+             */
+            created: boolean;
         };
         /** UserOut */
         UserOut: {
@@ -1466,6 +1468,8 @@ export interface components {
             first_name?: string | null;
             /** Last Name */
             last_name?: string | null;
+            /** Role */
+            role?: string | null;
         };
         /** NotifPrefOut */
         NotifPrefOut: {
@@ -2951,6 +2955,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserOut"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
                 };
             };
         };

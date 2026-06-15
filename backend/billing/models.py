@@ -81,3 +81,67 @@ class Coupon(models.Model):
 
     def __str__(self):
         return f"{self.code} (-{self.discount_pct}%)"
+
+
+class StripeSettings(models.Model):
+    """Singleton row — always use StripeSettings.get() to read.
+
+    The STRIPE_MODE environment variable always wins over the DB value.
+    Set STRIPE_MODE=test in local .env and STRIPE_MODE=live in Railway
+    so the environment controls the mode, not a manual DB toggle.
+    """
+
+    class Mode(models.TextChoices):
+        TEST = "test", "Test"
+        LIVE = "live", "Live"
+
+    mode = models.CharField(max_length=4, choices=Mode.choices, default=Mode.TEST)
+
+    # Price IDs per environment (set via GK Admin UI)
+    test_price_monthly = models.CharField(max_length=100, blank=True, default="")
+    test_price_annual = models.CharField(max_length=100, blank=True, default="")
+    live_price_monthly = models.CharField(max_length=100, blank=True, default="")
+    live_price_annual = models.CharField(max_length=100, blank=True, default="")
+
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(
+        "accounts.User",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="+",
+    )
+
+    class Meta:
+        verbose_name = "Stripe Settings"
+        verbose_name_plural = "Stripe Settings"
+
+    def __str__(self):
+        return f"StripeSettings [{self.effective_mode}]"
+
+    @classmethod
+    def get(cls) -> "StripeSettings":
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+    @property
+    def effective_mode(self) -> str:
+        """STRIPE_MODE env var overrides the DB value."""
+        import os
+        env_mode = os.environ.get("STRIPE_MODE", "").lower()
+        if env_mode in ("test", "live"):
+            return env_mode
+        return self.mode
+
+    @property
+    def secret_key(self) -> str:
+        import os
+        if self.effective_mode == "live":
+            return os.environ.get("STRIPE_SECRET_KEY", "")
+        return os.environ.get("STRIPE_TEST_SECRET_KEY", "")
+
+    def price_id(self, plan: str) -> str:
+        """Return the active price ID for the given plan ('monthly'|'annual')."""
+        if self.effective_mode == "test":
+            return self.test_price_monthly if plan == "monthly" else self.test_price_annual
+        return self.live_price_monthly if plan == "monthly" else self.live_price_annual

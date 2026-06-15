@@ -143,6 +143,13 @@ export function ProAccountPage() {
   const [firstName, setFirstName] = useState(user?.first_name ?? "");
   const [lastName, setLastName] = useState(user?.last_name ?? "");
 
+  useEffect(() => {
+    if (user) {
+      setFirstName((prev) => prev || user.first_name);
+      setLastName((prev) => prev || user.last_name);
+    }
+  }, [user]);
+
   const displayName = [firstName, lastName].filter(Boolean).join(" ") || user?.email || "Your Name";
   const initials = (user?.first_name?.[0] ?? user?.email?.[0] ?? "P").toUpperCase();
 
@@ -229,10 +236,10 @@ export function ProAccountPage() {
       const nameRes = await fetch(`${API_BASE_URL}/api/me`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${getAccessToken() ?? ""}` },
-        body: JSON.stringify({ first_name: firstName, last_name: lastName }),
+        body: JSON.stringify({ first_name: firstName, last_name: lastName, phone: contactPhone || null }),
       });
       if (nameRes.ok) {
-        updateUser({ first_name: firstName, last_name: lastName });
+        updateUser({ first_name: firstName, last_name: lastName, phone: contactPhone || null });
       }
 
       const { error: proErr } = await client.PATCH("/api/pros/me", {
@@ -297,6 +304,7 @@ export function ProAccountPage() {
   async function savePhoto() {
     if (photoPreview) {
       saveAvatar(photoPreview);
+      await client.PATCH("/api/pros/me", { body: { avatar_url: photoPreview } } as never);
     }
     setPhotoSaved(true);
     setTimeout(() => setPhotoSaved(false), 2000);
@@ -336,6 +344,13 @@ export function ProAccountPage() {
   // ── Contact info ──
   const [contactEmail, setContactEmail] = useState(user?.email ?? "");
   const [contactPhone, setContactPhone] = useState(user?.phone ?? "");
+
+  useEffect(() => {
+    if (user) {
+      setContactEmail((prev) => prev || user.email || "");
+      setContactPhone((prev) => prev || user.phone || "");
+    }
+  }, [user]);
 
   // ── Recommendation request ──
   const [recName, setRecName] = useState("");

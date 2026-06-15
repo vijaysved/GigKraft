@@ -96,7 +96,7 @@ class ProProfile(models.Model):
     # Visual customization.
     wallpaper_id = models.PositiveSmallIntegerField(default=0)
     wallpaper_url = models.TextField(blank=True, default="")  # custom upload/URL; overrides wallpaper_id when set
-    avatar_url = models.URLField(blank=True, default="")
+    avatar_url = models.TextField(blank=True, default="")
     # Admin flags.
     is_verified = models.BooleanField(default=False)
     is_suspended = models.BooleanField(default=False)

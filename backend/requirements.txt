@@ -10,3 +10,5 @@ django-cors-headers>=4.7,<5.0
 gunicorn>=23.0,<24.0
 whitenoise>=6.9,<7.0
 google-auth>=2.0,<3.0
+requests>=2.32,<3.0
+stripe>=10.0,<12.0

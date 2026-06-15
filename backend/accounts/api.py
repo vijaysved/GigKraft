@@ -25,9 +25,9 @@ router = Router(tags=["auth"])
 me_router = Router(tags=["me"])
 
 
-def _token_response(user):
+def _token_response(user, created=False):
     pair = tokens.create_token_pair(user)
-    return {"access": pair["access"], "refresh": pair["refresh"], "user": user}
+    return {"access": pair["access"], "refresh": pair["refresh"], "user": user, "created": created}
 
 
 @router.post(
@@ -119,13 +119,15 @@ def otp_verify(request, payload: OTPVerifyIn):
 def google_auth(request, payload: GoogleAuthIn):
     """Google Sign-In: verify id_token and return a JWT pair."""
     try:
-        email = services.verify_google_token(payload.id_token)
+        email, first_name, last_name = services.verify_google_token(payload.id_token)
     except services.AuthProviderUnavailable as exc:
         return 503, {"detail": str(exc)}
     if email is None:
         return 401, {"detail": "Invalid Google id_token."}
-    user = services.get_or_create_google_user(email, role=payload.role)
-    return 200, _token_response(user)
+    user, created = services.get_or_create_google_user(
+        email, role=payload.role, first_name=first_name, last_name=last_name
+    )
+    return 200, _token_response(user, created=created)
 
 
 @me_router.get("/me", response=UserOut, auth=jwt_auth)
@@ -137,16 +139,30 @@ def me(request):
 class UserPatchIn(Schema):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
+    phone: Optional[str] = None
+    role: Optional[str] = None
 
 
-@me_router.patch("/me", response=UserOut, auth=jwt_auth)
+@me_router.patch("/me", response={200: UserOut, 400: ErrorOut}, auth=jwt_auth)
 def patch_me(request, payload: UserPatchIn):
-    """Update the authenticated user's name fields."""
+    """Update the authenticated user's profile fields."""
     user = request.auth
     data = payload.dict(exclude_unset=True)
     if "first_name" in data:
         user.first_name = data["first_name"]
     if "last_name" in data:
         user.last_name = data["last_name"]
+    if "phone" in data:
+        phone = data["phone"] or None
+        if phone and User.objects.filter(phone=phone).exclude(pk=user.pk).exists():
+            return 400, {"detail": "That phone number is already in use."}
+        user.phone = phone
+    if "role" in data:
+        new_role = data["role"]
+        if new_role not in (User.Role.PRO, User.Role.HOMEOWNER):
+            return 400, {"detail": "Role must be pro or homeowner."}
+        user.role = new_role
+        user.save()
+        services.ensure_role_profile(user)
     user.save()
-    return user
+    return 200, user
