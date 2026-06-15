@@ -16,6 +16,7 @@ import { useState, type FormEvent } from "react";
 import { Link, Navigate, useLocation } from "react-router-dom";
 
 import { ApiError } from "../api/endpoints";
+
 import { GkLogo } from "../brand/GkLogo";
 import { WallpaperBackground } from "../brand/WallpaperBackground";
 import { useAuth } from "../auth/AuthContext";
@@ -93,9 +94,8 @@ export function LoginPage() {
                 </Button>
                 <Divider label="or" labelPosition="center" />
                 <GoogleSignInButton
+                  label="signin_with"
                   fullWidth
-                  disabled={submitting}
-                  mockEmail={email || undefined}
                   onSuccess={(idToken) => loginWithGoogle(idToken)}
                   onError={(msg) => setError(msg)}
                 />

@@ -1,5 +1,6 @@
 """Smoke tests for the Milestone 2 auth surface (run against sqlite)."""
 import json
+import unittest.mock
 
 from django.test import Client, TestCase
 
@@ -145,27 +146,26 @@ class OtpMockAuthTests(ApiTestCase):
         self.assertEqual(resp.status_code, 401)
 
 
-class GoogleMockAuthTests(ApiTestCase):
-    def test_google_mock_token_signs_in_as_homeowner_by_default(self):
-        resp = self.post_json(
-            "/api/auth/google", {"id_token": "mock-google:user@gigkraft.dev"}
-        )
+class GoogleAuthTests(ApiTestCase):
+    def test_google_valid_token_signs_in_as_homeowner_by_default(self):
+        with unittest.mock.patch("accounts.services.verify_google_token", return_value="user@gigkraft.dev"):
+            resp = self.post_json("/api/auth/google", {"id_token": "fake-id-token"})
         self.assertEqual(resp.status_code, 200, resp.content)
         body = resp.json()
         self.assertEqual(body["user"]["email"], "user@gigkraft.dev")
         self.assertEqual(body["user"]["role"], "homeowner")
 
-    def test_google_mock_token_signs_in_as_pro(self):
-        resp = self.post_json(
-            "/api/auth/google", {"id_token": "mock-google:pro@gigkraft.dev", "role": "pro"}
-        )
+    def test_google_valid_token_signs_in_as_pro(self):
+        with unittest.mock.patch("accounts.services.verify_google_token", return_value="pro@gigkraft.dev"):
+            resp = self.post_json("/api/auth/google", {"id_token": "fake-id-token", "role": "pro"})
         self.assertEqual(resp.status_code, 200, resp.content)
         body = resp.json()
         self.assertEqual(body["user"]["email"], "pro@gigkraft.dev")
         self.assertEqual(body["user"]["role"], "pro")
 
-    def test_google_invalid_token(self):
-        resp = self.post_json("/api/auth/google", {"id_token": "not-a-mock-token"})
+    def test_google_invalid_token_returns_401(self):
+        with unittest.mock.patch("accounts.services.verify_google_token", return_value=None):
+            resp = self.post_json("/api/auth/google", {"id_token": "bad-token"})
         self.assertEqual(resp.status_code, 401)
 
 

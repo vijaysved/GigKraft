@@ -3,8 +3,6 @@
 MOCK BEHAVIOR (env-controlled):
 - MOCK_TWILIO=true  -> OTP code is always settings.MOCK_OTP_CODE (default 123456)
   and the request endpoint echoes it back as `dev_code`.
-- MOCK_GOOGLE_OAUTH=true -> id_token must look like "mock-google:<email>";
-  useful for CI or local dev without a real Google client ID.
 """
 from django.conf import settings
 from django.db import transaction
@@ -38,16 +36,6 @@ def verify_otp(phone, code):
 
 def verify_google_token(id_token):
     """Validate a Google id_token and return the account email, or None."""
-    if settings.MOCK_GOOGLE_OAUTH:
-        prefix = settings.MOCK_GOOGLE_TOKEN_PREFIX
-        if not id_token.startswith(prefix):
-            return None
-        email = id_token[len(prefix):].strip().lower()
-        if "@" not in email:
-            return None
-        return email
-
-    # Real Google OAuth verification.
     try:
         from google.auth.transport import requests as google_requests
         from google.oauth2 import id_token as google_id_token

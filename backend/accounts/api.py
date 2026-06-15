@@ -117,11 +117,7 @@ def otp_verify(request, payload: OTPVerifyIn):
     auth=None,
 )
 def google_auth(request, payload: GoogleAuthIn):
-    """Google sign-in for node managers.
-
-    MOCK (Phase 1): with MOCK_GOOGLE_OAUTH=true the id_token must be
-    "mock-google:<email>" and is validated deterministically.
-    """
+    """Google Sign-In: verify id_token and return a JWT pair."""
     try:
         email = services.verify_google_token(payload.id_token)
     except services.AuthProviderUnavailable as exc:

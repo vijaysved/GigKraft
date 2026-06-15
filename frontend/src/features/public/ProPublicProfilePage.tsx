@@ -346,7 +346,7 @@ export function ProPublicProfilePage() {
                           </Group>
                           {googleError && <Text size="xs" c="red">{googleError}</Text>}
                           <GoogleSignInButton
-                            label={`Sign up to contact ${pro.name.split(" ")[0]}`}
+                            label="signup_with"
                             fullWidth
                             onSuccess={(idToken) =>
                               loginWithGoogle(idToken, contactRole).then(() =>
@@ -479,7 +479,7 @@ export function ProPublicProfilePage() {
                     Create a free account to message, request a quote, and see contact info.
                   </Text>
                   <GoogleSignInButton
-                    label="Sign up with Google"
+                    label="signup_with"
                     fullWidth
                     onSuccess={(idToken) =>
                       loginWithGoogle(idToken, "homeowner").then(() =>

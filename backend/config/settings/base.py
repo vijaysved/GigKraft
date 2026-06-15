@@ -145,13 +145,10 @@ MOCK_TWILIO = env_bool("MOCK_TWILIO", default=True)
 MOCK_STRIPE = env_bool("MOCK_STRIPE", default=True)
 MOCK_S3 = env_bool("MOCK_S3", default=True)
 MOCK_FCM = env_bool("MOCK_FCM", default=True)
-MOCK_GOOGLE_OAUTH = env_bool("MOCK_GOOGLE_OAUTH", default=True)
 MOCK_WHATSAPP = env_bool("MOCK_WHATSAPP", default=True)
 
 # Deterministic OTP code used when MOCK_TWILIO=true. Never used in live mode.
 MOCK_OTP_CODE = os.environ.get("MOCK_OTP_CODE", "123456")
-# Mock Google id_token prefix: tokens look like "mock-google:<email>".
-MOCK_GOOGLE_TOKEN_PREFIX = "mock-google:"
 
 # --- Google OAuth ---
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")

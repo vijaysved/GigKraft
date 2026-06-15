@@ -21,7 +21,6 @@ def health(request):
             "stripe": settings.MOCK_STRIPE,
             "s3": settings.MOCK_S3,
             "fcm": settings.MOCK_FCM,
-            "google_oauth": settings.MOCK_GOOGLE_OAUTH,
             "whatsapp": settings.MOCK_WHATSAPP,
         },
     }
