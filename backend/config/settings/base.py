@@ -151,9 +151,13 @@ MOCK_RESEND = env_bool("MOCK_RESEND", default=True)
 
 # --- Resend (email) ---
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
+# When set, all outbound emails are redirected to this address (local dev only).
+DEV_EMAIL_TO = os.environ.get("DEV_EMAIL_TO", "")
 
 # Deterministic OTP code used when MOCK_TWILIO=true. Never used in live mode.
 MOCK_OTP_CODE = os.environ.get("MOCK_OTP_CODE", "123456")
 
 # --- Google OAuth ---
+# Dev:  set in backend/.env  (your local dev OAuth client)
+# Prod: set in Railway env vars (prod OAuth client with gigkraft.com origin)
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
