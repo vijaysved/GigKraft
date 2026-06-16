@@ -76,6 +76,30 @@ def home_account(request):
     }
 
 
+# --- Profile setup (onboarding) ---
+
+
+class HomeProfilePatchIn(Schema):
+    default_zip: Optional[str] = None
+    preferred_trade: Optional[str] = None
+
+
+class HomeProfileOut(Schema):
+    default_zip: str
+    preferred_trade: str
+
+
+@router.patch("/profile", response=HomeProfileOut)
+def patch_home_profile(request, payload: HomeProfilePatchIn):
+    profile = require_homeowner(request)
+    if payload.default_zip is not None:
+        profile.default_zip = payload.default_zip.strip()
+    if payload.preferred_trade is not None:
+        profile.preferred_trade = payload.preferred_trade.strip()
+    profile.save(update_fields=["default_zip", "preferred_trade"])
+    return {"default_zip": profile.default_zip, "preferred_trade": profile.preferred_trade}
+
+
 # --- Saved pros ---
 
 

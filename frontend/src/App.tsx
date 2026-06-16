@@ -46,6 +46,7 @@ import { ProProfilePage } from "./features/pro/ProProfilePage";
 import { ProOnboardingPage } from "./features/pro/onboarding/ProOnboardingPage";
 
 // Homeowner pages
+import { HomeOnboardingPage } from "./features/home/HomeOnboardingPage";
 import { HomeDiscoverPage } from "./features/home/HomeDiscoverPage";
 import { HomeProProfilePage } from "./features/home/HomeProProfilePage";
 import { HomeEmergencyPage } from "./features/home/HomeEmergencyPage";
@@ -149,6 +150,12 @@ export default function App() {
       <Route
         path="/pro/onboarding"
         element={<RequireAuth><RequireRole role="pro"><ProOnboardingPage /></RequireRole></RequireAuth>}
+      />
+
+      {/* Homeowner onboarding — outside HomeShell (full-bleed wallpaper) */}
+      <Route
+        path="/home/onboarding"
+        element={<RequireAuth><RequireRole role="homeowner"><HomeOnboardingPage /></RequireRole></RequireAuth>}
       />
 
       {/* Homeowner */}

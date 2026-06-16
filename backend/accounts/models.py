@@ -135,6 +135,7 @@ class HomeownerProfile(models.Model):
         User, on_delete=models.CASCADE, related_name="homeowner_profile"
     )
     default_zip = models.CharField(max_length=10, blank=True, default="")
+    preferred_trade = models.CharField(max_length=40, blank=True, default="")
     dispatch_opt_in = models.BooleanField(default=True)
     avatar_url = models.URLField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)

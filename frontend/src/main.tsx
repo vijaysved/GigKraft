@@ -11,14 +11,11 @@ import { AuthProvider } from "./auth/AuthContext";
 import { GOOGLE_CLIENT_ID } from "./config";
 import { ThemeProvider } from "./theme/ThemeProvider";
 
-console.log("[GigKraft] GOOGLE_CLIENT_ID:", GOOGLE_CLIENT_ID || "NOT SET");
-
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <GoogleOAuthProvider
       clientId={GOOGLE_CLIENT_ID}
       onScriptLoadError={() => console.error("[GigKraft] Google script failed to load")}
-      onScriptLoadSuccess={() => console.log("[GigKraft] Google script loaded OK")}
     >
       <ThemeProvider>
         <AuthProvider>

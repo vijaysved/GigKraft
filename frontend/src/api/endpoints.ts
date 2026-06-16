@@ -111,6 +111,17 @@ export async function patchMe(body: { role?: string; first_name?: string; last_n
   return data;
 }
 
+export async function patchHomeProfile(body: {
+  default_zip?: string;
+  preferred_trade?: string;
+}): Promise<{ default_zip: string; preferred_trade: string }> {
+  const { data, error, response } = await client.PATCH("/api/home/profile" as never, {
+    body,
+  } as never);
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to save profile."));
+  return data as { default_zip: string; preferred_trade: string };
+}
+
 export async function getAdminMetrics(): Promise<MetricsOut> {
   const { data, error, response } = await client.GET("/api/admin/metrics");
   if (!data) {

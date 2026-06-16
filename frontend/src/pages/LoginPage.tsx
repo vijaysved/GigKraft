@@ -48,7 +48,7 @@ export function LoginPage() {
     try {
       const updated = await patchMe({ role });
       updateUser(updated);
-      navigate(role === "pro" ? "/pro/onboarding" : "/home/discover", { replace: true });
+      navigate(role === "pro" ? "/pro/onboarding" : "/home/onboarding", { replace: true });
     } catch {
       setError("Failed to set role. Please try again.");
     } finally {
