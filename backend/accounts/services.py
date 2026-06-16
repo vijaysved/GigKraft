@@ -48,7 +48,8 @@ def verify_google_token(id_token):
         first_name = idinfo.get("given_name", "")
         last_name = idinfo.get("family_name", "")
         return email, first_name, last_name
-    except Exception:
+    except Exception as e:
+        print(f"[GigKraft] Google token verification failed: {e}", flush=True)
         return None, "", ""
 
 
