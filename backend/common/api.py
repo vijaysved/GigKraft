@@ -8,6 +8,7 @@ class HealthOut(Schema):
     status: str
     debug: bool
     mocks: dict
+    google_client_id_set: bool
 
 
 @router.get("/health", response=HealthOut, auth=None)
@@ -23,4 +24,5 @@ def health(request):
             "fcm": settings.MOCK_FCM,
             "whatsapp": settings.MOCK_WHATSAPP,
         },
+        "google_client_id_set": bool(settings.GOOGLE_CLIENT_ID),
     }
