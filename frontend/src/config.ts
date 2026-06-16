@@ -1,7 +1,7 @@
 export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ??
   (import.meta.env.PROD
-    ? "https://gigkraft-backend-production.up.railway.app"
+    ? ""  // same-origin: Vercel proxies /api/* to Railway
     : "http://localhost:8000");
 
 export const GOOGLE_CLIENT_ID =
