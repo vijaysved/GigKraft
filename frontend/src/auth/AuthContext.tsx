@@ -96,11 +96,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const loginWithGoogle = useCallback(async (idToken: string, role = "homeowner") => {
+    console.log("[GK Auth] loginWithGoogle() called");
     const pair = await googleAuth(idToken, role);
+    console.log("[GK Auth] googleAuth returned, created:", pair.created, "user:", pair.user?.email);
     if (pair.created) clearAvatar();
     setTokens(pair.access, pair.refresh);
     setUser(pair.user);
     setStatus("authenticated");
+    console.log("[GK Auth] status set to authenticated, navigating...");
     return { created: pair.created ?? false };
   }, []);
 

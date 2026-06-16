@@ -68,10 +68,13 @@ export async function register(body: RegisterIn): Promise<TokenPairOut> {
 }
 
 export async function googleAuth(idToken: string, role = "homeowner"): Promise<TokenPairOut> {
+  console.log("[GK Auth] googleAuth() called, role:", role);
   const { data, error, response } = await client.POST("/api/auth/google", {
     body: { id_token: idToken, role },
   });
+  console.log("[GK Auth] POST /api/auth/google →", response.status, "data:", !!data, "error:", error);
   if (!data) {
+    console.error("[GK Auth] API error:", response.status, error);
     throw new ApiError(
       response.status,
       detailOf(error, "Google sign-in failed."),

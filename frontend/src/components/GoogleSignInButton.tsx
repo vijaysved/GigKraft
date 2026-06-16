@@ -36,11 +36,25 @@ export function GoogleSignInButton({ label = "continue_with", onSuccess, onError
         width={buttonWidth}
         logo_alignment="left"
         onSuccess={async ({ credential }) => {
-          if (!credential) { onError?.("Google did not return a credential."); return; }
-          try { await onSuccess(credential); }
-          catch { onError?.("Google sign-in failed."); }
+          console.log("[GK Auth] Google onSuccess fired, credential present:", !!credential);
+          if (!credential) {
+            console.error("[GK Auth] No credential returned from Google");
+            onError?.("Google did not return a credential.");
+            return;
+          }
+          try {
+            console.log("[GK Auth] Calling onSuccess handler with idToken...");
+            await onSuccess(credential);
+            console.log("[GK Auth] onSuccess handler completed");
+          } catch (err) {
+            console.error("[GK Auth] onSuccess handler threw:", err);
+            onError?.("Google sign-in failed.");
+          }
         }}
-        onError={() => onError?.("Google sign-in failed.")}
+        onError={() => {
+          console.error("[GK Auth] Google onError fired");
+          onError?.("Google sign-in failed.");
+        }}
       />
     </div>
   );
