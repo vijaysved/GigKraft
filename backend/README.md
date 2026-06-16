@@ -73,10 +73,8 @@ Controlled by env flags (see `.env.example`); deterministic by design:
 
 - `MOCK_TWILIO=true`: OTP code is always `MOCK_OTP_CODE` (default `123456`)
   and `/api/auth/otp/request` echoes it back as `dev_code`.
-- `MOCK_GOOGLE_OAUTH=true`: `/api/auth/google` accepts id_tokens of the form
-  `mock-google:<email>` and signs in (or creates) a node manager.
-- With a flag set to `false`, the endpoint returns 503 until the live
-  integration lands in Phase 2 (Milestone 6).
+- Google OAuth (`/api/auth/google`) uses real Google token verification via
+  `google-auth` library — no mock mode; pass a valid `id_token` from the client.
 
 ### Quick smoke (PowerShell)
 
