@@ -48,8 +48,7 @@ def verify_google_token(id_token):
         first_name = idinfo.get("given_name", "")
         last_name = idinfo.get("family_name", "")
         return email, first_name, last_name
-    except Exception as exc:
-        print(f"[GK DEBUG] verify_google_token failed: {exc!r} | client_id={settings.GOOGLE_CLIENT_ID!r} | token_prefix={str(id_token)[:20] if id_token else 'NONE'}", flush=True)
+    except Exception:
         return None, "", ""
 
 
