@@ -3,6 +3,6 @@ export const API_BASE_URL =
 
 export const GOOGLE_CLIENT_ID =
   import.meta.env.VITE_GOOGLE_CLIENT_ID ??
-  "83848902207-98do9lnkr0d3t7vii3ufc408lbuunr7a.apps.googleusercontent.com";
+  "83848902207-ibto40vuqcf30ncb6695tt2irvffb5hb.apps.googleusercontent.com";
 
 export const APP_VERSION = "1.0.0";
