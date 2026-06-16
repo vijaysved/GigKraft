@@ -148,7 +148,7 @@ class OtpMockAuthTests(ApiTestCase):
 
 class GoogleAuthTests(ApiTestCase):
     def test_google_valid_token_signs_in_as_homeowner_by_default(self):
-        with unittest.mock.patch("accounts.services.verify_google_token", return_value="user@gigkraft.dev"):
+        with unittest.mock.patch("accounts.services.verify_google_token", return_value=("user@gigkraft.dev", "User", "")):
             resp = self.post_json("/api/auth/google", {"id_token": "fake-id-token"})
         self.assertEqual(resp.status_code, 200, resp.content)
         body = resp.json()
@@ -156,7 +156,7 @@ class GoogleAuthTests(ApiTestCase):
         self.assertEqual(body["user"]["role"], "homeowner")
 
     def test_google_valid_token_signs_in_as_pro(self):
-        with unittest.mock.patch("accounts.services.verify_google_token", return_value="pro@gigkraft.dev"):
+        with unittest.mock.patch("accounts.services.verify_google_token", return_value=("pro@gigkraft.dev", "Pro", "")):
             resp = self.post_json("/api/auth/google", {"id_token": "fake-id-token", "role": "pro"})
         self.assertEqual(resp.status_code, 200, resp.content)
         body = resp.json()
@@ -164,7 +164,7 @@ class GoogleAuthTests(ApiTestCase):
         self.assertEqual(body["user"]["role"], "pro")
 
     def test_google_invalid_token_returns_401(self):
-        with unittest.mock.patch("accounts.services.verify_google_token", return_value=None):
+        with unittest.mock.patch("accounts.services.verify_google_token", return_value=(None, "", "")):
             resp = self.post_json("/api/auth/google", {"id_token": "bad-token"})
         self.assertEqual(resp.status_code, 401)
 
