@@ -389,7 +389,7 @@ export async function getGkNodes(): Promise<GkNodeSummary[]> {
   return data as GkNodeSummary[];
 }
 
-// ---------- Vendor CRM ----------
+// ---------- Prospects ----------
 
 export interface VendorContact {
   id: number;
@@ -437,7 +437,7 @@ export async function listVendors(params?: {
   const { data, error, response } = await client.GET("/api/vendors" as never, {
     params: { query },
   } as never);
-  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to load vendors."));
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to load prospects."));
   return data as VendorContact[];
 }
 
@@ -445,31 +445,25 @@ export async function createVendor(body: VendorIn): Promise<VendorContact> {
   const { data, error, response } = await client.POST("/api/vendors" as never, {
     body,
   } as never);
-  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to create vendor."));
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to create prospect."));
   return (data as { id: number } & VendorContact) as VendorContact;
 }
 
-export async function updateVendor(
-  id: number,
-  body: Partial<VendorIn>,
-): Promise<VendorContact> {
+export async function updateVendor(id: number, body: Partial<VendorIn>): Promise<VendorContact> {
   const { data, error, response } = await client.PATCH(
     `/api/vendors/${id}` as never,
     { body } as never,
   );
-  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to update vendor."));
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to update prospect."));
   return data as VendorContact;
 }
 
 export async function deleteVendor(id: number): Promise<void> {
   const { response } = await client.DELETE(`/api/vendors/${id}` as never);
-  if (response.status !== 204) throw new ApiError(response.status, "Failed to delete vendor.");
+  if (response.status !== 204) throw new ApiError(response.status, "Failed to delete prospect.");
 }
 
-export async function bulkUpdateVendorStatus(
-  ids: number[],
-  status: string,
-): Promise<VendorContact[]> {
+export async function bulkUpdateVendorStatus(ids: number[], status: string): Promise<VendorContact[]> {
   const { data, error, response } = await client.POST(
     "/api/vendors/bulk-status" as never,
     { body: { ids, status } } as never,
@@ -478,11 +472,12 @@ export async function bulkUpdateVendorStatus(
   return data as VendorContact[];
 }
 
-// ---------- Email Templates ----------
+// ---------- Comms — Message Templates ----------
 
-export interface EmailTemplate {
+export interface MessageTemplate {
   id: number;
   name: string;
+  channel: string;
   kind: string;
   subject: string;
   body: string;
@@ -493,103 +488,115 @@ export interface EmailTemplate {
 
 export interface TemplateIn {
   name: string;
+  channel: string;
   kind: string;
-  subject: string;
+  subject?: string;
   body: string;
   is_default?: boolean;
 }
 
-export interface TemplatePreview {
-  subject: string;
-  body: string;
-  mailto_link: string;
-}
-
-export async function listTemplates(kind?: string): Promise<EmailTemplate[]> {
+export async function listTemplates(params?: { channel?: string; kind?: string }): Promise<MessageTemplate[]> {
   const query: Record<string, string> = {};
-  if (kind) query.kind = kind;
-  const { data, error, response } = await client.GET("/api/vendors/templates" as never, {
+  if (params?.channel) query.channel = params.channel;
+  if (params?.kind) query.kind = params.kind;
+  const { data, error, response } = await client.GET("/api/comms/templates" as never, {
     params: { query },
   } as never);
   if (!data) throw new ApiError(response.status, detailOf(error, "Failed to load templates."));
-  return data as EmailTemplate[];
+  return data as MessageTemplate[];
 }
 
-export async function createTemplate(body: TemplateIn): Promise<EmailTemplate> {
-  const { data, error, response } = await client.POST("/api/vendors/templates" as never, {
+export async function createTemplate(body: TemplateIn): Promise<MessageTemplate> {
+  const { data, error, response } = await client.POST("/api/comms/templates" as never, {
     body,
   } as never);
   if (!data) throw new ApiError(response.status, detailOf(error, "Failed to create template."));
-  return (data as { id: number }) as EmailTemplate;
+  return (data as { id: number }) as MessageTemplate;
 }
 
-export async function updateTemplate(id: number, body: Partial<TemplateIn>): Promise<EmailTemplate> {
+export async function updateTemplate(id: number, body: Partial<TemplateIn>): Promise<MessageTemplate> {
   const { data, error, response } = await client.PATCH(
-    `/api/vendors/templates/${id}` as never,
+    `/api/comms/templates/${id}` as never,
     { body } as never,
   );
   if (!data) throw new ApiError(response.status, detailOf(error, "Failed to update template."));
-  return data as EmailTemplate;
+  return data as MessageTemplate;
 }
 
 export async function deleteTemplate(id: number): Promise<void> {
-  const { response } = await client.DELETE(`/api/vendors/templates/${id}` as never);
+  const { response } = await client.DELETE(`/api/comms/templates/${id}` as never);
   if (response.status !== 204) throw new ApiError(response.status, "Failed to delete template.");
 }
 
-export async function previewTemplate(templateId: number, vendorId: number): Promise<TemplatePreview> {
-  const { data, error, response } = await client.GET(
-    `/api/vendors/templates/${templateId}/preview/${vendorId}` as never,
-  );
-  if (!data) throw new ApiError(response.status, detailOf(error, "Preview failed."));
-  return data as TemplatePreview;
+// ---------- Comms — Send Email ----------
+
+export interface SendEmailIn {
+  to: string;
+  cc?: string[];
+  bcc?: string[];
+  subject: string;
+  body: string;
+  prospect_id?: number;
+  template_id?: number;
 }
 
-// ---------- Vendor Communications ----------
+export interface SendEmailOut {
+  log_id: number;
+  resend_id: string;
+}
 
-export interface VendorCommunication {
+export async function sendEmail(payload: SendEmailIn): Promise<SendEmailOut> {
+  const { data, error, response } = await client.POST("/api/comms/send-email" as never, {
+    body: payload,
+  } as never);
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to send email."));
+  return data as SendEmailOut;
+}
+
+// ---------- Comms — Outreach Logs ----------
+
+export interface OutreachLog {
   id: number;
-  vendor_id: number;
-  template_id: number | null;
-  template_name: string | null;
   channel: string;
+  to_address: string;
+  cc_addresses: string;
   subject_sent: string;
   body_sent: string;
+  resend_id: string;
   notes: string;
   sent_at: string;
+  template_id: number | null;
+  template_name: string | null;
 }
 
-export interface CommunicationIn {
-  template_id?: number | null;
+export interface LogIn {
   channel?: string;
+  to_address?: string;
   subject_sent?: string;
   body_sent?: string;
   notes?: string;
-  sent_at?: string;
-  advance_status?: boolean;
+  template_id?: number | null;
 }
 
-export async function listCommunications(vendorId: number): Promise<VendorCommunication[]> {
+export async function listOutreachLogs(prospectId: number): Promise<OutreachLog[]> {
   const { data, error, response } = await client.GET(
-    `/api/vendors/${vendorId}/communications` as never,
+    `/api/comms/prospects/${prospectId}/logs` as never,
   );
-  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to load communications."));
-  return data as VendorCommunication[];
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to load logs."));
+  return data as OutreachLog[];
 }
 
-export async function logCommunication(vendorId: number, body: CommunicationIn): Promise<VendorCommunication> {
+export async function addOutreachLog(prospectId: number, body: LogIn): Promise<OutreachLog> {
   const { data, error, response } = await client.POST(
-    `/api/vendors/${vendorId}/communications` as never,
+    `/api/comms/prospects/${prospectId}/logs` as never,
     { body } as never,
   );
-  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to log communication."));
-  return (data as { id: number }) as VendorCommunication;
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to log outreach."));
+  return (data as { id: number }) as OutreachLog;
 }
 
-export async function deleteCommunication(vendorId: number, commId: number): Promise<void> {
-  const { response } = await client.DELETE(
-    `/api/vendors/${vendorId}/communications/${commId}` as never,
-  );
-  if (response.status !== 204) throw new ApiError(response.status, "Failed to delete log entry.");
+export async function deleteOutreachLog(logId: number): Promise<void> {
+  const { response } = await client.DELETE(`/api/comms/logs/${logId}` as never);
+  if (response.status !== 204) throw new ApiError(response.status, "Failed to delete log.");
 }
 

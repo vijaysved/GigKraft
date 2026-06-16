@@ -4,11 +4,13 @@ import {
   Badge,
   Button,
   Card,
+  CopyButton,
   Divider,
   Drawer,
   Group,
   Loader,
   Modal,
+  SegmentedControl,
   Select,
   Stack,
   Table,
@@ -22,6 +24,8 @@ import {
 import { useDebouncedValue, useDisclosure } from "@mantine/hooks";
 import {
   IconBrandWhatsapp,
+  IconCheck,
+  IconCopy,
   IconEdit,
   IconMail,
   IconMessageCircle,
@@ -35,20 +39,21 @@ import {
   ApiError,
   createTemplate,
   createVendor,
+  deleteOutreachLog,
   deleteTemplate,
-  deleteCommunication,
   deleteVendor,
-  listCommunications,
+  listOutreachLogs,
   listTemplates,
   listVendors,
-  logCommunication,
+  addOutreachLog,
+  sendEmail,
   updateTemplate,
   updateVendor,
 } from "../../api/endpoints";
 import type {
-  EmailTemplate,
+  MessageTemplate,
+  OutreachLog,
   TemplateIn,
-  VendorCommunication,
   VendorContact,
   VendorIn,
 } from "../../api/endpoints";
@@ -95,17 +100,19 @@ const KIND_OPTIONS = [
   { value: "other", label: "Other" },
 ];
 
-// ── Vendor Form Drawer ────────────────────────────────────────────────────────
+const DEFAULT_CC = "oddlynicellc@gmail.com";
 
-function VendorDrawer({
+// ── Prospect Form Drawer ──────────────────────────────────────────────────────
+
+function ProspectDrawer({
   opened,
   onClose,
-  vendor,
+  prospect,
   onSaved,
 }: {
   opened: boolean;
   onClose: () => void;
-  vendor: VendorContact | null;
+  prospect: VendorContact | null;
   onSaved: (v: VendorContact) => void;
 }) {
   const [form, setForm] = useState<Partial<VendorIn>>({});
@@ -115,24 +122,24 @@ function VendorDrawer({
   useEffect(() => {
     if (opened) {
       setForm(
-        vendor
+        prospect
           ? {
-              contact_person: vendor.contact_person,
-              business_name: vendor.business_name,
-              category: vendor.category,
-              lead_source: vendor.lead_source,
-              phone: vendor.phone,
-              email: vendor.email,
-              nextdoor_profile_url: vendor.nextdoor_profile_url,
-              status: vendor.status,
-              preferred_channel: vendor.preferred_channel,
-              notes: vendor.notes,
+              contact_person: prospect.contact_person,
+              business_name: prospect.business_name,
+              category: prospect.category,
+              lead_source: prospect.lead_source,
+              phone: prospect.phone,
+              email: prospect.email,
+              nextdoor_profile_url: prospect.nextdoor_profile_url,
+              status: prospect.status,
+              preferred_channel: prospect.preferred_channel,
+              notes: prospect.notes,
             }
           : { lead_source: "nextdoor", preferred_channel: "whatsapp", status: "new" }
       );
       setError(null);
     }
-  }, [opened, vendor]);
+  }, [opened, prospect]);
 
   const set = (k: keyof VendorIn) => (val: string | null) =>
     setForm((f) => ({ ...f, [k]: val ?? "" }));
@@ -145,8 +152,8 @@ function VendorDrawer({
     setSaving(true);
     setError(null);
     try {
-      const saved = vendor
-        ? await updateVendor(vendor.id, form)
+      const saved = prospect
+        ? await updateVendor(prospect.id, form)
         : await createVendor(form as VendorIn);
       onSaved(saved);
       onClose();
@@ -161,7 +168,7 @@ function VendorDrawer({
     <Drawer
       opened={opened}
       onClose={onClose}
-      title={vendor ? `Edit ${vendor.vendor_id}` : "Add Vendor"}
+      title={prospect ? `Edit ${prospect.vendor_id}` : "Add Prospect"}
       size="md"
       position="right"
     >
@@ -184,12 +191,7 @@ function VendorDrawer({
           value={form.category ?? ""}
           onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
         />
-        <Select
-          label="Lead Source"
-          data={LEAD_SOURCE_OPTIONS}
-          value={form.lead_source ?? "nextdoor"}
-          onChange={set("lead_source")}
-        />
+        <Select label="Lead Source" data={LEAD_SOURCE_OPTIONS} value={form.lead_source ?? "nextdoor"} onChange={set("lead_source")} />
         <TextInput
           label="Phone"
           value={form.phone ?? ""}
@@ -205,18 +207,8 @@ function VendorDrawer({
           value={form.nextdoor_profile_url ?? ""}
           onChange={(e) => setForm((f) => ({ ...f, nextdoor_profile_url: e.target.value }))}
         />
-        <Select
-          label="Status"
-          data={STATUS_OPTIONS}
-          value={form.status ?? "new"}
-          onChange={set("status")}
-        />
-        <Select
-          label="Preferred Channel"
-          data={CHANNEL_OPTIONS}
-          value={form.preferred_channel ?? "whatsapp"}
-          onChange={set("preferred_channel")}
-        />
+        <Select label="Status" data={STATUS_OPTIONS} value={form.status ?? "new"} onChange={set("status")} />
+        <Select label="Preferred Channel" data={CHANNEL_OPTIONS} value={form.preferred_channel ?? "whatsapp"} onChange={set("preferred_channel")} />
         <Textarea
           label="Notes"
           rows={3}
@@ -226,7 +218,7 @@ function VendorDrawer({
         <Group justify="flex-end">
           <Button variant="default" onClick={onClose}>Cancel</Button>
           <Button loading={saving} onClick={() => void handleSave()}>
-            {vendor ? "Save" : "Add Vendor"}
+            {prospect ? "Save" : "Add Prospect"}
           </Button>
         </Group>
       </Stack>
@@ -234,20 +226,330 @@ function VendorDrawer({
   );
 }
 
-// ── Communications Modal ──────────────────────────────────────────────────────
+// ── Email Compose Modal ───────────────────────────────────────────────────────
 
-function CommModal({
-  vendor,
+function EmailComposeModal({
+  prospect,
+  opened,
+  onClose,
+  templates,
+  onContacted,
+}: {
+  prospect: VendorContact | null;
+  opened: boolean;
+  onClose: () => void;
+  templates: MessageTemplate[];
+  onContacted?: (prospectId: number) => void;
+}) {
+  const [to, setTo] = useState("");
+  const [cc, setCc] = useState(DEFAULT_CC);
+  const [bcc, setBcc] = useState("");
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
+  const [templateId, setTemplateId] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
+
+  const emailTemplates = templates.filter((t) => t.channel === "email");
+
+  function renderVars(s: string, p: VendorContact) {
+    const vars: Record<string, string> = {
+      contact_person: p.contact_person,
+      business_name: p.business_name || p.contact_person,
+      category: p.category || "professional",
+      prospect_id: p.vendor_id,
+    };
+    return Object.entries(vars).reduce((acc, [k, val]) => acc.replace(new RegExp(`{{${k}}}`, "g"), val), s);
+  }
+
+  useEffect(() => {
+    if (opened && prospect) {
+      setTo(prospect.email ?? "");
+      setCc(DEFAULT_CC);
+      setBcc("");
+      setError(null);
+      setSent(false);
+      // Auto-load default email template
+      const def = emailTemplates.find((t) => t.is_default) ?? emailTemplates[0] ?? null;
+      if (def) {
+        setTemplateId(String(def.id));
+        setSubject(renderVars(def.subject, prospect));
+        setBody(renderVars(def.body, prospect));
+      } else {
+        setTemplateId(null);
+        setSubject("");
+        setBody("");
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [opened, prospect]);
+
+  function applyTemplate(id: string | null) {
+    setTemplateId(id);
+    if (!id || !prospect) { setSubject(""); setBody(""); return; }
+    const t = emailTemplates.find((x) => String(x.id) === id);
+    if (!t) return;
+    setSubject(renderVars(t.subject, prospect));
+    setBody(renderVars(t.body, prospect));
+  }
+
+  async function handleSend() {
+    if (!to.trim() || !subject.trim() || !body.trim()) {
+      setError("To, subject, and body are required.");
+      return;
+    }
+    setSending(true);
+    setError(null);
+    try {
+      await sendEmail({
+        to,
+        cc: cc.split(",").map((s) => s.trim()).filter(Boolean),
+        bcc: bcc.split(",").map((s) => s.trim()).filter(Boolean),
+        subject,
+        body,
+        prospect_id: prospect?.id,
+        template_id: templateId ? Number(templateId) : undefined,
+      });
+      setSent(true);
+      if (prospect) onContacted?.(prospect.id);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Send failed.");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <Modal
+      opened={opened}
+      onClose={onClose}
+      title={prospect ? `Email — ${prospect.contact_person}` : "Compose Email"}
+      size="lg"
+    >
+      {sent ? (
+        <Stack align="center" py="xl" gap="sm">
+          <IconCheck size={40} color="green" />
+          <Text fw={600}>Email sent!</Text>
+          <Text size="sm">To: <strong>{to}</strong></Text>
+          <Text size="xs" c="dimmed">CC: {cc || DEFAULT_CC}</Text>
+          <Button variant="default" onClick={onClose}>Close</Button>
+        </Stack>
+      ) : (
+        <Stack>
+          {error && <Alert color="red">{error}</Alert>}
+
+          <Select
+            label="Load template"
+            placeholder="Choose a template…"
+            clearable
+            data={emailTemplates.map((t) => ({ value: String(t.id), label: `[${t.kind}] ${t.name}` }))}
+            value={templateId}
+            onChange={applyTemplate}
+          />
+
+          <Divider />
+
+          <TextInput label="To" required value={to} onChange={(e) => setTo(e.target.value)} />
+          <TextInput
+            label="CC"
+            value={cc}
+            onChange={(e) => setCc(e.target.value)}
+            description="Separate multiple addresses with commas"
+          />
+          <TextInput
+            label="BCC"
+            value={bcc}
+            onChange={(e) => setBcc(e.target.value)}
+            description="Separate multiple addresses with commas"
+          />
+          <TextInput
+            label="Subject"
+            required
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+          />
+          <Textarea
+            label="Body"
+            required
+            autosize
+            minRows={8}
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+          />
+
+          <Group justify="flex-end">
+            <Button variant="default" onClick={onClose}>Cancel</Button>
+            <Button
+              leftSection={<IconMail size={14} />}
+              loading={sending}
+              onClick={() => void handleSend()}
+            >
+              Send Email
+            </Button>
+          </Group>
+        </Stack>
+      )}
+    </Modal>
+  );
+}
+
+// ── WhatsApp Compose Modal ────────────────────────────────────────────────────
+
+function WhatsAppComposeModal({
+  prospect,
+  opened,
+  onClose,
+  templates,
+  onContacted,
+}: {
+  prospect: VendorContact | null;
+  opened: boolean;
+  onClose: () => void;
+  templates: MessageTemplate[];
+  onContacted?: (prospectId: number) => void;
+}) {
+  const [body, setBody] = useState("");
+  const [templateId, setTemplateId] = useState<string | null>(null);
+  const [logging, setLogging] = useState(false);
+  const [logged, setLogged] = useState(false);
+
+  const waTemplates = templates.filter((t) => t.channel === "whatsapp");
+
+  function renderVars(s: string, p: VendorContact) {
+    const vars: Record<string, string> = {
+      contact_person: p.contact_person,
+      business_name: p.business_name || p.contact_person,
+      category: p.category || "professional",
+      prospect_id: p.vendor_id,
+    };
+    return Object.entries(vars).reduce((acc, [k, v]) => acc.replace(new RegExp(`{{${k}}}`, "g"), v), s);
+  }
+
+  useEffect(() => {
+    if (opened && prospect) {
+      setLogged(false);
+      const def = waTemplates.find((t) => t.is_default) ?? waTemplates[0] ?? null;
+      if (def) {
+        setTemplateId(String(def.id));
+        setBody(renderVars(def.body, prospect));
+      } else {
+        setTemplateId(null);
+        setBody("");
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [opened, prospect]);
+
+  function applyTemplate(id: string | null) {
+    setTemplateId(id);
+    if (!id || !prospect) { setBody(""); return; }
+    const t = waTemplates.find((x) => String(x.id) === id);
+    if (t) setBody(renderVars(t.body, prospect));
+  }
+
+  const phone = prospect?.phone ?? "";
+  const digits = phone.replace(/\D/g, "");
+  const waHref = `https://wa.me/${digits}?text=${encodeURIComponent(body)}`;
+
+  async function handleLogAndOpen() {
+    if (!prospect) return;
+    setLogging(true);
+    try {
+      await addOutreachLog(prospect.id, {
+        channel: "whatsapp",
+        to_address: phone,
+        body_sent: body,
+        template_id: templateId ? Number(templateId) : null,
+      });
+      setLogged(true);
+      if (prospect) onContacted?.(prospect.id);
+    } catch {
+      // log failure is non-fatal — still open WhatsApp
+    } finally {
+      setLogging(false);
+    }
+    window.open(waHref, "_blank", "noopener,noreferrer");
+  }
+
+  return (
+    <Modal
+      opened={opened}
+      onClose={onClose}
+      title={prospect ? `WhatsApp — ${prospect.contact_person}` : "WhatsApp Message"}
+      size="lg"
+    >
+      <Stack>
+        <Select
+          label="Template"
+          placeholder="Choose a template…"
+          clearable
+          data={waTemplates.map((t) => ({ value: String(t.id), label: `[${t.kind}] ${t.name}` }))}
+          value={templateId}
+          onChange={applyTemplate}
+        />
+
+        <Divider />
+
+        <TextInput label="To (phone)" value={phone} readOnly description={digits ? `wa.me/${digits}` : "No phone on record"} />
+
+        <Textarea
+          label="Message"
+          autosize
+          minRows={5}
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+        />
+
+        {logged && (
+          <Alert color="green" icon={<IconCheck size={14} />}>
+            Outreach logged.
+          </Alert>
+        )}
+
+        <Group justify="flex-end">
+          <Button variant="default" onClick={onClose}>Cancel</Button>
+          <CopyButton value={body}>
+            {({ copied, copy }) => (
+              <Button
+                variant="light"
+                leftSection={copied ? <IconCheck size={13} /> : <IconCopy size={13} />}
+                color={copied ? "green" : "blue"}
+                onClick={copy}
+              >
+                {copied ? "Copied" : "Copy text"}
+              </Button>
+            )}
+          </CopyButton>
+          <Button
+            leftSection={<IconBrandWhatsapp size={13} />}
+            color="green"
+            disabled={!digits || !body.trim()}
+            loading={logging}
+            onClick={() => void handleLogAndOpen()}
+          >
+            Open in WhatsApp
+          </Button>
+        </Group>
+      </Stack>
+    </Modal>
+  );
+}
+
+// ── Outreach Log Modal (history + manual log) ─────────────────────────────────
+
+function OutreachLogModal({
+  prospect,
   opened,
   onClose,
   templates,
 }: {
-  vendor: VendorContact | null;
+  prospect: VendorContact | null;
   opened: boolean;
   onClose: () => void;
-  templates: EmailTemplate[];
+  templates: MessageTemplate[];
 }) {
-  const [comms, setComms] = useState<VendorCommunication[] | null>(null);
+  const [logs, setLogs] = useState<OutreachLog[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [channel, setChannel] = useState("whatsapp");
   const [templateId, setTemplateId] = useState<string | null>(null);
@@ -255,26 +557,25 @@ function CommModal({
   const [logging, setLogging] = useState(false);
 
   useEffect(() => {
-    if (opened && vendor) {
-      setComms(null);
+    if (opened && prospect) {
+      setLogs(null);
       setError(null);
-      listCommunications(vendor.id)
-        .then(setComms)
-        .catch(() => setError("Failed to load communications."));
+      listOutreachLogs(prospect.id)
+        .then(setLogs)
+        .catch(() => setError("Failed to load outreach history."));
     }
-  }, [opened, vendor]);
+  }, [opened, prospect]);
 
   async function handleLog() {
-    if (!vendor) return;
+    if (!prospect) return;
     setLogging(true);
     try {
-      const comm = await logCommunication(vendor.id, {
+      const log = await addOutreachLog(prospect.id, {
         channel,
         template_id: templateId ? Number(templateId) : null,
         notes,
-        advance_status: true,
       });
-      setComms((prev) => (prev ? [comm, ...prev] : [comm]));
+      setLogs((prev) => (prev ? [log, ...prev] : [log]));
       setNotes("");
       setTemplateId(null);
     } catch (e) {
@@ -284,11 +585,10 @@ function CommModal({
     }
   }
 
-  async function handleDeleteComm(commId: number) {
-    if (!vendor) return;
+  async function handleDelete(logId: number) {
     try {
-      await deleteCommunication(vendor.id, commId);
-      setComms((prev) => prev?.filter((c) => c.id !== commId) ?? null);
+      await deleteOutreachLog(logId);
+      setLogs((prev) => prev?.filter((l) => l.id !== logId) ?? null);
     } catch {
       setError("Failed to delete log entry.");
     }
@@ -298,7 +598,7 @@ function CommModal({
     <Modal
       opened={opened}
       onClose={onClose}
-      title={vendor ? `Communications — ${vendor.vendor_id} ${vendor.contact_person}` : ""}
+      title={prospect ? `Outreach History — ${prospect.vendor_id} ${prospect.contact_person}` : ""}
       size="lg"
     >
       <Stack>
@@ -306,7 +606,7 @@ function CommModal({
 
         <Card withBorder radius="sm" p="sm">
           <Stack gap="xs">
-            <Text size="sm" fw={600}>Log Outreach</Text>
+            <Text size="sm" fw={600}>Log Manual Outreach</Text>
             <Group grow>
               <Select
                 label="Channel"
@@ -318,7 +618,7 @@ function CommModal({
                 label="Template"
                 placeholder="None"
                 clearable
-                data={templates.map((t) => ({ value: String(t.id), label: `[${t.kind}] ${t.name}` }))}
+                data={templates.map((t) => ({ value: String(t.id), label: `[${t.channel}][${t.kind}] ${t.name}` }))}
                 value={templateId}
                 onChange={setTemplateId}
               />
@@ -330,7 +630,7 @@ function CommModal({
             />
             <Group justify="flex-end">
               <Button size="xs" loading={logging} onClick={() => void handleLog()}>
-                Log Contact
+                Log Outreach
               </Button>
             </Group>
           </Stack>
@@ -338,36 +638,53 @@ function CommModal({
 
         <Divider label="History" />
 
-        {comms === null ? (
+        {logs === null ? (
           <Loader size="sm" />
-        ) : comms.length === 0 ? (
+        ) : logs.length === 0 ? (
           <Text size="sm" c="dimmed">No outreach logged yet.</Text>
         ) : (
           <Stack gap="xs">
-            {comms.map((c) => (
-              <Card key={c.id} withBorder radius="sm" p="xs">
-                <Group justify="space-between" wrap="nowrap">
-                  <Stack gap={2}>
-                    <Group gap="xs">
-                      <Badge size="xs" color="blue">{c.channel}</Badge>
-                      {c.template_name && (
-                        <Text size="xs" c="dimmed">{c.template_name}</Text>
+            {logs.map((l) => {
+              const isEmail = l.channel === "email";
+              const isWa = l.channel === "whatsapp";
+              return (
+                <Card key={l.id} withBorder radius="sm" p="sm">
+                  <Group justify="space-between" wrap="nowrap" align="flex-start">
+                    <Stack gap={4} style={{ flex: 1, minWidth: 0 }}>
+                      <Group gap="xs">
+                        {isEmail && <IconMail size={13} color="var(--mantine-color-blue-6)" />}
+                        {isWa && <IconBrandWhatsapp size={13} color="var(--mantine-color-green-6)" />}
+                        {!isEmail && !isWa && <IconMessageCircle size={13} />}
+                        <Badge size="xs" color={isEmail ? "blue" : isWa ? "green" : "gray"} variant="light">
+                          {l.channel}
+                        </Badge>
+                        <Text size="xs" c="dimmed">
+                          {new Date(l.sent_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                        </Text>
+                        {l.template_name && (
+                          <Badge size="xs" variant="dot" color="gray">{l.template_name}</Badge>
+                        )}
+                      </Group>
+                      {l.to_address && (
+                        <Text size="xs" c="dimmed">To: {l.to_address}</Text>
                       )}
-                      <Text size="xs" c="dimmed">{new Date(c.sent_at).toLocaleDateString()}</Text>
-                    </Group>
-                    {c.notes && <Text size="xs">{c.notes}</Text>}
-                  </Stack>
-                  <ActionIcon
-                    size="xs"
-                    variant="subtle"
-                    color="red"
-                    onClick={() => void handleDeleteComm(c.id)}
-                  >
-                    <IconTrash size={12} />
-                  </ActionIcon>
-                </Group>
-              </Card>
-            ))}
+                      {isEmail && l.subject_sent && (
+                        <Text size="xs" fw={500} lineClamp={1}>{l.subject_sent}</Text>
+                      )}
+                      {l.body_sent && (
+                        <Text size="xs" c="dimmed" lineClamp={2} style={{ fontStyle: "italic" }}>
+                          {l.body_sent}
+                        </Text>
+                      )}
+                      {l.notes && <Text size="xs">{l.notes}</Text>}
+                    </Stack>
+                    <ActionIcon size="xs" variant="subtle" color="red" onClick={() => void handleDelete(l.id)}>
+                      <IconTrash size={12} />
+                    </ActionIcon>
+                  </Group>
+                </Card>
+              );
+            })}
           </Stack>
         )}
       </Stack>
@@ -378,12 +695,13 @@ function CommModal({
 // ── Template Manager ──────────────────────────────────────────────────────────
 
 function TemplateManager() {
-  const [templates, setTemplates] = useState<EmailTemplate[] | null>(null);
+  const [templates, setTemplates] = useState<MessageTemplate[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [editing, setEditing] = useState<EmailTemplate | null>(null);
+  const [editing, setEditing] = useState<MessageTemplate | null>(null);
   const [formOpen, { open: openForm, close: closeForm }] = useDisclosure(false);
   const [form, setForm] = useState<Partial<TemplateIn>>({});
   const [saving, setSaving] = useState(false);
+  const [activeChannel, setActiveChannel] = useState<"email" | "whatsapp">("email");
 
   useEffect(() => {
     listTemplates()
@@ -391,21 +709,27 @@ function TemplateManager() {
       .catch(() => setError("Failed to load templates."));
   }, []);
 
+  const filtered = (templates ?? []).filter((t) => t.channel === activeChannel);
+
   function startNew() {
     setEditing(null);
-    setForm({ kind: "intro", is_default: false });
+    setForm({ channel: activeChannel, kind: "intro", is_default: false });
     openForm();
   }
 
-  function startEdit(t: EmailTemplate) {
+  function startEdit(t: MessageTemplate) {
     setEditing(t);
-    setForm({ name: t.name, kind: t.kind, subject: t.subject, body: t.body, is_default: t.is_default });
+    setForm({ name: t.name, channel: t.channel, kind: t.kind, subject: t.subject, body: t.body, is_default: t.is_default });
     openForm();
   }
 
   async function handleSave() {
-    if (!form.name?.trim() || !form.subject?.trim() || !form.body?.trim()) {
-      setError("Name, subject, and body are required.");
+    if (!form.name?.trim() || !form.body?.trim()) {
+      setError("Name and body are required.");
+      return;
+    }
+    if (form.channel === "email" && !form.subject?.trim()) {
+      setError("Subject is required for email templates.");
       return;
     }
     setSaving(true);
@@ -427,7 +751,7 @@ function TemplateManager() {
     }
   }
 
-  async function handleDelete(t: EmailTemplate) {
+  async function handleDelete(t: MessageTemplate) {
     if (!confirm(`Delete template "${t.name}"?`)) return;
     try {
       await deleteTemplate(t.id);
@@ -441,7 +765,15 @@ function TemplateManager() {
     <Stack>
       {error && <Alert color="red">{error}</Alert>}
 
-      <Group justify="flex-end">
+      <Group justify="space-between">
+        <SegmentedControl
+          value={activeChannel}
+          onChange={(v) => setActiveChannel(v as "email" | "whatsapp")}
+          data={[
+            { label: "Email Templates", value: "email" },
+            { label: "WhatsApp Templates", value: "whatsapp" },
+          ]}
+        />
         <Button size="xs" leftSection={<IconPlus size={14} />} onClick={startNew}>
           New Template
         </Button>
@@ -449,25 +781,27 @@ function TemplateManager() {
 
       {templates === null ? (
         <Loader size="sm" />
-      ) : templates.length === 0 ? (
-        <Text size="sm" c="dimmed">No templates yet.</Text>
+      ) : filtered.length === 0 ? (
+        <Text size="sm" c="dimmed">No {activeChannel} templates yet.</Text>
       ) : (
         <Table striped>
           <Table.Thead>
             <Table.Tr>
               <Table.Th>Name</Table.Th>
               <Table.Th>Kind</Table.Th>
-              <Table.Th>Subject</Table.Th>
+              {activeChannel === "email" && <Table.Th>Subject</Table.Th>}
               <Table.Th>Default</Table.Th>
               <Table.Th></Table.Th>
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
-            {templates.map((t) => (
+            {filtered.map((t) => (
               <Table.Tr key={t.id}>
                 <Table.Td><Text size="sm" fw={500}>{t.name}</Text></Table.Td>
                 <Table.Td><Badge size="xs" variant="light">{t.kind}</Badge></Table.Td>
-                <Table.Td><Text size="sm" lineClamp={1}>{t.subject}</Text></Table.Td>
+                {activeChannel === "email" && (
+                  <Table.Td><Text size="sm" lineClamp={1}>{t.subject}</Text></Table.Td>
+                )}
                 <Table.Td>
                   {t.is_default && <Badge size="xs" color="green">default</Badge>}
                 </Table.Td>
@@ -490,7 +824,7 @@ function TemplateManager() {
       <Modal
         opened={formOpen}
         onClose={closeForm}
-        title={editing ? `Edit — ${editing.name}` : "New Template"}
+        title={editing ? `Edit — ${editing.name}` : `New ${form.channel === "whatsapp" ? "WhatsApp" : "Email"} Template`}
         size="lg"
       >
         <Stack>
@@ -509,18 +843,20 @@ function TemplateManager() {
               onChange={(v) => setForm((f) => ({ ...f, kind: v ?? "intro" }))}
             />
           </Group>
-          <TextInput
-            label="Subject"
-            required
-            placeholder="Supports {{contact_person}}, {{business_name}}, {{category}}, {{vendor_id}}"
-            value={form.subject ?? ""}
-            onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))}
-          />
+          {form.channel === "email" && (
+            <TextInput
+              label="Subject"
+              required
+              placeholder="Supports {{contact_person}}, {{business_name}}, {{category}}, {{prospect_id}}"
+              value={form.subject ?? ""}
+              onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))}
+            />
+          )}
           <Textarea
             label="Body"
             required
             rows={8}
-            placeholder="Use {{contact_person}}, {{business_name}}, etc."
+            placeholder="Use {{contact_person}}, {{business_name}}, {{category}}, {{prospect_id}}"
             value={form.body ?? ""}
             onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))}
           />
@@ -536,11 +872,240 @@ function TemplateManager() {
   );
 }
 
-// ── Main Vendors Page ─────────────────────────────────────────────────────────
+// ── Outreach Tool (standalone compose) ───────────────────────────────────────
+
+const SITE_URL = "https://gigkraft.com";
+const SAMPLE_PROFILE = `${SITE_URL}/pros/stephan-carry`;
+const SIGNUP_URL = `${SITE_URL}/register`;
+const CONTACT_EMAIL = "vijaysarkarvedula@gmail.com";
+const CONTACT_WHATSAPP_DISPLAY = "(341) 356-1982";
+
+function buildEmailBody(name: string) {
+  return `Hi ${name},
+
+I came across your work and wanted to share something I think you'd find valuable.
+
+GigKraft is a platform built for pros like you — a place to store, showcase, and share your project portfolio without depending on Instagram, Houzz, or any other platform you don't own.
+
+Your own page. Your own projects. No algorithm, no distractions — just your craft.
+
+Here's what a GigKraft profile looks like:
+${SAMPLE_PROFILE}
+
+Plans:
+• $19.99/month or $199.99/year
+• Optional: We'll set up your page and add up to 5 projects for just $50 more
+
+Ready to get started? Sign up here:
+${SIGNUP_URL}
+
+Questions? Reach out:
+• Email: ${CONTACT_EMAIL}
+• WhatsApp Vijay: ${CONTACT_WHATSAPP_DISPLAY}
+
+Would love to have you on GigKraft!
+
+Vijay
+GigKraft`;
+}
+
+function buildWhatsAppBody(name: string) {
+  return `Hi ${name}! Check out GigKraft — a platform where pros like you can store and share your projects without needing a website or depending on other platforms. No algorithms, just your work. Sign up at ${SIGNUP_URL} (starts at $19.99/mo). Questions? WhatsApp Vijay at ${CONTACT_WHATSAPP_DISPLAY} or email ${CONTACT_EMAIL}`;
+}
+
+function OutreachTool() {
+  const [name, setName] = useState("");
+  const [channel, setChannel] = useState<"email" | "phone">("email");
+  const [toAddr, setToAddr] = useState("");
+  const [cc, setCc] = useState(DEFAULT_CC);
+  const [bcc, setBcc] = useState("");
+  const [subject, setSubject] = useState("Your work deserves its own space — GigKraft");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
+
+  const trimmedName = name.trim() || "there";
+  const emailBody = buildEmailBody(trimmedName);
+  const smsBody = buildWhatsAppBody(trimmedName);
+  const whatsappHref = `https://wa.me/${toAddr.replace(/\D/g, "")}?text=${encodeURIComponent(smsBody)}`;
+
+  const ready = name.trim() !== "" && toAddr.trim() !== "";
+
+  function resetSent() { setSent(false); setError(null); }
+
+  async function handleSend() {
+    if (!toAddr.trim() || !subject.trim() || !emailBody.trim()) {
+      setError("To, subject, and body are required.");
+      return;
+    }
+    setSending(true);
+    setError(null);
+    try {
+      await sendEmail({
+        to: toAddr,
+        cc: cc.split(",").map((s) => s.trim()).filter(Boolean),
+        bcc: bcc.split(",").map((s) => s.trim()).filter(Boolean),
+        subject,
+        body: emailBody,
+      });
+      setSent(true);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Send failed.");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <Stack maw={700}>
+      <Card withBorder radius="md" p="lg">
+        <Stack gap="md">
+          <Text fw={600} size="sm">Compose outreach message</Text>
+
+          <TextInput
+            label="Prospect name"
+            placeholder="e.g. John Smith"
+            value={name}
+            onChange={(e) => { setName(e.target.value); resetSent(); }}
+          />
+
+          <Stack gap={6}>
+            <Text size="sm" fw={500}>Contact via</Text>
+            <SegmentedControl
+              value={channel}
+              onChange={(v) => { setChannel(v as "email" | "phone"); setToAddr(""); resetSent(); }}
+              data={[
+                { label: "Email", value: "email" },
+                { label: "Phone / WhatsApp", value: "phone" },
+              ]}
+              w={260}
+            />
+          </Stack>
+
+          {channel === "email" ? (
+            <TextInput
+              label="Email address"
+              placeholder="prospect@example.com"
+              type="email"
+              value={toAddr}
+              onChange={(e) => { setToAddr(e.target.value); resetSent(); }}
+            />
+          ) : (
+            <TextInput
+              label="Phone number"
+              placeholder="e.g. 5551234567"
+              value={toAddr}
+              onChange={(e) => { setToAddr(e.target.value); resetSent(); }}
+            />
+          )}
+        </Stack>
+      </Card>
+
+      {ready && channel === "email" && (
+        <Card withBorder radius="md" p="lg">
+          <Stack gap="sm">
+            <Text fw={600} size="sm">Email compose</Text>
+            <Divider />
+            <TextInput label="To" value={toAddr} onChange={(e) => setToAddr(e.target.value)} required />
+            <TextInput
+              label="CC"
+              value={cc}
+              onChange={(e) => setCc(e.target.value)}
+              description="Separate multiple with commas — oddlynicellc@gmail.com always included"
+            />
+            <TextInput label="BCC" value={bcc} onChange={(e) => setBcc(e.target.value)} />
+            <TextInput label="Subject" value={subject} onChange={(e) => setSubject(e.target.value)} required />
+            <Textarea
+              label="Body"
+              value={emailBody}
+              readOnly
+              autosize
+              minRows={10}
+              styles={{ input: { fontFamily: "monospace", fontSize: 12 } }}
+            />
+            {error && <Alert color="red">{error}</Alert>}
+            {sent && (
+              <Alert color="green" icon={<IconCheck size={14} />}>
+                Email sent to <strong>{toAddr}</strong> · CC: {cc || DEFAULT_CC}
+              </Alert>
+            )}
+            <Group justify="flex-end">
+              <CopyButton value={emailBody}>
+                {({ copied, copy }) => (
+                  <Button
+                    size="sm"
+                    variant="light"
+                    leftSection={copied ? <IconCheck size={13} /> : <IconCopy size={13} />}
+                    color={copied ? "green" : "blue"}
+                    onClick={copy}
+                  >
+                    {copied ? "Copied" : "Copy body"}
+                  </Button>
+                )}
+              </CopyButton>
+              <Button
+                size="sm"
+                leftSection={<IconMail size={13} />}
+                loading={sending}
+                onClick={() => void handleSend()}
+              >
+                Send Email
+              </Button>
+            </Group>
+          </Stack>
+        </Card>
+      )}
+
+      {ready && channel === "phone" && (
+        <Card withBorder radius="md" p="lg">
+          <Stack gap="sm">
+            <Text fw={600} size="sm">WhatsApp / Text message</Text>
+            <Divider />
+            <Textarea
+              value={smsBody}
+              readOnly
+              autosize
+              minRows={4}
+              styles={{ input: { fontFamily: "monospace", fontSize: 12 } }}
+            />
+            <Group justify="flex-end">
+              <CopyButton value={smsBody}>
+                {({ copied, copy }) => (
+                  <Button
+                    size="sm"
+                    variant="light"
+                    leftSection={copied ? <IconCheck size={13} /> : <IconCopy size={13} />}
+                    color={copied ? "green" : "blue"}
+                    onClick={copy}
+                  >
+                    {copied ? "Copied" : "Copy text"}
+                  </Button>
+                )}
+              </CopyButton>
+              <Button
+                size="sm"
+                leftSection={<IconBrandWhatsapp size={13} />}
+                color="green"
+                component="a"
+                href={whatsappHref}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Open in WhatsApp
+              </Button>
+            </Group>
+          </Stack>
+        </Card>
+      )}
+    </Stack>
+  );
+}
+
+// ── Main Prospects Page ───────────────────────────────────────────────────────
 
 export function GkAdminVendorsPage() {
-  const [vendors, setVendors] = useState<VendorContact[] | null>(null);
-  const [templates, setTemplates] = useState<EmailTemplate[]>([]);
+  const [prospects, setProspects] = useState<VendorContact[] | null>(null);
+  const [templates, setTemplates] = useState<MessageTemplate[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [sourceFilter, setSourceFilter] = useState<string>("");
@@ -548,31 +1113,36 @@ export function GkAdminVendorsPage() {
   const [debouncedSearch] = useDebouncedValue(search, 300);
 
   const [drawerOpen, { open: openDrawer, close: closeDrawer }] = useDisclosure(false);
-  const [editingVendor, setEditingVendor] = useState<VendorContact | null>(null);
-  const [commVendor, setCommVendor] = useState<VendorContact | null>(null);
-  const [commOpen, { open: openComm, close: closeComm }] = useDisclosure(false);
+  const [editingProspect, setEditingProspect] = useState<VendorContact | null>(null);
+
+  const [emailOpen, { open: openEmail, close: closeEmail }] = useDisclosure(false);
+  const [emailProspect, setEmailProspect] = useState<VendorContact | null>(null);
+
+  const [waOpen, { open: openWa, close: closeWa }] = useDisclosure(false);
+  const [waProspect, setWaProspect] = useState<VendorContact | null>(null);
+
+  const [logOpen, { open: openLog, close: closeLog }] = useDisclosure(false);
+  const [logProspect, setLogProspect] = useState<VendorContact | null>(null);
 
   useEffect(() => {
-    listTemplates()
-      .then(setTemplates)
-      .catch(() => {});
+    listTemplates().then(setTemplates).catch(() => {});
   }, []);
 
   useEffect(() => {
     let cancelled = false;
-    setVendors(null);
+    setProspects(null);
     listVendors({
       status: statusFilter || undefined,
       source: sourceFilter || undefined,
       search: debouncedSearch || undefined,
     })
-      .then((data) => { if (!cancelled) { setVendors(data); setError(null); } })
-      .catch((e) => { if (!cancelled) setError(e instanceof ApiError ? e.message : "Failed to load vendors."); });
+      .then((data) => { if (!cancelled) { setProspects(data); setError(null); } })
+      .catch((e) => { if (!cancelled) setError(e instanceof ApiError ? e.message : "Failed to load prospects."); });
     return () => { cancelled = true; };
   }, [statusFilter, sourceFilter, debouncedSearch]);
 
-  function handleVendorSaved(v: VendorContact) {
-    setVendors((prev) => {
+  function handleProspectSaved(v: VendorContact) {
+    setProspects((prev) => {
       if (!prev) return [v];
       const idx = prev.findIndex((x) => x.id === v.id);
       return idx >= 0 ? prev.map((x) => (x.id === v.id ? v : x)) : [v, ...prev];
@@ -583,41 +1153,44 @@ export function GkAdminVendorsPage() {
     if (!confirm(`Delete ${v.vendor_id} ${v.contact_person}?`)) return;
     try {
       await deleteVendor(v.id);
-      setVendors((prev) => prev?.filter((x) => x.id !== v.id) ?? null);
+      setProspects((prev) => prev?.filter((x) => x.id !== v.id) ?? null);
     } catch {
-      setError("Failed to delete vendor.");
+      setError("Failed to delete prospect.");
     }
   }
 
-  function openEdit(v: VendorContact) {
-    setEditingVendor(v);
-    openDrawer();
-  }
+  function openEdit(v: VendorContact) { setEditingProspect(v); openDrawer(); }
+  function openNew() { setEditingProspect(null); openDrawer(); }
+  function openEmailModal(v: VendorContact) { setEmailProspect(v); openEmail(); }
+  function openWaModal(v: VendorContact) { setWaProspect(v); openWa(); }
+  function openLogModal(v: VendorContact) { setLogProspect(v); openLog(); }
 
-  function openNewVendor() {
-    setEditingVendor(null);
-    openDrawer();
-  }
-
-  function openCommLog(v: VendorContact) {
-    setCommVendor(v);
-    openComm();
+  function handleContacted(prospectId: number) {
+    const today = new Date().toISOString().slice(0, 10);
+    setProspects((prev) =>
+      prev?.map((p) =>
+        p.id === prospectId
+          ? { ...p, last_contact_date: today, status: p.status === "new" ? "contacted" : p.status }
+          : p
+      ) ?? null
+    );
   }
 
   return (
     <Stack>
       <Group justify="space-between">
-        <Title order={3}>Vendor CRM</Title>
+        <Title order={3}>Prospects</Title>
         <Badge color="violet" variant="filled" size="sm">gk_admin</Badge>
       </Group>
 
-      <Tabs defaultValue="vendors">
+      <Tabs defaultValue="prospects">
         <Tabs.List>
-          <Tabs.Tab value="vendors">Vendors</Tabs.Tab>
-          <Tabs.Tab value="templates">Email Templates</Tabs.Tab>
+          <Tabs.Tab value="prospects">Prospects</Tabs.Tab>
+          <Tabs.Tab value="templates">Templates</Tabs.Tab>
+          <Tabs.Tab value="outreach">Outreach</Tabs.Tab>
         </Tabs.List>
 
-        <Tabs.Panel value="vendors" pt="md">
+        <Tabs.Panel value="prospects" pt="md">
           <Stack>
             {error && <Alert color="red">{error}</Alert>}
 
@@ -645,36 +1218,36 @@ export function GkAdminVendorsPage() {
                 onChange={(v) => setSourceFilter(v ?? "")}
                 w={180}
               />
-              <Button leftSection={<IconPlus size={14} />} onClick={openNewVendor}>
-                Add Vendor
+              <Button leftSection={<IconPlus size={14} />} onClick={openNew}>
+                Add Prospect
               </Button>
             </Group>
 
             <Card withBorder radius="md" padding="lg">
-              {vendors === null ? (
+              {prospects === null ? (
                 <Loader size="sm" />
               ) : (
                 <Table striped highlightOnHover>
                   <Table.Thead>
                     <Table.Tr>
                       <Table.Th>ID</Table.Th>
-                      <Table.Th>Contact / Business</Table.Th>
+                      <Table.Th>Name / Business</Table.Th>
+                      <Table.Th>Contact</Table.Th>
                       <Table.Th>Category</Table.Th>
-                      <Table.Th>Source</Table.Th>
                       <Table.Th>Status</Table.Th>
                       <Table.Th>Last Contact</Table.Th>
                       <Table.Th>Actions</Table.Th>
                     </Table.Tr>
                   </Table.Thead>
                   <Table.Tbody>
-                    {vendors.length === 0 && (
+                    {prospects.length === 0 && (
                       <Table.Tr>
                         <Table.Td colSpan={7}>
-                          <Text size="sm" c="dimmed">No vendors found.</Text>
+                          <Text size="sm" c="dimmed">No prospects found.</Text>
                         </Table.Td>
                       </Table.Tr>
                     )}
-                    {vendors.map((v) => (
+                    {prospects.map((v) => (
                       <Table.Tr key={v.id}>
                         <Table.Td>
                           <Text size="xs" c="dimmed" ff="monospace">{v.vendor_id}</Text>
@@ -682,64 +1255,51 @@ export function GkAdminVendorsPage() {
                         <Table.Td>
                           <Stack gap={2}>
                             <Text size="sm" fw={600}>{v.contact_person}</Text>
-                            {v.business_name && (
-                              <Text size="xs" c="dimmed">{v.business_name}</Text>
-                            )}
+                            {v.business_name && <Text size="xs" c="dimmed">{v.business_name}</Text>}
                           </Stack>
                         </Table.Td>
                         <Table.Td>
-                          <Text size="sm">{v.category || "—"}</Text>
+                          <Stack gap={2}>
+                            {v.email && <Text size="xs">{v.email}</Text>}
+                            {v.phone && <Text size="xs" c="dimmed">{v.phone}</Text>}
+                            {!v.email && !v.phone && <Text size="xs" c="dimmed">—</Text>}
+                          </Stack>
                         </Table.Td>
-                        <Table.Td>
-                          <Badge size="xs" variant="outline">{v.lead_source}</Badge>
-                        </Table.Td>
+                        <Table.Td><Text size="sm">{v.category || "—"}</Text></Table.Td>
                         <Table.Td>
                           <Badge size="xs" color={STATUS_COLORS[v.status] ?? "gray"}>
                             {v.status.replace(/_/g, " ")}
                           </Badge>
                         </Table.Td>
                         <Table.Td>
-                          <Text size="xs" c="dimmed">
-                            {v.last_contact_date ?? "—"}
-                          </Text>
+                          <Text size="xs" c="dimmed">{v.last_contact_date ?? "—"}</Text>
                         </Table.Td>
                         <Table.Td>
                           <Group gap={4} wrap="nowrap">
-                            {v.whatsapp_link && (
-                              <Tooltip label="WhatsApp" withArrow>
-                                <ActionIcon
-                                  size="sm"
-                                  variant="subtle"
-                                  color="green"
-                                  component="a"
-                                  href={v.whatsapp_link}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                >
-                                  <IconBrandWhatsapp size={14} />
-                                </ActionIcon>
-                              </Tooltip>
-                            )}
-                            {v.email_link && (
-                              <Tooltip label="Email" withArrow>
-                                <ActionIcon
-                                  size="sm"
-                                  variant="subtle"
-                                  color="blue"
-                                  component="a"
-                                  href={v.email_link}
-                                >
-                                  <IconMail size={14} />
-                                </ActionIcon>
-                              </Tooltip>
-                            )}
-                            <Tooltip label="Log communication" withArrow>
+                            <Tooltip label={v.phone ? "WhatsApp" : "No phone on record"} withArrow>
                               <ActionIcon
                                 size="sm"
                                 variant="subtle"
-                                color="violet"
-                                onClick={() => openCommLog(v)}
+                                color="green"
+                                disabled={!v.phone}
+                                onClick={() => openWaModal(v)}
                               >
+                                <IconBrandWhatsapp size={14} />
+                              </ActionIcon>
+                            </Tooltip>
+                            <Tooltip label={v.email ? "Send Email" : "No email on record"} withArrow>
+                              <ActionIcon
+                                size="sm"
+                                variant="subtle"
+                                color="blue"
+                                disabled={!v.email}
+                                onClick={() => openEmailModal(v)}
+                              >
+                                <IconMail size={14} />
+                              </ActionIcon>
+                            </Tooltip>
+                            <Tooltip label="Outreach history" withArrow>
+                              <ActionIcon size="sm" variant="subtle" color="violet" onClick={() => openLogModal(v)}>
                                 <IconMessageCircle size={14} />
                               </ActionIcon>
                             </Tooltip>
@@ -749,12 +1309,7 @@ export function GkAdminVendorsPage() {
                               </ActionIcon>
                             </Tooltip>
                             <Tooltip label="Delete" withArrow>
-                              <ActionIcon
-                                size="sm"
-                                variant="subtle"
-                                color="red"
-                                onClick={() => void handleDelete(v)}
-                              >
+                              <ActionIcon size="sm" variant="subtle" color="red" onClick={() => void handleDelete(v)}>
                                 <IconTrash size={14} />
                               </ActionIcon>
                             </Tooltip>
@@ -772,19 +1327,39 @@ export function GkAdminVendorsPage() {
         <Tabs.Panel value="templates" pt="md">
           <TemplateManager />
         </Tabs.Panel>
+
+        <Tabs.Panel value="outreach" pt="md">
+          <OutreachTool />
+        </Tabs.Panel>
       </Tabs>
 
-      <VendorDrawer
+      <ProspectDrawer
         opened={drawerOpen}
         onClose={closeDrawer}
-        vendor={editingVendor}
-        onSaved={handleVendorSaved}
+        prospect={editingProspect}
+        onSaved={handleProspectSaved}
       />
 
-      <CommModal
-        vendor={commVendor}
-        opened={commOpen}
-        onClose={closeComm}
+      <EmailComposeModal
+        prospect={emailProspect}
+        opened={emailOpen}
+        onClose={closeEmail}
+        templates={templates}
+        onContacted={handleContacted}
+      />
+
+      <WhatsAppComposeModal
+        prospect={waProspect}
+        opened={waOpen}
+        onClose={closeWa}
+        templates={templates}
+        onContacted={handleContacted}
+      />
+
+      <OutreachLogModal
+        prospect={logProspect}
+        opened={logOpen}
+        onClose={closeLog}
         templates={templates}
       />
     </Stack>

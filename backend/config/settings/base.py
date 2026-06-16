@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     "recommendations",
     "billing",
     "vendors",
+    "comms",
 ]
 
 MIDDLEWARE = [
@@ -146,6 +147,10 @@ MOCK_STRIPE = env_bool("MOCK_STRIPE", default=True)
 MOCK_S3 = env_bool("MOCK_S3", default=True)
 MOCK_FCM = env_bool("MOCK_FCM", default=True)
 MOCK_WHATSAPP = env_bool("MOCK_WHATSAPP", default=True)
+MOCK_RESEND = env_bool("MOCK_RESEND", default=True)
+
+# --- Resend (email) ---
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 
 # Deterministic OTP code used when MOCK_TWILIO=true. Never used in live mode.
 MOCK_OTP_CODE = os.environ.get("MOCK_OTP_CODE", "123456")

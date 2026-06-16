@@ -29,7 +29,7 @@ const NAV_ITEMS = [
   { label: "Users", icon: IconUsers, to: "/gk-admin/users" },
   { label: "Nodes", icon: IconMapPin, to: "/gk-admin/nodes" },
   { label: "Safety", icon: IconShield, to: "/gk-admin/safety" },
-  { label: "Vendor CRM", icon: IconAddressBook, to: "/gk-admin/vendors" },
+  { label: "Prospects", icon: IconAddressBook, to: "/gk-admin/vendors" },
   { label: "Stripe", icon: IconBrandStripe, to: "/gk-admin/stripe" },
 ];
 
