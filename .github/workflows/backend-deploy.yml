@@ -51,14 +51,12 @@ jobs:
           cd backend
           python manage.py test
 
-      # Railway deploy is manual for now — add RAILWAY_TOKEN secret and
-      # uncomment these steps when ready to enable automatic deployment.
-      # - name: Install Railway CLI
-      #   run: npm install -g @railway/cli
-      # - name: Deploy to Railway
-      #   env:
-      #     RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-      #   run: |
-      #     cd backend
-      #     railway run python manage.py migrate
-      #     railway up --detach
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy to Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          cd backend
+          railway up --detach
