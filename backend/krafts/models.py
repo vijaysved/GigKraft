@@ -44,7 +44,7 @@ class Kraft(models.Model):
         "nodes.Node", on_delete=models.PROTECT, related_name="krafts"
     )
     title       = models.CharField(max_length=100)
-    description = models.TextField(max_length=512, blank=True, default="")
+    description = models.TextField(max_length=4096, blank=True, default="")
     skill       = models.CharField(max_length=100, blank=True, default="")
     gig_type    = models.CharField(
         max_length=20, choices=GigType.choices, blank=True, default=""

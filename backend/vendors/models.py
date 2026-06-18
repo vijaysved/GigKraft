@@ -41,6 +41,8 @@ class VendorContact(models.Model):
         max_length=15, choices=PreferredChannel.choices, default=PreferredChannel.WHATSAPP,
     )
     last_contact_date = models.DateField(null=True, blank=True)
+    last_seen = models.DateTimeField(null=True, blank=True)
+    tags = models.JSONField(default=list, blank=True)
     notes = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -95,3 +97,23 @@ class VendorContact(models.Model):
             "Would you be open to a quick chat?\n\nBest,\nVijay / GigKraft"
         )
         return f"mailto:{self.email}?subject={subject}&body={body}"
+
+
+class ProPageView(models.Model):
+    """Tracks visits to /pros/{handle}, optionally linked to a prospect via ?ref=GK-XXX."""
+
+    pro_handle = models.CharField(max_length=30, db_index=True)
+    prospect = models.ForeignKey(
+        VendorContact,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="page_views",
+    )
+    viewed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-viewed_at"]
+
+    def __str__(self):
+        return f"View of /pros/{self.pro_handle} at {self.viewed_at.date()}"

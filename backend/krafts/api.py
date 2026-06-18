@@ -211,7 +211,7 @@ def update_kraft(request, kraft_id: int, payload: KraftUpdateIn):
 
 @router.post("/{kraft_id}/publish", response={200: KraftOut, 400: ErrorOut, 404: ErrorOut})
 def publish_kraft(request, kraft_id: int):
-    """Publish the Kraft. Requires ≥1 After photo + confirmed invoice. Sets status PENDING for node manager review."""
+    """Publish the Kraft. Requires ≥1 After photo. Sets status VERIFIED so it appears on the public profile immediately."""
     pro = require_pro(request)
     kraft = Kraft.objects.filter(pk=kraft_id, pro=pro).first()
     if kraft is None:
@@ -220,9 +220,12 @@ def publish_kraft(request, kraft_id: int):
     if errors:
         return 400, {"detail": " ".join(errors)}
     with transaction.atomic():
-        kraft.status = Kraft.Status.PENDING
+        kraft.status = Kraft.Status.VERIFIED
         kraft.review_note = ""
         kraft.save()
+        if not kraft.pro.is_verified:
+            kraft.pro.is_verified = True
+            kraft.pro.save(update_fields=["is_verified"])
     return 200, serialize_kraft(kraft)
 
 
