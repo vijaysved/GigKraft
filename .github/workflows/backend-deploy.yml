@@ -51,12 +51,5 @@ jobs:
           cd backend
           python manage.py test
 
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli
-
-      - name: Deploy to Railway
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        run: |
-          cd backend
-          railway up --detach
+      # Railway deploys automatically via its GitHub integration on push to main.
+      # No CLI step needed here.
