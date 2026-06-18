@@ -80,6 +80,8 @@ class KraftOut(Schema):
     status: str
     review_note: str
     has_after: bool
+    invoice_confirmed: bool
+    invoice_cost: Optional[float]
     photos: list[KraftPhotoOut]
     created_at: str
     pro: ProOut
@@ -101,6 +103,8 @@ def serialize_kraft(kraft: Kraft) -> dict:
         "status": kraft.status,
         "review_note": kraft.review_note,
         "has_after": kraft.has_after,
+        "invoice_confirmed": kraft.invoice_confirmed,
+        "invoice_cost": float(kraft.invoice_cost) if kraft.invoice_cost is not None else None,
         "photos": [
             {"id": p.id, "kind": p.kind, "image_url": p.image_url, "order": p.order}
             for p in kraft.photos.all()

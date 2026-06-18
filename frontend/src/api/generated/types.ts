@@ -1666,6 +1666,10 @@ export interface components {
             review_note: string;
             /** Has After */
             has_after: boolean;
+            /** Invoice Confirmed */
+            invoice_confirmed: boolean;
+            /** Invoice Cost */
+            invoice_cost: number | null;
             /** Photos */
             photos: components["schemas"]["KraftPhotoOut"][];
             /** Created At */

@@ -146,6 +146,7 @@ export function ProBillingPage() {
   useEffect(() => {
     void load();
     return () => { if (pollRef.current) clearTimeout(pollRef.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function load(isPolling = false) {

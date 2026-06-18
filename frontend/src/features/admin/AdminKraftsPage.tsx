@@ -103,7 +103,7 @@ export function AdminKraftsPage() {
                   <Button
                     size="xs"
                     loading={busy === `verify-${kraft.id}`}
-                    disabled={!kraft.has_after || !(kraft as any).invoice_confirmed}
+                    disabled={!kraft.has_after || !kraft.invoice_confirmed}
                     onClick={() => runAction(`verify-${kraft.id}`, () => verifyKraft(kraft.id))}
                   >
                     Verify
