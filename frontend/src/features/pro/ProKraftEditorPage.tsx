@@ -222,7 +222,9 @@ export function ProKraftEditorPage() {
     },
   });
   // Keep ref in sync so the kraft-load effect can call setContent
-  (editorRef as React.MutableRefObject<typeof editor>).current = editor;
+  useEffect(() => {
+    (editorRef as React.MutableRefObject<typeof editor>).current = editor;
+  }, [editor]);
 
   const descTextLen = editor?.getText().length ?? 0;
 

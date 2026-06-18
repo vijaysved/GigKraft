@@ -265,7 +265,7 @@ class M5CoreFlowTests(ApiTestCase):
             **self.auth(self.pro_user),
         )
         self.assertEqual(resp.status_code, 200, resp.content)
-        self.assertEqual(resp.json()["status"], Kraft.Status.PENDING)
+        self.assertEqual(resp.json()["status"], Kraft.Status.VERIFIED)
 
     def test_service_area_zip_list_and_radius_are_validated_without_map(self):
         resp = self.client.patch(
