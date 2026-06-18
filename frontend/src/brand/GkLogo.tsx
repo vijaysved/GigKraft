@@ -10,7 +10,7 @@ export function GkLogo({ height = 48, showTagline = false }: GkLogoProps) {
     <Box>
       <Box
         component="img"
-        src="/brand/logo-card.png"
+        src="/brand/gigKraftLogo.png"
         alt="GigKraft"
         h={height}
         w="auto"

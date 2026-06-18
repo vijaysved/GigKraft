@@ -6,15 +6,14 @@ import {
   Group,
   Loader,
   Stack,
-  Table,
   Text,
   Title,
 } from "@mantine/core";
-import { IconExternalLink, IconPencil, IconPlus } from "@tabler/icons-react";
+import { IconExternalLink, IconPencil, IconPlus, IconSend } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { ApiError, type KraftOut } from "../../api/endpoints";
+import { ApiError, publishKraft, type KraftOut } from "../../api/endpoints";
 import { client } from "../../api/client";
 
 const MONTHS_SHORT = [
@@ -36,12 +35,10 @@ function StatusBadge({ status }: { status: string }) {
     rejected: { color: "red",    label: "Rejected" },
   };
   const cfg = map[status] ?? { color: "gray", label: status };
-  return <Badge size="sm" variant="light" color={cfg.color}>{cfg.label}</Badge>;
+  return <Badge size="xs" variant="light" color={cfg.color}>{cfg.label}</Badge>;
 }
 
 async function fetchMyKrafts(): Promise<KraftOut[]> {
-  // Pass mine as a string "true" — openapi-fetch serialises booleans
-  // but Django Ninja also accepts the raw string "true".
   const { data, error, response } = await client.GET("/api/krafts", {
     params: { query: { mine: true } },
   });
@@ -59,78 +56,70 @@ export function ProKraftListPage() {
   const [krafts, setKrafts] = useState<KraftOut[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [publishing, setPublishing] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     fetchMyKrafts()
       .then((data) => {
         const sorted = [...data].sort((a, b) => {
-          const scoreA =
-            (a.end_year ?? a.start_year ?? 0) * 12 +
-            (a.end_month ?? a.start_month ?? 0);
-          const scoreB =
-            (b.end_year ?? b.start_year ?? 0) * 12 +
-            (b.end_month ?? b.start_month ?? 0);
+          const scoreA = (a.end_year ?? a.start_year ?? 0) * 12 + (a.end_month ?? a.start_month ?? 0);
+          const scoreB = (b.end_year ?? b.start_year ?? 0) * 12 + (b.end_month ?? b.start_month ?? 0);
           if (scoreA !== scoreB) return scoreB - scoreA;
-          return (
-            new Date(b.created_at).getTime() -
-            new Date(a.created_at).getTime()
-          );
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
         });
         setKrafts(sorted);
       })
-      .catch((e: unknown) =>
-        setError(e instanceof Error ? e.message : "Unknown error")
-      )
+      .catch((e: unknown) => setError(e instanceof Error ? e.message : "Unknown error"))
       .finally(() => setLoading(false));
   }, []);
 
+  async function handlePublish(kraft: KraftOut) {
+    setPublishing((prev) => new Set(prev).add(kraft.id));
+    try {
+      const updated = await publishKraft(kraft.id);
+      setKrafts((prev) => prev.map((k) => (k.id === kraft.id ? updated : k)));
+    } catch {
+      // silently ignore — user can retry
+    } finally {
+      setPublishing((prev) => {
+        const next = new Set(prev);
+        next.delete(kraft.id);
+        return next;
+      });
+    }
+  }
+
+  const canPublish = (k: KraftOut) =>
+    (k.status === "draft" || k.status === "pending" || k.status === "rejected") && k.has_after;
+
   return (
-    <Stack gap="md">
-      {/* Header row */}
+    <Stack gap="sm">
       <Group justify="space-between" align="center">
-        <Title order={3}>Krafts</Title>
+        <Title order={4}>Krafts</Title>
         <Button
           component={Link}
           to="/pro/krafts/new"
-          leftSection={<IconPlus size={16} />}
+          size="xs"
+          leftSection={<IconPlus size={14} />}
           style={{ background: "var(--gk-brand-gradient)" }}
         >
           Add Kraft
         </Button>
       </Group>
 
-      {loading && (
-        <Center py="xl">
-          <Loader />
-        </Center>
-      )}
-
-      {error && (
-        <Text c="red" size="sm">
-          {error}
-        </Text>
-      )}
+      {loading && <Center py="xl"><Loader size="sm" /></Center>}
+      {error && <Text c="red" size="sm">{error}</Text>}
 
       {!loading && !error && krafts.length === 0 && (
-        <Card
-          withBorder
-          radius="md"
-          padding="xl"
-          style={{
-            borderColor: "var(--gk-border)",
-            background: "var(--gk-bg-surface)",
-          }}
-        >
+        <Card withBorder radius="md" padding="lg" style={{ borderColor: "var(--gk-border)" }}>
           <Center>
-            <Stack align="center" gap="sm">
-              <Text c="dimmed" size="sm">
-                No Krafts yet.
-              </Text>
+            <Stack align="center" gap="xs">
+              <Text c="dimmed" size="sm">No Krafts yet.</Text>
               <Button
                 component={Link}
                 to="/pro/krafts/new"
                 size="xs"
-                leftSection={<IconPlus size={14} />}
+                leftSection={<IconPlus size={13} />}
                 style={{ background: "var(--gk-brand-gradient)" }}
               >
                 Create your first Kraft
@@ -141,122 +130,104 @@ export function ProKraftListPage() {
       )}
 
       {!loading && krafts.length > 0 && (
-        <Card
-          withBorder
-          radius="md"
-          padding={0}
-          style={{ borderColor: "var(--gk-border)", overflow: "hidden" }}
-        >
-          <Table
-            highlightOnHover
-            verticalSpacing="sm"
-            horizontalSpacing="md"
-          >
-            {/* ── Header: sidebar background so text always contrasts ── */}
-            <Table.Thead>
-              <Table.Tr
-                style={{
-                  background: "var(--gk-bg-sidebar)",
-                  borderBottom: "2px solid var(--gk-border)",
-                }}
+        <Card withBorder radius="md" padding={0} style={{ borderColor: "var(--gk-border)", overflow: "hidden" }}>
+          {/* Compact header */}
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "1fr auto auto auto",
+            gap: "0 12px",
+            padding: "6px 12px",
+            background: "var(--gk-bg-sidebar)",
+            borderBottom: "1px solid var(--gk-border)",
+          }}>
+            {(["Title", "Date", "Status", ""] as const).map((col) => (
+              <Text
+                key={col}
+                size="xs"
+                fw={700}
+                tt="uppercase"
+                style={{ color: "var(--gk-text-sidebar)", opacity: 0.75, letterSpacing: "0.06em" }}
               >
-                {(["Title", "Start", "End", "Status", ""] as const).map(
-                  (col) => (
-                    <Table.Th
-                      key={col}
-                      style={{
-                        color: "var(--gk-text-sidebar)",
-                        fontWeight: 700,
-                        fontSize: "var(--mantine-font-size-xs)",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.06em",
-                        opacity: 0.85,
-                        whiteSpace: "nowrap",
-                        width: col === "" ? 100 : undefined,
-                      }}
-                    >
-                      {col}
-                    </Table.Th>
-                  )
-                )}
-              </Table.Tr>
-            </Table.Thead>
+                {col}
+              </Text>
+            ))}
+          </div>
 
-            {/* ── Body ── */}
-            <Table.Tbody
-              style={{ background: "var(--gk-bg-surface)" }}
+          {/* Rows */}
+          {krafts.map((k, i) => (
+            <div
+              key={k.id}
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr auto auto auto",
+                gap: "0 12px",
+                padding: "8px 12px",
+                alignItems: "center",
+                background: i % 2 === 0 ? "var(--gk-bg-surface)" : "color-mix(in srgb, var(--gk-bg-canvas) 60%, var(--gk-bg-surface))",
+                borderBottom: i < krafts.length - 1 ? "1px solid var(--gk-border)" : "none",
+              }}
             >
-              {krafts.map((k) => (
-                <Table.Tr
-                  key={k.id}
-                  style={{ borderBottom: "1px solid var(--gk-border)" }}
+              {/* Title + skill */}
+              <Stack gap={1}>
+                <Text size="sm" fw={600} style={{ color: "var(--gk-accent-primary)", lineHeight: 1.3 }}>
+                  {k.title}
+                </Text>
+                {k.skill && <Text size="xs" c="dimmed">{k.skill}</Text>}
+              </Stack>
+
+              {/* Date range */}
+              <Text size="xs" c="dimmed" style={{ whiteSpace: "nowrap" }}>
+                {[fmtDate(k.start_month, k.start_year), fmtDate(k.end_month, k.end_year)]
+                  .filter((d) => d !== "—")
+                  .join(" → ") || "—"}
+              </Text>
+
+              {/* Status + publish shortcut */}
+              <Group gap={4} wrap="nowrap">
+                <StatusBadge status={k.status} />
+                {canPublish(k) && (
+                  <Button
+                    size="xs"
+                    variant="light"
+                    color="green"
+                    loading={publishing.has(k.id)}
+                    leftSection={<IconSend size={11} />}
+                    px={6}
+                    style={{ fontSize: 11 }}
+                    onClick={() => handlePublish(k)}
+                  >
+                    Publish
+                  </Button>
+                )}
+              </Group>
+
+              {/* Actions */}
+              <Group gap={2} wrap="nowrap" justify="flex-end">
+                <Button
+                  component={Link}
+                  to={`/pro/krafts/${k.slug}`}
+                  size="xs"
+                  variant="subtle"
+                  px={6}
+                  title="Edit"
                 >
-                  {/* Title + skill */}
-                  <Table.Td>
-                    <Stack gap={2}>
-                      <Text
-                        size="sm"
-                        fw={600}
-                        style={{ color: "var(--gk-accent-primary)" }}
-                      >
-                        {k.title}
-                      </Text>
-                      {k.skill && (
-                        <Text size="xs" c="dimmed">
-                          {k.skill}
-                        </Text>
-                      )}
-                    </Stack>
-                  </Table.Td>
-
-                  {/* Start date */}
-                  <Table.Td>
-                    <Text size="sm" c="dimmed">
-                      {fmtDate(k.start_month, k.start_year)}
-                    </Text>
-                  </Table.Td>
-
-                  {/* End date */}
-                  <Table.Td>
-                    <Text size="sm" c="dimmed">
-                      {fmtDate(k.end_month, k.end_year)}
-                    </Text>
-                  </Table.Td>
-
-                  {/* Status */}
-                  <Table.Td>
-                    <StatusBadge status={k.status} />
-                  </Table.Td>
-
-                  {/* Actions */}
-                  <Table.Td>
-                    <Group gap={4} justify="flex-end" wrap="nowrap">
-                      <Button
-                        component={Link}
-                        to={`/pro/krafts/${k.slug}`}
-                        size="xs"
-                        variant="subtle"
-                        leftSection={<IconPencil size={13} />}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        component={Link}
-                        to={`/pro/krafts/${k.slug}/preview`}
-                        target="_blank"
-                        size="xs"
-                        variant="subtle"
-                        color="gray"
-                        px={6}
-                      >
-                        <IconExternalLink size={13} />
-                      </Button>
-                    </Group>
-                  </Table.Td>
-                </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
+                  <IconPencil size={13} />
+                </Button>
+                <Button
+                  component={Link}
+                  to={`/pro/krafts/${k.slug}/preview`}
+                  target="_blank"
+                  size="xs"
+                  variant="subtle"
+                  color="gray"
+                  px={6}
+                  title="Preview"
+                >
+                  <IconExternalLink size={13} />
+                </Button>
+              </Group>
+            </div>
+          ))}
         </Card>
       )}
     </Stack>

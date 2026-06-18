@@ -47,6 +47,53 @@ export function compressToDataUrl(file: File): Promise<string> {
   });
 }
 
+/** Resize + JPEG-compress a File for kraft portfolio photos (max 1920px, high quality). */
+export function compressKraftPhoto(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const scale = Math.min(1, 1920 / Math.max(img.width, img.height));
+      const w = Math.round(img.width * scale);
+      const h = Math.round(img.height * scale);
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { reject(new Error("Canvas unavailable")); return; }
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL("image/jpeg", 0.92));
+    };
+    img.onerror = reject;
+    img.src = objectUrl;
+  });
+}
+
+/** Resize a data URL to maxDimension×maxDimension PNG (lossless, 100% quality). */
+export function compressDataUrl(
+  dataUrl: string,
+  maxDimension = 400,
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxDimension / Math.max(img.width, img.height));
+      const w = Math.round(img.width * scale);
+      const h = Math.round(img.height * scale);
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { reject(new Error("Canvas unavailable")); return; }
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL("image/png"));
+    };
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
+}
+
 export function saveAvatar(dataUrlOrHttpUrl: string) {
   try { localStorage.setItem(STORAGE_KEY, dataUrlOrHttpUrl); } catch (e) {
     console.warn("localStorage quota exceeded — avatar not stored locally.", e);

@@ -1,7 +1,7 @@
 import {
   ActionIcon,
   Alert,
-  Badge,
+  Box,
   Button,
   Card,
   FileButton,
@@ -13,10 +13,17 @@ import {
   Switch,
   Tabs,
   Text,
-  Textarea,
   TextInput,
   Title,
 } from "@mantine/core";
+import { RichTextEditor } from "@mantine/tiptap";
+import { useEditor } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Placeholder from "@tiptap/extension-placeholder";
+import TextAlign from "@tiptap/extension-text-align";
+import { TextStyle } from "@tiptap/extension-text-style";
+import { Color } from "@tiptap/extension-color";
+import Highlight from "@tiptap/extension-highlight";
 import {
   IconCheck,
   IconExternalLink,
@@ -31,6 +38,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { useAuth } from "../../auth/AuthContext";
 import { ImageCropModal } from "../../components/ImageCropModal";
+import { KraftCard } from "../../components/KraftCard";
 import {
   createKraft,
   getKraftBySlug,
@@ -40,7 +48,7 @@ import {
   type KraftOut,
 } from "../../api/endpoints";
 import { useProHandle } from "../../hooks/useProHandle";
-import { compressToDataUrl } from "../../hooks/useProAvatar";
+import { compressKraftPhoto } from "../../hooks/useProAvatar";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const GIG_TYPES = [
@@ -68,20 +76,8 @@ const NOW        = new Date();
 const THIS_MONTH = String(NOW.getMonth() + 1);
 const THIS_YEAR  = String(NOW.getFullYear());
 const YEARS      = Array.from({ length: 11 }, (_, i) => String(NOW.getFullYear() - i));
-const DESC_MAX   = 512;
+const DESC_MAX   = 1024;
 const PHOTO_MAX_MB = 10;
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function fmtMonth(m: string | null) {
-  return m ? MONTHS.find((mo) => mo.value === m)?.label?.slice(0, 3) ?? "" : "";
-}
-function fmtDate(m: string | null, y: string | null) {
-  const parts = [fmtMonth(m), y].filter(Boolean);
-  return parts.length ? parts.join(" ") : null;
-}
-function gigLabel(v: string | null) {
-  return GIG_TYPES.find((g) => g.value === v)?.label ?? null;
-}
 
 // ── PhotoSlot ─────────────────────────────────────────────────────────────────
 interface PhotoSlot {
@@ -105,7 +101,7 @@ function PhotoCard({
     if (!file) return;
     if (file.size > PHOTO_MAX_MB * 1024 * 1024) { setError(`Max ${PHOTO_MAX_MB} MB`); resetRef.current?.(); return; }
     if (!file.type.startsWith("image/"))          { setError("Image files only");        resetRef.current?.(); return; }
-    const raw = await compressToDataUrl(file);
+    const raw = await compressKraftPhoto(file);
     setCropSrc(raw);
   }
 
@@ -116,7 +112,7 @@ function PhotoCard({
 
   return (
     <>
-      <Card withBorder radius="md" padding="md">
+      <Card withBorder radius="md" padding="md" style={{ borderColor: "var(--gk-border)", background: "var(--gk-bg-surface)" }}>
         <Stack gap="sm">
           <Group justify="space-between">
             <Text size="sm" fw={600}>{label}{required && <Text span c="red"> *</Text>}</Text>
@@ -132,8 +128,8 @@ function PhotoCard({
             title={slot.src ? "Click to re-crop" : undefined}
           >
             {slot.src
-              ? <img src={slot.src} alt={label} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-              : <Stack align="center" gap={4}><IconPhoto size={32} color="var(--gk-text-muted)" /><Text size="xs" c="dimmed">No photo</Text></Stack>}
+              ? <img src={slot.src} alt={label} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+              : <Stack align="center" gap={4}><IconPhoto size={32} color="var(--gk-accent-primary)" /><Text size="xs" c="dimmed">No photo</Text></Stack>}
           </div>
           {slot.src && (
             <Button size="xs" variant="subtle" leftSection={<IconPencil size={13} />} onClick={() => setCropSrc(slot.src!)}>
@@ -156,6 +152,7 @@ function PhotoCard({
           opened={Boolean(cropSrc)}
           src={cropSrc}
           title={`Crop — ${label}`}
+          allowSkip
           onConfirm={(dataUrl) => {
             onChange({ src: dataUrl, file: null });
             setCropSrc(null);
@@ -172,128 +169,11 @@ function PhotoCard({
   );
 }
 
-// ── Gradient divider line ─────────────────────────────────────────────────────
-function GradientLine() {
-  return (
-    <div style={{
-      height: 1,
-      background: "var(--gk-brand-gradient)",
-      borderRadius: 1,
-      opacity: 0.7,
-    }} />
-  );
-}
-
-// ── Preview card ──────────────────────────────────────────────────────────────
-function KraftPreviewCard({
-  title, skill, gigType, description, location,
-  startMonth, startYear, endMonth, endYear,
-  before, after, hasBefore,
-}: {
-  title: string; skill: string | null; gigType: string | null;
-  description: string; location: string;
-  startMonth: string | null; startYear: string | null;
-  endMonth: string | null; endYear: string | null;
-  before: PhotoSlot; after: PhotoSlot; hasBefore: boolean;
-}) {
-  const fromLabel = fmtDate(startMonth, startYear);
-  const toLabel   = fmtDate(endMonth,   endYear);
-  const dateRange = [fromLabel, toLabel].filter(Boolean).join(" → ");
-  const gl        = gigLabel(gigType);
-
-  // Collect pills to show on the right
-  const pills = [
-    gl       ? { label: gl,       color: "green"  } : null,
-    skill    ? { label: skill,    color: "blue"   } : null,
-    location ? { label: location, color: "violet" } : null,
-  ].filter(Boolean) as { label: string; color: string }[];
-
-  return (
-    // Gradient border wrapper + coloured shadow
-    <div style={{
-      borderRadius: 14,
-      padding: 1,
-      background: "var(--gk-brand-gradient)",
-      boxShadow: "0 8px 40px color-mix(in srgb, var(--gk-accent-primary) 22%, transparent), 0 2px 8px rgba(0,0,0,0.12)",
-    }}>
-      <div style={{
-        borderRadius: 13,
-        background: "var(--gk-bg-surface)",
-        padding: "20px 24px",
-      }}>
-        <Stack gap="md">
-
-          {/* ── Header: title + date on left, pills stacked on right ── */}
-          <Group align="flex-start" justify="space-between" wrap="nowrap" gap="md">
-            <Stack gap={2} style={{ flex: 1, minWidth: 0 }}>
-              <Title order={4} style={{ color: "var(--gk-accent-primary)", lineHeight: 1.2 }}>
-                {title || <Text span c="dimmed" fw={400} fz="md">Untitled Kraft</Text>}
-              </Title>
-              {dateRange && (
-                <Text size="sm" c="dimmed">{dateRange}</Text>
-              )}
-            </Stack>
-
-            {pills.length > 0 && (
-              <Stack gap={6} align="flex-end" style={{ flexShrink: 0 }}>
-                {pills.map((p) => (
-                  <Badge key={p.label} variant="light" color={p.color} size="sm" radius="sm">
-                    {p.label}
-                  </Badge>
-                ))}
-              </Stack>
-            )}
-          </Group>
-
-          <GradientLine />
-
-          {/* ── Photos ── */}
-          {hasBefore ? (
-            <Group grow gap="sm" align="flex-start">
-              <Stack gap={4}>
-                <Text size="xs" c="dimmed" fw={600} tt="uppercase">Before</Text>
-                <div style={{ height: 180, borderRadius: 8, overflow: "hidden", background: "var(--gk-bg-canvas)", border: "1px solid var(--gk-border)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  {before.src
-                    ? <img src={before.src} alt="Before" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "grayscale(40%)" }} />
-                    : <Text size="xs" c="dimmed">No before photo</Text>}
-                </div>
-              </Stack>
-              <Stack gap={4}>
-                <Text size="xs" fw={600} tt="uppercase" c="green">After</Text>
-                <div style={{ height: 180, borderRadius: 8, overflow: "hidden", background: "var(--gk-bg-canvas)", border: "1px solid var(--gk-border)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  {after.src
-                    ? <img src={after.src} alt="After" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    : <Text size="xs" c="dimmed">No after photo</Text>}
-                </div>
-              </Stack>
-            </Group>
-          ) : (
-            <div style={{ height: 220, borderRadius: 8, overflow: "hidden", background: "var(--gk-bg-canvas)", border: "1px solid var(--gk-border)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              {after.src
-                ? <img src={after.src} alt="Photo" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                : <Stack align="center" gap={4}><IconPhoto size={36} color="var(--gk-text-muted)" /><Text size="xs" c="dimmed">No photo</Text></Stack>}
-            </div>
-          )}
-
-          {description && (
-            <>
-              <GradientLine />
-              <Text size="sm" style={{ lineHeight: 1.7 }}>{description}</Text>
-            </>
-          )}
-
-        </Stack>
-      </div>
-    </div>
-  );
-}
-
 // ── Main editor ───────────────────────────────────────────────────────────────
 export function ProKraftEditorPage() {
   const { id: routeSlug } = useParams();
   const navigate   = useNavigate();
-  const { user }   = useAuth();
-  const { handle } = useProHandle({ firstName: user?.first_name, lastName: user?.last_name });
+  useAuth();
 
   const isNew = !routeSlug;
 
@@ -324,15 +204,35 @@ export function ProKraftEditorPage() {
   const [,            setStatus]      = useState<"draft" | "published">("draft");
 
   const [proSkills, setProSkills] = useState<string[]>([]);
+  const [kraftTab, setKraftTab] = useState("edit");
 
-  // Load pro profile → skills + default location
+  const editorRef = useRef<ReturnType<typeof useEditor>>(null);
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Placeholder.configure({ placeholder: "What was done, what was the challenge, materials used…" }),
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      TextStyle,
+      Color,
+      Highlight.configure({ multicolor: false }),
+    ],
+    content: "",
+    onUpdate: ({ editor: ed }) => {
+      setDescription(ed.getHTML());
+    },
+  });
+  // Keep ref in sync so the kraft-load effect can call setContent
+  (editorRef as React.MutableRefObject<typeof editor>).current = editor;
+
+  const descTextLen = editor?.getText().length ?? 0;
+
+  // Load pro profile → skills; only default location for new krafts to avoid race with kraft load
   useEffect(() => {
     getMyProProfile().then((p) => {
       setProSkills(p.skill_tags ?? []);
-      if (!location) setLocation(p.base_zip ?? "");
+      if (!routeSlug) setLocation(p.base_zip ?? "");
     }).catch(() => {});
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [routeSlug]);
 
   // Load existing Kraft when editing
   useEffect(() => {
@@ -356,6 +256,7 @@ export function ProKraftEditorPage() {
         else      setHasBefore(false);
         if (ap)   setAfter({ src: ap.image_url, file: null });
         setStatus(k.status === "verified" ? "published" : "draft");
+        editorRef.current?.commands.setContent(k.description || "");
       })
       .catch((e: unknown) => {
         setSaveStatus("error");
@@ -426,11 +327,6 @@ export function ProKraftEditorPage() {
     }
   }
 
-  const previewProps = {
-    title, skill, gigType, description, location,
-    startMonth, startYear, endMonth, endYear,
-    before, after, hasBefore,
-  };
 
   const skillOptions = proSkills.map((s) => ({ value: s, label: s }));
 
@@ -440,28 +336,22 @@ export function ProKraftEditorPage() {
   }
 
   return (
-    <Stack>
+    <Stack maw={860}>
       {/* Page header */}
-      <Group justify="space-between" align="center">
-        <Title order={3}>{isNew ? "New Kraft" : "Edit Kraft"}</Title>
-        <Group gap="xs">
-          {slug && (
-            <Text size="xs" c="dimmed" style={{ fontFamily: "var(--mantine-font-family-monospace)" }}>
-              {slug}
-            </Text>
-          )}
-          {handle && (
-            <Button component={Link} to={`/pros/${handle}`} target="_blank" size="xs" variant="subtle" rightSection={<IconExternalLink size={13} />}>
-              View profile
-            </Button>
-          )}
-        </Group>
-      </Group>
+      <Title order={3} style={{ color: "var(--gk-accent-primary)" }}>{isNew ? "New Kraft" : "Edit Kraft"}</Title>
 
-      <Tabs defaultValue="edit">
-        <Tabs.List>
-          <Tabs.Tab value="edit"    leftSection={<IconPencil size={14} />}>Edit</Tabs.Tab>
-          <Tabs.Tab value="preview" leftSection={<IconEye    size={14} />}>Preview</Tabs.Tab>
+      <Tabs value={kraftTab} onChange={(v) => v && setKraftTab(v)} color="var(--gk-accent-primary)">
+        <Tabs.List style={{ borderColor: "var(--gk-accent-primary)", borderBottomWidth: 2 }}>
+          <Tabs.Tab
+            value="edit"
+            leftSection={<IconPencil size={14} color={kraftTab === "edit" ? "var(--gk-accent-primary)" : "var(--gk-accent-secondary)"} />}
+            style={{ color: kraftTab === "edit" ? "var(--gk-accent-primary)" : "var(--gk-accent-secondary)" }}
+          >Edit</Tabs.Tab>
+          <Tabs.Tab
+            value="preview"
+            leftSection={<IconEye size={14} color={kraftTab === "preview" ? "var(--gk-accent-primary)" : "var(--gk-accent-secondary)"} />}
+            style={{ color: kraftTab === "preview" ? "var(--gk-accent-primary)" : "var(--gk-accent-secondary)" }}
+          >Preview</Tabs.Tab>
         </Tabs.List>
 
         {/* ── EDIT TAB ── */}
@@ -472,9 +362,9 @@ export function ProKraftEditorPage() {
             )}
 
             {/* Job details */}
-            <Card withBorder radius="md" padding="lg">
+            <Card withBorder radius="md" padding="lg" style={{ borderColor: "var(--gk-border)", background: "var(--gk-bg-surface)" }}>
               <Stack>
-                <Title order={5}>Job details</Title>
+                <Text size="xs" fw={700} tt="uppercase" style={{ color: "var(--gk-accent-primary)", letterSpacing: "0.07em" }}>Job details</Text>
 
                 <TextInput label="Title" placeholder="e.g. Kitchen faucet replacement" value={title} onChange={(e) => setTitle(e.currentTarget.value)} required />
 
@@ -510,17 +400,52 @@ export function ProKraftEditorPage() {
                 </Group>
 
                 <Stack gap={4}>
-                  <Textarea label="Description" placeholder="What was done, what was the challenge, materials used…" minRows={3} maxLength={DESC_MAX} value={description} onChange={(e) => setDescription(e.currentTarget.value)} />
-                  <Text size="xs" c={description.length >= DESC_MAX ? "red" : "dimmed"} ta="right">{description.length} / {DESC_MAX}</Text>
+                  <Text size="sm" fw={500}>Description</Text>
+                  <Box style={{ border: "1px solid var(--gk-border)", borderRadius: 6, overflow: "hidden" }}>
+                    <RichTextEditor editor={editor}>
+                      <RichTextEditor.Toolbar sticky stickyOffset={0}>
+                        <RichTextEditor.ControlsGroup>
+                          <RichTextEditor.H1 />
+                          <RichTextEditor.H2 />
+                          <RichTextEditor.H3 />
+                        </RichTextEditor.ControlsGroup>
+                        <RichTextEditor.ControlsGroup>
+                          <RichTextEditor.Bold />
+                          <RichTextEditor.Italic />
+                          <RichTextEditor.Underline />
+                          <RichTextEditor.Strikethrough />
+                          <RichTextEditor.Highlight />
+                        </RichTextEditor.ControlsGroup>
+                        <RichTextEditor.ControlsGroup>
+                          <RichTextEditor.AlignLeft />
+                          <RichTextEditor.AlignCenter />
+                          <RichTextEditor.AlignRight />
+                        </RichTextEditor.ControlsGroup>
+                        <RichTextEditor.ControlsGroup>
+                          <RichTextEditor.BulletList />
+                          <RichTextEditor.OrderedList />
+                        </RichTextEditor.ControlsGroup>
+                        <RichTextEditor.ControlsGroup>
+                          <RichTextEditor.Blockquote />
+                          <RichTextEditor.Hr />
+                          <RichTextEditor.ClearFormatting />
+                        </RichTextEditor.ControlsGroup>
+                      </RichTextEditor.Toolbar>
+                      <RichTextEditor.Content />
+                    </RichTextEditor>
+                  </Box>
+                  <Text size="xs" c={descTextLen > DESC_MAX ? "red" : "dimmed"} ta="right">
+                    {descTextLen} / {DESC_MAX}{descTextLen > DESC_MAX ? " — please shorten your description" : ""}
+                  </Text>
                 </Stack>
               </Stack>
             </Card>
 
             {/* Photos */}
-            <Card withBorder radius="md" padding="lg">
+            <Card withBorder radius="md" padding="lg" style={{ borderColor: "var(--gk-border)", background: "var(--gk-bg-surface)" }}>
               <Stack gap="sm">
                 <Group justify="space-between" align="center">
-                  <Title order={5}>Photos</Title>
+                  <Text size="xs" fw={700} tt="uppercase" style={{ color: "var(--gk-accent-primary)", letterSpacing: "0.07em" }}>Photos</Text>
                   <Switch label="I have a before photo" checked={hasBefore} onChange={(e) => { setHasBefore(e.currentTarget.checked); if (!e.currentTarget.checked) setBefore({ src: null, file: null }); }} size="sm" />
                 </Group>
                 {hasBefore ? (
@@ -588,7 +513,19 @@ export function ProKraftEditorPage() {
                 </Button>
               </Group>
             )}
-            <KraftPreviewCard {...previewProps} />
+            <KraftCard
+              title={title}
+              skill={skill}
+              gigType={gigType}
+              description={description}
+              location={location}
+              startMonth={startMonth ? Number(startMonth) : null}
+              startYear={startYear ? Number(startYear) : null}
+              endMonth={endMonth ? Number(endMonth) : null}
+              endYear={endYear ? Number(endYear) : null}
+              beforeUrl={hasBefore ? before.src : null}
+              afterUrl={after.src}
+            />
           </Stack>
         </Tabs.Panel>
       </Tabs>
@@ -636,19 +573,18 @@ export function KraftPublicPreviewPage() {
       {error   && <Alert color="red" variant="light">{error}</Alert>}
 
       {kraft && (
-        <KraftPreviewCard
+        <KraftCard
           title={kraft.title}
           skill={kraft.skill || null}
           gigType={kraft.gig_type || null}
           description={kraft.description}
           location={kraft.location}
-          startMonth={kraft.start_month ? String(kraft.start_month) : null}
-          startYear={ kraft.start_year  ? String(kraft.start_year)  : null}
-          endMonth={  kraft.end_month   ? String(kraft.end_month)   : null}
-          endYear={   kraft.end_year    ? String(kraft.end_year)    : null}
-          before={{ src: before?.image_url ?? null, file: null }}
-          after={{  src: after?.image_url  ?? null, file: null }}
-          hasBefore={Boolean(before)}
+          startMonth={kraft.start_month ?? null}
+          startYear={kraft.start_year ?? null}
+          endMonth={kraft.end_month ?? null}
+          endYear={kraft.end_year ?? null}
+          beforeUrl={before?.image_url ?? null}
+          afterUrl={after?.image_url ?? null}
         />
       )}
     </Stack>

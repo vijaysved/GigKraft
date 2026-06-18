@@ -15,6 +15,7 @@ interface Props {
   aspect?: number;
   circularCrop?: boolean;
   title?: string;
+  allowSkip?: boolean;
   onConfirm: (dataUrl: string) => void;
   onCancel: () => void;
 }
@@ -72,6 +73,7 @@ function cropToCanvas(
 export function ImageCropModal({
   opened, src, aspect, circularCrop = false,
   title = "Crop image",
+  allowSkip = false,
   onConfirm, onCancel,
 }: Props) {
   const imgRef   = useRef<HTMLImageElement>(null);
@@ -160,6 +162,11 @@ export function ImageCropModal({
 
         <Group justify="flex-end" gap="sm">
           <Button variant="default" onClick={onCancel}>Cancel</Button>
+          {allowSkip && (
+            <Button variant="light" onClick={() => onConfirm(src)}>
+              Use original
+            </Button>
+          )}
           <Button
             onClick={handleConfirm}
             disabled={!completed}

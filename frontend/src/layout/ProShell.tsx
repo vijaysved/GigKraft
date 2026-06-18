@@ -1,6 +1,7 @@
 import {
   AppShell,
   Avatar,
+  Box,
   Divider,
   Group,
   Menu,
@@ -22,6 +23,7 @@ import {
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../auth/AuthContext";
+import { GkLogo } from "../brand/GkLogo";
 import { useProAvatar } from "../hooks/useProAvatar";
 
 const NAV_ITEMS = [
@@ -30,7 +32,7 @@ const NAV_ITEMS = [
   { label: "Stats",   icon: IconChartBar,    to: "/pro/stats" },
   { label: "Network", icon: IconNetwork,     to: "/pro/network" },
   { label: "Billing", icon: IconCreditCard,  to: "/pro/billing" },
-  { label: "Account", icon: IconUser,        to: "/pro/account" },
+  { label: "Profile", icon: IconUser,        to: "/pro/account" },
 ];
 
 const navLinkStyles = (_theme: unknown, { active }: { active?: boolean }) => ({
@@ -61,6 +63,12 @@ export function ProShell() {
           flexDirection: "column",
         }}
       >
+        {/* Logo */}
+        <Box px={4} pb="sm">
+          <GkLogo height={36} />
+        </Box>
+        <Divider style={{ borderColor: "var(--gk-border)" }} mb="xs" />
+
         {/* Nav items */}
         <Stack gap={4} style={{ flex: 1 }}>
           {NAV_ITEMS.map(({ label, icon: Icon, to }) => (
@@ -105,6 +113,9 @@ export function ProShell() {
               </Menu.Item>
             </Menu.Dropdown>
           </Menu>
+          <Text size="xs" ta="center" py={6} style={{ color: "#000", opacity: 0.55 }}>
+            Powered by gigKraft.com
+          </Text>
         </Stack>
       </AppShell.Navbar>
 

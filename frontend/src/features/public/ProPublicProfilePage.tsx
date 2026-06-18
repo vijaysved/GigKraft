@@ -1,4 +1,5 @@
 import {
+  ActionIcon,
   Alert,
   Avatar,
   Badge,
@@ -13,33 +14,28 @@ import {
   Stack,
   Text,
   Title,
+  Tooltip,
 } from "@mantine/core";
 import {
-  IconBolt,
   IconBrandWhatsapp,
-  IconBuildingStore,
-  IconCertificate,
   IconLink,
   IconMail,
   IconMapPin,
   IconMessage,
-  IconPhoto,
-  IconShieldCheck,
-  IconStar,
-  IconStarFilled,
   IconStars,
 } from "@tabler/icons-react";
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
-import { getKraftsByPro, getProByHandle, type KraftPublicOut, type ProOut } from "../../api/endpoints";
+import { getKraftsByPro, getProByHandle, trackProPageView, type KraftPublicOut, type ProOut } from "../../api/endpoints";
 import { useAuth } from "../../auth/AuthContext";
+import { GkLogo } from "../../brand/GkLogo";
 import { GoogleSignInButton } from "../../components/GoogleSignInButton";
 import { KraftCard } from "../../components/KraftCard";
 import { ReviewsSection } from "../../components/ReviewsSection";
 
 const WALLPAPERS = [
-  "var(--gk-brand-gradient)",
+  "url('/brand/gigkraft-wallpaper.png') center/cover no-repeat",
   "linear-gradient(135deg, #0D1B30 0%, #1B3D5C 100%)",
   "linear-gradient(135deg, #7A3D18 0%, #D4713A 100%)",
   "linear-gradient(135deg, #006058 0%, #00A896 100%)",
@@ -86,6 +82,7 @@ function ZipMap({ zip }: { zip: string }) {
 // ── Main page ─────────────────────────────────────────────────────────────────
 export function ProPublicProfilePage() {
   const { id: handle } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const { status, user, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
@@ -164,6 +161,13 @@ export function ProPublicProfilePage() {
 
   useEffect(() => {
     if (!handle) return;
+    // Fire-and-forget page view tracking; ref=GK-XXX links view to a prospect
+    const ref = searchParams.get("ref") ?? undefined;
+    trackProPageView(handle, ref).catch(() => {});
+  }, [handle, searchParams]);
+
+  useEffect(() => {
+    if (!handle) return;
     setLoading(true);
     setPro(null);
     setNotFound(false);
@@ -220,7 +224,14 @@ export function ProPublicProfilePage() {
             }}>
             <Card radius="lg" padding={0} style={{ overflow: "hidden", background: "var(--gk-bg-surface)" }}>
               {/* Wallpaper banner */}
-              <div style={{ height: 120, ...bannerStyle }} />
+              <div style={{ height: 120, position: "relative", ...bannerStyle }}>
+                <Box style={{
+                  position: "absolute", top: 8, right: 10,
+                  background: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "3px 7px",
+                }}>
+                  <GkLogo height={22} />
+                </Box>
+              </div>
 
               <div style={{ position: "relative", padding: "0 20px 20px" }}>
                 {/* Avatar — overlaps banner */}
@@ -254,129 +265,130 @@ export function ProPublicProfilePage() {
                       @{handle}
                     </Text>
                   </Stack>
-                  <Group gap={6} wrap="nowrap">
-                    <Button
-                      size="xs"
-                      variant="light"
-                      leftSection={<IconStars size={13} />}
-                      onClick={handleWriteRec}
-                      style={{
-                        background: "color-mix(in srgb, var(--gk-accent-primary) 12%, transparent)",
-                        color: "var(--gk-accent-primary)",
-                        border: "1px solid color-mix(in srgb, var(--gk-accent-primary) 25%, transparent)",
-                      }}
-                    >
-                      Recommend
-                    </Button>
-                    <Button
-                      size="xs"
-                      variant="light"
-                      color="green"
-                      leftSection={<IconBrandWhatsapp size={13} />}
-                      onClick={handleWhatsAppShare}
-                      title="Share on WhatsApp"
-                    >
-                      WhatsApp
-                    </Button>
-                    <Button
-                      size="xs"
-                      variant="light"
-                      leftSection={<IconLink size={13} />}
-                      onClick={handleShare}
-                      color={copied ? "green" : undefined}
-                    >
-                      {copied ? "Copied!" : "Share"}
-                    </Button>
+                  <Group gap={4} wrap="nowrap">
+                    <Tooltip label="Recommend" withArrow>
+                      <ActionIcon size="sm" variant="subtle" onClick={handleWriteRec}>
+                        <IconStars size={16} color="var(--gk-accent-primary)" />
+                      </ActionIcon>
+                    </Tooltip>
+                    <Tooltip label="Share on WhatsApp" withArrow>
+                      <ActionIcon size="sm" variant="subtle" onClick={handleWhatsAppShare}>
+                        <IconBrandWhatsapp size={16} color="var(--mantine-color-green-6)" />
+                      </ActionIcon>
+                    </Tooltip>
+                    <Tooltip label={copied ? "Copied!" : "Share"} withArrow>
+                      <ActionIcon size="sm" variant="subtle" onClick={handleShare}>
+                        <IconLink size={16} color={copied ? "var(--mantine-color-green-6)" : "var(--gk-accent-secondary)"} />
+                      </ActionIcon>
+                    </Tooltip>
                   </Group>
                 </Group>
 
-                {/* 2-col: Left = Bio + Contact | Right = Pills */}
-                <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md" mt="md">
+                {/* 2-col equal-height cards: Left = Bio + Contact | Right = About */}
+                <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md" mt="md" style={{ alignItems: "stretch" }}>
 
-                  {/* LEFT — Bio + Contact info */}
-                  <Stack gap="sm">
-                    {/* Bio below avatar area */}
-                    {pro.bio && (
-                      <Text size="sm" c="dimmed" style={{ lineHeight: 1.6 }}>{pro.bio}</Text>
-                    )}
+                  {/* LEFT card — Bio + Contact */}
+                  <Card withBorder radius="md" padding="md"
+                    style={{ borderColor: "var(--gk-border)", background: "var(--gk-bg-surface)", display: "flex", flexDirection: "column" }}>
+                    <Stack gap="md" style={{ flex: 1 }}>
 
-                    {/* Contact info */}
-                    <Stack gap={4}>
-                      <Text size="xs" fw={600} c="dimmed" tt="uppercase" style={{ letterSpacing: "0.05em" }}>
-                        Contact info
-                      </Text>
-                      {isLoggedIn ? (
-                        <Stack gap={4}>
-                          <Group gap={6}>
-                            <IconMail size={14} color="var(--gk-text-muted)" />
-                            <Text size="sm">{pro.email ?? "Contact via GigKraft"}</Text>
+                      <Stack gap="xs">
+                        <Text size="xs" fw={700} tt="uppercase"
+                          style={{ color: "var(--gk-accent-primary)", letterSpacing: "0.07em" }}>Bio</Text>
+                        {pro.bio
+                          ? <Text size="sm" style={{ lineHeight: 1.7 }}>{pro.bio}</Text>
+                          : <Text size="sm" c="dimmed" fs="italic">No bio added yet.</Text>}
+                      </Stack>
+
+                      <Divider style={{ borderColor: "var(--gk-border)" }} />
+
+                      <Stack gap="xs">
+                        <Text size="xs" fw={700} tt="uppercase"
+                          style={{ color: "var(--gk-accent-primary)", letterSpacing: "0.07em" }}>Contact</Text>
+                        {isLoggedIn ? (
+                          <Stack gap={4}>
+                            <Group gap={6}>
+                              <IconMail size={14} color="var(--gk-accent-primary)" />
+                              <Text size="sm">{pro.email ?? "Contact via GigKraft"}</Text>
+                            </Group>
+                            <Group gap={6}>
+                              <IconMessage size={14} color="var(--gk-accent-primary)" />
+                              <Text size="sm">{pro.phone ?? "—"}</Text>
+                            </Group>
+                          </Stack>
+                        ) : (
+                          <Stack gap="xs">
+                            <Box style={{ position: "relative", userSelect: "none" }}>
+                              <Stack gap={4} style={{ filter: "blur(5px)", pointerEvents: "none" }} aria-hidden>
+                                <Group gap={6}><IconMail size={14} /><Text size="sm">john.doe@example.com</Text></Group>
+                                <Group gap={6}><IconMessage size={14} /><Text size="sm">+1 (512) 555-0192</Text></Group>
+                              </Stack>
+                            </Box>
+                            {googleError && <Text size="xs" c="red">{googleError}</Text>}
+                            <GoogleSignInButton
+                              label="signup_with"
+                              fullWidth
+                              onSuccess={(idToken) =>
+                                loginWithGoogle(idToken, "homeowner").then(() =>
+                                  navigate(window.location.pathname, { replace: true })
+                                )
+                              }
+                              onError={setGoogleError}
+                            />
+                            <Text size="xs" c="dimmed" ta="center">
+                              Already have an account?{" "}
+                              <Link to={`/login?next=${encodeURIComponent(window.location.pathname)}`}>
+                                Sign in
+                              </Link>
+                            </Text>
+                          </Stack>
+                        )}
+                      </Stack>
+
+                    </Stack>
+                  </Card>
+
+                  {/* RIGHT card — Trade / Response / Skills */}
+                  <Card withBorder radius="md" padding="md"
+                    style={{ borderColor: "var(--gk-border)", background: "var(--gk-bg-surface)", display: "flex", flexDirection: "column" }}>
+                    <Stack gap="xs" style={{ flex: 1 }}>
+                      {pro.primary_trade || (pro.skill_tags ?? []).length > 0 ? (
+                        <>
+                          <Group justify="space-between" align="center" wrap="nowrap">
+                            {pro.primary_trade && (
+                              <Text fw={700} size="sm" style={{ color: "var(--gk-accent-primary)" }}>
+                                {pro.primary_trade}
+                              </Text>
+                            )}
+                            {pro.response_hours && (
+                              <Text size="sm" style={{ color: "var(--gk-accent-secondary)", flexShrink: 0 }}>
+                                ⚡ {pro.response_hours}h response
+                              </Text>
+                            )}
                           </Group>
-                          <Group gap={6}>
-                            <IconMessage size={14} color="var(--gk-text-muted)" />
-                            <Text size="sm">{pro.phone ?? "—"}</Text>
-                          </Group>
-                        </Stack>
+                          {((pro.skill_tags ?? []).length > 0 || pro.licensed || pro.insured) && (
+                            <>
+                              <Divider style={{ borderColor: "var(--gk-border)" }} />
+                              <Stack gap={2}>
+                                {(pro.skill_tags ?? []).map((s) => (
+                                  <Text key={s} size="sm">{s}</Text>
+                                ))}
+                                {pro.licensed && (
+                                  <Text size="sm" c="dimmed">
+                                    Licensed{pro.license_number ? ` · ${pro.license_number}` : ""}
+                                  </Text>
+                                )}
+                                {pro.insured && <Text size="sm" c="dimmed">Insured</Text>}
+                              </Stack>
+                            </>
+                          )}
+                        </>
                       ) : (
-                        <Stack gap="xs">
-                          <Box style={{ position: "relative", userSelect: "none" }}>
-                            <Stack gap={4} style={{ filter: "blur(5px)", pointerEvents: "none" }} aria-hidden>
-                              <Group gap={6}><IconMail size={14} /><Text size="sm">john.doe@example.com</Text></Group>
-                              <Group gap={6}><IconMessage size={14} /><Text size="sm">+1 (512) 555-0192</Text></Group>
-                            </Stack>
-                          </Box>
-                          {googleError && <Text size="xs" c="red">{googleError}</Text>}
-                          <GoogleSignInButton
-                            label="signup_with"
-                            fullWidth
-                            onSuccess={(idToken) =>
-                              loginWithGoogle(idToken, "homeowner").then(() =>
-                                navigate(window.location.pathname, { replace: true })
-                              )
-                            }
-                            onError={setGoogleError}
-                          />
-                          <Text size="xs" c="dimmed" ta="center">
-                            Already have an account?{" "}
-                            <Link to={`/login?next=${encodeURIComponent(window.location.pathname)}`}>
-                              Sign in
-                            </Link>
-                          </Text>
-                        </Stack>
+                        <Text size="xs" c="dimmed" fs="italic">No trade info available.</Text>
                       )}
                     </Stack>
-                  </Stack>
+                  </Card>
 
-                  {/* RIGHT — All pills together */}
-                  <Stack gap="sm" pt={{ base: 0, sm: 4 }}>
-                    <Text size="xs" fw={600} c="dimmed" tt="uppercase" style={{ letterSpacing: "0.05em" }}>
-                      About
-                    </Text>
-                    <Group gap="xs" wrap="wrap">
-                      {/* Trade */}
-                      {pro.primary_trade && (
-                        <Badge variant="light" leftSection={<IconBuildingStore size={12} />}>
-                          {pro.primary_trade}
-                        </Badge>
-                      )}
-                      {/* Response time */}
-                      <Badge variant="light" color="blue">⚡ {pro.response_hours}h response</Badge>
-                      {/* Credentials — only if true */}
-                      {pro.licensed && (
-                        <Badge color="green" leftSection={<IconCertificate size={12} />} variant="light">
-                          Licensed{pro.license_number ? ` · ${pro.license_number}` : ""}
-                        </Badge>
-                      )}
-                      {pro.insured && (
-                        <Badge color="teal" leftSection={<IconShieldCheck size={12} />} variant="light">
-                          Insured
-                        </Badge>
-                      )}
-                      {/* Skills */}
-                      {pro.skill_tags?.map((s: string) => (
-                        <Badge key={s} variant="dot" size="sm">{s}</Badge>
-                      ))}
-                    </Group>
-                  </Stack>
                 </SimpleGrid>
 
                 <Divider my="md" />
@@ -384,7 +396,7 @@ export function ProPublicProfilePage() {
                 {/* Service area + compact map */}
                 <Stack gap="xs">
                   <Group gap={4}>
-                    <IconMapPin size={14} color="var(--gk-text-muted)" />
+                    <IconMapPin size={14} color="var(--gk-accent-primary)" />
                     <Text size="xs" fw={600} c="dimmed" tt="uppercase" style={{ letterSpacing: "0.05em" }}>
                       Service area
                     </Text>
@@ -401,23 +413,6 @@ export function ProPublicProfilePage() {
 
                 <Divider my="md" />
 
-                {/* Stats */}
-                <Group gap="sm" wrap="wrap">
-                  <Badge size="lg" variant="light" color="yellow" leftSection={<IconStarFilled size={13} />}>
-                    {pro.stats.recs_approved} Reviews
-                  </Badge>
-                  <Badge size="lg" variant="light" color="blue" leftSection={<IconPhoto size={13} />}>
-                    {pro.stats.krafts_verified} Krafts
-                  </Badge>
-                  {pro.stats.avg_stars != null && (
-                    <Badge size="lg" variant="light" color="orange" leftSection={<IconStar size={13} />}>
-                      {pro.stats.avg_stars.toFixed(1)} avg rating
-                    </Badge>
-                  )}
-                  <Badge size="lg" variant="light" color="teal" leftSection={<IconBolt size={13} />}>
-                    {pro.response_hours}h avg response
-                  </Badge>
-                </Group>
               </div>
             </Card>
             </div>
@@ -482,6 +477,12 @@ export function ProPublicProfilePage() {
             )}
           </Stack>
         )}
+
+        {/* Powered by footer */}
+        <Group justify="center" align="center" gap={8} py="xl">
+          <GkLogo height={28} />
+          <Text size="sm" style={{ color: "#000" }}>Powered by gigKraft.com</Text>
+        </Group>
       </Box>
     </Box>
   );

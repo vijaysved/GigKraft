@@ -2,6 +2,7 @@ import {
   AppShell,
   Avatar,
   Badge,
+  Box,
   Divider,
   Group,
   Menu,
@@ -23,6 +24,7 @@ import {
 import { NavLink as RouterNavLink, Outlet, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../auth/AuthContext";
+import { GkLogo } from "../brand/GkLogo";
 
 const NAV_ITEMS = [
   { label: "Dashboard", icon: IconLayoutDashboard, to: "/admin/dashboard" },
@@ -59,6 +61,12 @@ export function AdminShell() {
           flexDirection: "column",
         }}
       >
+        {/* Logo */}
+        <Box px={4} pb="sm">
+          <GkLogo height={36} />
+        </Box>
+        <Divider style={{ borderColor: "var(--gk-border)" }} mb="xs" />
+
         {/* Nav items */}
         <Stack gap={4} style={{ flex: 1 }}>
           {NAV_ITEMS.map(({ label, icon: Icon, to }) => (
@@ -102,6 +110,9 @@ export function AdminShell() {
               </Menu.Item>
             </Menu.Dropdown>
           </Menu>
+          <Text size="xs" ta="center" py={6} style={{ color: "#000", opacity: 0.55 }}>
+            Powered by gigKraft.com
+          </Text>
         </Stack>
       </AppShell.Navbar>
 

@@ -4,6 +4,7 @@ import {
   Badge,
   Button,
   Card,
+  Checkbox,
   CopyButton,
   Divider,
   Drawer,
@@ -12,9 +13,11 @@ import {
   Modal,
   SegmentedControl,
   Select,
+  SimpleGrid,
   Stack,
   Table,
   Tabs,
+  TagsInput,
   Text,
   Textarea,
   TextInput,
@@ -27,21 +30,25 @@ import {
   IconCheck,
   IconCopy,
   IconEdit,
+  IconEye,
   IconMail,
   IconMessageCircle,
   IconPlus,
   IconSearch,
+  IconSend,
   IconTrash,
 } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 
 import {
   ApiError,
+  bulkSendIntroEmails,
   createTemplate,
   createVendor,
   deleteOutreachLog,
   deleteTemplate,
   deleteVendor,
+  getProspectStats,
   listOutreachLogs,
   listTemplates,
   listVendors,
@@ -51,8 +58,10 @@ import {
   updateVendor,
 } from "../../api/endpoints";
 import type {
+  BulkIntroResult,
   MessageTemplate,
   OutreachLog,
+  ProspectStats,
   TemplateIn,
   VendorContact,
   VendorIn,
@@ -102,6 +111,79 @@ const KIND_OPTIONS = [
 
 const DEFAULT_CC = "oddlynicellc@gmail.com";
 
+// ── Summary Tab ───────────────────────────────────────────────────────────────
+
+function SummaryTab() {
+  const [stats, setStats] = useState<ProspectStats | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    getProspectStats()
+      .then(setStats)
+      .catch(() => setError("Failed to load stats."));
+  }, []);
+
+  if (error) return <Alert color="red">{error}</Alert>;
+  if (!stats) return <Loader size="sm" />;
+
+  const cards = [
+    { label: "Total Prospects", value: stats.total, color: "blue" },
+    { label: "New (last 7 days)", value: stats.new_7_days, color: "teal" },
+    { label: "Emails Sent", value: stats.total_emails_sent, color: "violet" },
+    { label: "Page Views (all pros)", value: stats.total_page_views, color: "orange" },
+  ];
+
+  return (
+    <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing="md">
+      {cards.map((c) => (
+        <Card key={c.label} withBorder radius="md" p="lg">
+          <Text size="xs" c="dimmed" tt="uppercase" fw={600} mb={4}>{c.label}</Text>
+          <Text size="xl" fw={700} c={c.color}>{c.value}</Text>
+        </Card>
+      ))}
+    </SimpleGrid>
+  );
+}
+
+// ── Bulk Intro Results Modal ──────────────────────────────────────────────────
+
+function BulkIntroResultModal({
+  results,
+  opened,
+  onClose,
+}: {
+  results: BulkIntroResult[];
+  opened: boolean;
+  onClose: () => void;
+}) {
+  const sent = results.filter((r) => r.sent).length;
+  const failed = results.filter((r) => !r.sent).length;
+
+  return (
+    <Modal opened={opened} onClose={onClose} title="Bulk Intro Email Results" size="md">
+      <Stack>
+        <Group>
+          <Badge color="green">{sent} sent</Badge>
+          {failed > 0 && <Badge color="red">{failed} failed / skipped</Badge>}
+        </Group>
+        <Stack gap="xs">
+          {results.map((r) => (
+            <Group key={r.prospect_id} gap="xs" wrap="nowrap">
+              {r.sent ? <IconCheck size={14} color="green" /> : <IconMail size={14} color="red" />}
+              <Text size="sm" fw={500}>{r.vendor_id}</Text>
+              <Text size="sm" c="dimmed">{r.email || "—"}</Text>
+              {!r.sent && <Text size="xs" c="red">{r.error}</Text>}
+            </Group>
+          ))}
+        </Stack>
+        <Group justify="flex-end">
+          <Button variant="default" onClick={onClose}>Close</Button>
+        </Group>
+      </Stack>
+    </Modal>
+  );
+}
+
 // ── Prospect Form Drawer ──────────────────────────────────────────────────────
 
 function ProspectDrawer({
@@ -109,11 +191,13 @@ function ProspectDrawer({
   onClose,
   prospect,
   onSaved,
+  allTags,
 }: {
   opened: boolean;
   onClose: () => void;
   prospect: VendorContact | null;
   onSaved: (v: VendorContact) => void;
+  allTags: string[];
 }) {
   const [form, setForm] = useState<Partial<VendorIn>>({});
   const [saving, setSaving] = useState(false);
@@ -133,9 +217,10 @@ function ProspectDrawer({
               nextdoor_profile_url: prospect.nextdoor_profile_url,
               status: prospect.status,
               preferred_channel: prospect.preferred_channel,
+              tags: prospect.tags ?? [],
               notes: prospect.notes,
             }
-          : { lead_source: "nextdoor", preferred_channel: "whatsapp", status: "new" }
+          : { lead_source: "nextdoor", preferred_channel: "whatsapp", status: "new", tags: [] }
       );
       setError(null);
     }
@@ -163,6 +248,8 @@ function ProspectDrawer({
       setSaving(false);
     }
   }
+
+  const tagSuggestions = Array.from(new Set([...allTags, ...(form.tags ?? [])]));
 
   return (
     <Drawer
@@ -209,6 +296,13 @@ function ProspectDrawer({
         />
         <Select label="Status" data={STATUS_OPTIONS} value={form.status ?? "new"} onChange={set("status")} />
         <Select label="Preferred Channel" data={CHANNEL_OPTIONS} value={form.preferred_channel ?? "whatsapp"} onChange={set("preferred_channel")} />
+        <TagsInput
+          label="Tags"
+          placeholder="Type and press Enter to add…"
+          data={tagSuggestions}
+          value={form.tags ?? []}
+          onChange={(val) => setForm((f) => ({ ...f, tags: val }))}
+        />
         <Textarea
           label="Notes"
           rows={3}
@@ -270,7 +364,6 @@ function EmailComposeModal({
       setBcc("");
       setError(null);
       setSent(false);
-      // Auto-load default email template
       const def = emailTemplates.find((t) => t.is_default) ?? emailTemplates[0] ?? null;
       if (def) {
         setTemplateId(String(def.id));
@@ -338,7 +431,6 @@ function EmailComposeModal({
       ) : (
         <Stack>
           {error && <Alert color="red">{error}</Alert>}
-
           <Select
             label="Load template"
             placeholder="Choose a template…"
@@ -347,44 +439,15 @@ function EmailComposeModal({
             value={templateId}
             onChange={applyTemplate}
           />
-
           <Divider />
-
           <TextInput label="To" required value={to} onChange={(e) => setTo(e.target.value)} />
-          <TextInput
-            label="CC"
-            value={cc}
-            onChange={(e) => setCc(e.target.value)}
-            description="Separate multiple addresses with commas"
-          />
-          <TextInput
-            label="BCC"
-            value={bcc}
-            onChange={(e) => setBcc(e.target.value)}
-            description="Separate multiple addresses with commas"
-          />
-          <TextInput
-            label="Subject"
-            required
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-          />
-          <Textarea
-            label="Body"
-            required
-            autosize
-            minRows={8}
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-          />
-
+          <TextInput label="CC" value={cc} onChange={(e) => setCc(e.target.value)} description="Separate multiple addresses with commas" />
+          <TextInput label="BCC" value={bcc} onChange={(e) => setBcc(e.target.value)} description="Separate multiple addresses with commas" />
+          <TextInput label="Subject" required value={subject} onChange={(e) => setSubject(e.target.value)} />
+          <Textarea label="Body" required autosize minRows={8} value={body} onChange={(e) => setBody(e.target.value)} />
           <Group justify="flex-end">
             <Button variant="default" onClick={onClose}>Cancel</Button>
-            <Button
-              leftSection={<IconMail size={14} />}
-              loading={sending}
-              onClick={() => void handleSend()}
-            >
+            <Button leftSection={<IconMail size={14} />} loading={sending} onClick={() => void handleSend()}>
               Send Email
             </Button>
           </Group>
@@ -488,25 +551,12 @@ function WhatsAppComposeModal({
           value={templateId}
           onChange={applyTemplate}
         />
-
         <Divider />
-
         <TextInput label="To (phone)" value={phone} readOnly description={digits ? `wa.me/${digits}` : "No phone on record"} />
-
-        <Textarea
-          label="Message"
-          autosize
-          minRows={5}
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-        />
-
+        <Textarea label="Message" autosize minRows={5} value={body} onChange={(e) => setBody(e.target.value)} />
         {logged && (
-          <Alert color="green" icon={<IconCheck size={14} />}>
-            Outreach logged.
-          </Alert>
+          <Alert color="green" icon={<IconCheck size={14} />}>Outreach logged.</Alert>
         )}
-
         <Group justify="flex-end">
           <Button variant="default" onClick={onClose}>Cancel</Button>
           <CopyButton value={body}>
@@ -536,7 +586,7 @@ function WhatsAppComposeModal({
   );
 }
 
-// ── Outreach Log Modal (history + manual log) ─────────────────────────────────
+// ── Outreach Log Modal ────────────────────────────────────────────────────────
 
 function OutreachLogModal({
   prospect,
@@ -603,17 +653,11 @@ function OutreachLogModal({
     >
       <Stack>
         {error && <Alert color="red">{error}</Alert>}
-
         <Card withBorder radius="sm" p="sm">
           <Stack gap="xs">
             <Text size="sm" fw={600}>Log Manual Outreach</Text>
             <Group grow>
-              <Select
-                label="Channel"
-                data={CHANNEL_OPTIONS}
-                value={channel}
-                onChange={(v) => setChannel(v ?? "whatsapp")}
-              />
+              <Select label="Channel" data={CHANNEL_OPTIONS} value={channel} onChange={(v) => setChannel(v ?? "whatsapp")} />
               <Select
                 label="Template"
                 placeholder="None"
@@ -623,21 +667,13 @@ function OutreachLogModal({
                 onChange={setTemplateId}
               />
             </Group>
-            <TextInput
-              label="Notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-            />
+            <TextInput label="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
             <Group justify="flex-end">
-              <Button size="xs" loading={logging} onClick={() => void handleLog()}>
-                Log Outreach
-              </Button>
+              <Button size="xs" loading={logging} onClick={() => void handleLog()}>Log Outreach</Button>
             </Group>
           </Stack>
         </Card>
-
         <Divider label="History" />
-
         {logs === null ? (
           <Loader size="sm" />
         ) : logs.length === 0 ? (
@@ -661,21 +697,11 @@ function OutreachLogModal({
                         <Text size="xs" c="dimmed">
                           {new Date(l.sent_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                         </Text>
-                        {l.template_name && (
-                          <Badge size="xs" variant="dot" color="gray">{l.template_name}</Badge>
-                        )}
+                        {l.template_name && <Badge size="xs" variant="dot" color="gray">{l.template_name}</Badge>}
                       </Group>
-                      {l.to_address && (
-                        <Text size="xs" c="dimmed">To: {l.to_address}</Text>
-                      )}
-                      {isEmail && l.subject_sent && (
-                        <Text size="xs" fw={500} lineClamp={1}>{l.subject_sent}</Text>
-                      )}
-                      {l.body_sent && (
-                        <Text size="xs" c="dimmed" lineClamp={2} style={{ fontStyle: "italic" }}>
-                          {l.body_sent}
-                        </Text>
-                      )}
+                      {l.to_address && <Text size="xs" c="dimmed">To: {l.to_address}</Text>}
+                      {isEmail && l.subject_sent && <Text size="xs" fw={500} lineClamp={1}>{l.subject_sent}</Text>}
+                      {l.body_sent && <Text size="xs" c="dimmed" lineClamp={2} style={{ fontStyle: "italic" }}>{l.body_sent}</Text>}
                       {l.notes && <Text size="xs">{l.notes}</Text>}
                     </Stack>
                     <ActionIcon size="xs" variant="subtle" color="red" onClick={() => void handleDelete(l.id)}>
@@ -764,7 +790,6 @@ function TemplateManager() {
   return (
     <Stack>
       {error && <Alert color="red">{error}</Alert>}
-
       <Group justify="space-between">
         <SegmentedControl
           value={activeChannel}
@@ -774,11 +799,8 @@ function TemplateManager() {
             { label: "WhatsApp Templates", value: "whatsapp" },
           ]}
         />
-        <Button size="xs" leftSection={<IconPlus size={14} />} onClick={startNew}>
-          New Template
-        </Button>
+        <Button size="xs" leftSection={<IconPlus size={14} />} onClick={startNew}>New Template</Button>
       </Group>
-
       {templates === null ? (
         <Loader size="sm" />
       ) : filtered.length === 0 ? (
@@ -799,20 +821,12 @@ function TemplateManager() {
               <Table.Tr key={t.id}>
                 <Table.Td><Text size="sm" fw={500}>{t.name}</Text></Table.Td>
                 <Table.Td><Badge size="xs" variant="light">{t.kind}</Badge></Table.Td>
-                {activeChannel === "email" && (
-                  <Table.Td><Text size="sm" lineClamp={1}>{t.subject}</Text></Table.Td>
-                )}
-                <Table.Td>
-                  {t.is_default && <Badge size="xs" color="green">default</Badge>}
-                </Table.Td>
+                {activeChannel === "email" && <Table.Td><Text size="sm" lineClamp={1}>{t.subject}</Text></Table.Td>}
+                <Table.Td>{t.is_default && <Badge size="xs" color="green">default</Badge>}</Table.Td>
                 <Table.Td>
                   <Group gap={4} wrap="nowrap">
-                    <ActionIcon size="sm" variant="subtle" onClick={() => startEdit(t)}>
-                      <IconEdit size={13} />
-                    </ActionIcon>
-                    <ActionIcon size="sm" variant="subtle" color="red" onClick={() => void handleDelete(t)}>
-                      <IconTrash size={13} />
-                    </ActionIcon>
+                    <ActionIcon size="sm" variant="subtle" onClick={() => startEdit(t)}><IconEdit size={13} /></ActionIcon>
+                    <ActionIcon size="sm" variant="subtle" color="red" onClick={() => void handleDelete(t)}><IconTrash size={13} /></ActionIcon>
                   </Group>
                 </Table.Td>
               </Table.Tr>
@@ -820,7 +834,6 @@ function TemplateManager() {
           </Table.Tbody>
         </Table>
       )}
-
       <Modal
         opened={formOpen}
         onClose={closeForm}
@@ -862,9 +875,7 @@ function TemplateManager() {
           />
           <Group justify="flex-end">
             <Button variant="default" onClick={closeForm}>Cancel</Button>
-            <Button loading={saving} onClick={() => void handleSave()}>
-              {editing ? "Save" : "Create"}
-            </Button>
+            <Button loading={saving} onClick={() => void handleSave()}>{editing ? "Save" : "Create"}</Button>
           </Group>
         </Stack>
       </Modal>
@@ -872,7 +883,7 @@ function TemplateManager() {
   );
 }
 
-// ── Outreach Tool (standalone compose) ───────────────────────────────────────
+// ── Outreach Tool ─────────────────────────────────────────────────────────────
 
 const SITE_URL = "https://gigkraft.com";
 const SAMPLE_PROFILE = `${SITE_URL}/pros/stephan-carry`;
@@ -961,14 +972,12 @@ function OutreachTool() {
       <Card withBorder radius="md" p="lg">
         <Stack gap="md">
           <Text fw={600} size="sm">Compose outreach message</Text>
-
           <TextInput
             label="Prospect name"
             placeholder="e.g. John Smith"
             value={name}
             onChange={(e) => { setName(e.target.value); resetSent(); }}
           />
-
           <Stack gap={6}>
             <Text size="sm" fw={500}>Contact via</Text>
             <SegmentedControl
@@ -981,7 +990,6 @@ function OutreachTool() {
               w={260}
             />
           </Stack>
-
           {channel === "email" ? (
             <TextInput
               label="Email address"
@@ -1007,50 +1015,21 @@ function OutreachTool() {
             <Text fw={600} size="sm">Email compose</Text>
             <Divider />
             <TextInput label="To" value={toAddr} onChange={(e) => setToAddr(e.target.value)} required />
-            <TextInput
-              label="CC"
-              value={cc}
-              onChange={(e) => setCc(e.target.value)}
-              description="Separate multiple with commas — oddlynicellc@gmail.com always included"
-            />
+            <TextInput label="CC" value={cc} onChange={(e) => setCc(e.target.value)} description="Separate multiple with commas" />
             <TextInput label="BCC" value={bcc} onChange={(e) => setBcc(e.target.value)} />
             <TextInput label="Subject" value={subject} onChange={(e) => setSubject(e.target.value)} required />
-            <Textarea
-              label="Body"
-              value={emailBody}
-              readOnly
-              autosize
-              minRows={10}
-              styles={{ input: { fontFamily: "monospace", fontSize: 12 } }}
-            />
+            <Textarea label="Body" value={emailBody} readOnly autosize minRows={10} styles={{ input: { fontFamily: "monospace", fontSize: 12 } }} />
             {error && <Alert color="red">{error}</Alert>}
-            {sent && (
-              <Alert color="green" icon={<IconCheck size={14} />}>
-                Email sent to <strong>{toAddr}</strong> · CC: {cc || DEFAULT_CC}
-              </Alert>
-            )}
+            {sent && <Alert color="green" icon={<IconCheck size={14} />}>Email sent to <strong>{toAddr}</strong></Alert>}
             <Group justify="flex-end">
               <CopyButton value={emailBody}>
                 {({ copied, copy }) => (
-                  <Button
-                    size="sm"
-                    variant="light"
-                    leftSection={copied ? <IconCheck size={13} /> : <IconCopy size={13} />}
-                    color={copied ? "green" : "blue"}
-                    onClick={copy}
-                  >
+                  <Button size="sm" variant="light" leftSection={copied ? <IconCheck size={13} /> : <IconCopy size={13} />} color={copied ? "green" : "blue"} onClick={copy}>
                     {copied ? "Copied" : "Copy body"}
                   </Button>
                 )}
               </CopyButton>
-              <Button
-                size="sm"
-                leftSection={<IconMail size={13} />}
-                loading={sending}
-                onClick={() => void handleSend()}
-              >
-                Send Email
-              </Button>
+              <Button size="sm" leftSection={<IconMail size={13} />} loading={sending} onClick={() => void handleSend()}>Send Email</Button>
             </Group>
           </Stack>
         </Card>
@@ -1061,36 +1040,16 @@ function OutreachTool() {
           <Stack gap="sm">
             <Text fw={600} size="sm">WhatsApp / Text message</Text>
             <Divider />
-            <Textarea
-              value={smsBody}
-              readOnly
-              autosize
-              minRows={4}
-              styles={{ input: { fontFamily: "monospace", fontSize: 12 } }}
-            />
+            <Textarea value={smsBody} readOnly autosize minRows={4} styles={{ input: { fontFamily: "monospace", fontSize: 12 } }} />
             <Group justify="flex-end">
               <CopyButton value={smsBody}>
                 {({ copied, copy }) => (
-                  <Button
-                    size="sm"
-                    variant="light"
-                    leftSection={copied ? <IconCheck size={13} /> : <IconCopy size={13} />}
-                    color={copied ? "green" : "blue"}
-                    onClick={copy}
-                  >
+                  <Button size="sm" variant="light" leftSection={copied ? <IconCheck size={13} /> : <IconCopy size={13} />} color={copied ? "green" : "blue"} onClick={copy}>
                     {copied ? "Copied" : "Copy text"}
                   </Button>
                 )}
               </CopyButton>
-              <Button
-                size="sm"
-                leftSection={<IconBrandWhatsapp size={13} />}
-                color="green"
-                component="a"
-                href={whatsappHref}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+              <Button size="sm" leftSection={<IconBrandWhatsapp size={13} />} color="green" component="a" href={whatsappHref} target="_blank" rel="noopener noreferrer">
                 Open in WhatsApp
               </Button>
             </Group>
@@ -1109,8 +1068,15 @@ export function GkAdminVendorsPage() {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [sourceFilter, setSourceFilter] = useState<string>("");
+  const [tagFilter, setTagFilter] = useState<string>("");
   const [search, setSearch] = useState("");
   const [debouncedSearch] = useDebouncedValue(search, 300);
+
+  // Selection state
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [bulkSending, setBulkSending] = useState(false);
+  const [bulkResults, setBulkResults] = useState<BulkIntroResult[] | null>(null);
+  const [bulkResultsOpen, { open: openBulkResults, close: closeBulkResults }] = useDisclosure(false);
 
   const [drawerOpen, { open: openDrawer, close: closeDrawer }] = useDisclosure(false);
   const [editingProspect, setEditingProspect] = useState<VendorContact | null>(null);
@@ -1131,15 +1097,22 @@ export function GkAdminVendorsPage() {
   useEffect(() => {
     let cancelled = false;
     setProspects(null);
+    setSelectedIds(new Set());
     listVendors({
       status: statusFilter || undefined,
       source: sourceFilter || undefined,
       search: debouncedSearch || undefined,
+      tag: tagFilter || undefined,
     })
       .then((data) => { if (!cancelled) { setProspects(data); setError(null); } })
       .catch((e) => { if (!cancelled) setError(e instanceof ApiError ? e.message : "Failed to load prospects."); });
     return () => { cancelled = true; };
-  }, [statusFilter, sourceFilter, debouncedSearch]);
+  }, [statusFilter, sourceFilter, debouncedSearch, tagFilter]);
+
+  // Collect all unique tags across loaded prospects for the filter dropdown
+  const allTags = Array.from(
+    new Set((prospects ?? []).flatMap((p) => p.tags ?? []))
+  ).sort();
 
   function handleProspectSaved(v: VendorContact) {
     setProspects((prev) => {
@@ -1154,6 +1127,7 @@ export function GkAdminVendorsPage() {
     try {
       await deleteVendor(v.id);
       setProspects((prev) => prev?.filter((x) => x.id !== v.id) ?? null);
+      setSelectedIds((prev) => { const next = new Set(prev); next.delete(v.id); return next; });
     } catch {
       setError("Failed to delete prospect.");
     }
@@ -1176,6 +1150,75 @@ export function GkAdminVendorsPage() {
     );
   }
 
+  // Selection helpers
+  const allIds = (prospects ?? []).map((p) => p.id);
+  const allSelected = allIds.length > 0 && allIds.every((id) => selectedIds.has(id));
+  const someSelected = selectedIds.size > 0;
+
+  function toggleSelectAll() {
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(allIds));
+    }
+  }
+
+  function toggleSelect(id: number) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  async function handleBulkSendIntro() {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Send intro email to ${selectedIds.size} selected prospect(s)?`)) return;
+    setBulkSending(true);
+    try {
+      const results = await bulkSendIntroEmails(Array.from(selectedIds));
+      setBulkResults(results);
+      openBulkResults();
+      // Update contacted dates for sent ones
+      const sentIds = new Set(results.filter((r) => r.sent).map((r) => r.prospect_id));
+      const today = new Date().toISOString().slice(0, 10);
+      setProspects((prev) =>
+        prev?.map((p) =>
+          sentIds.has(p.id)
+            ? { ...p, last_contact_date: today, status: p.status === "new" ? "contacted" : p.status }
+            : p
+        ) ?? null
+      );
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Bulk send failed.");
+    } finally {
+      setBulkSending(false);
+    }
+  }
+
+  async function handleSendIntroSingle(v: VendorContact) {
+    if (!v.email) { setError(`${v.vendor_id} has no email address.`); return; }
+    if (!confirm(`Send intro email to ${v.contact_person} (${v.email})?`)) return;
+    try {
+      const results = await bulkSendIntroEmails([v.id]);
+      const r = results[0];
+      if (r?.sent) {
+        const today = new Date().toISOString().slice(0, 10);
+        setProspects((prev) =>
+          prev?.map((p) =>
+            p.id === v.id
+              ? { ...p, last_contact_date: today, status: p.status === "new" ? "contacted" : p.status }
+              : p
+          ) ?? null
+        );
+      } else {
+        setError(r?.error ?? "Send failed.");
+      }
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Send failed.");
+    }
+  }
+
   return (
     <Stack>
       <Group justify="space-between">
@@ -1183,16 +1226,21 @@ export function GkAdminVendorsPage() {
         <Badge color="violet" variant="filled" size="sm">gk_admin</Badge>
       </Group>
 
-      <Tabs defaultValue="prospects">
+      <Tabs defaultValue="summary">
         <Tabs.List>
+          <Tabs.Tab value="summary">Summary</Tabs.Tab>
           <Tabs.Tab value="prospects">Prospects</Tabs.Tab>
           <Tabs.Tab value="templates">Templates</Tabs.Tab>
           <Tabs.Tab value="outreach">Outreach</Tabs.Tab>
         </Tabs.List>
 
+        <Tabs.Panel value="summary" pt="md">
+          <SummaryTab />
+        </Tabs.Panel>
+
         <Tabs.Panel value="prospects" pt="md">
           <Stack>
-            {error && <Alert color="red">{error}</Alert>}
+            {error && <Alert color="red" onClose={() => setError(null)} withCloseButton>{error}</Alert>}
 
             <Group>
               <TextInput
@@ -1216,12 +1264,37 @@ export function GkAdminVendorsPage() {
                 data={LEAD_SOURCE_OPTIONS}
                 value={sourceFilter}
                 onChange={(v) => setSourceFilter(v ?? "")}
-                w={180}
+                w={160}
+              />
+              <Select
+                placeholder="All tags"
+                clearable
+                data={allTags.map((t) => ({ value: t, label: t }))}
+                value={tagFilter}
+                onChange={(v) => setTagFilter(v ?? "")}
+                w={140}
               />
               <Button leftSection={<IconPlus size={14} />} onClick={openNew}>
                 Add Prospect
               </Button>
             </Group>
+
+            {someSelected && (
+              <Group>
+                <Text size="sm" c="dimmed">{selectedIds.size} selected</Text>
+                <Button
+                  size="xs"
+                  leftSection={<IconSend size={13} />}
+                  loading={bulkSending}
+                  onClick={() => void handleBulkSendIntro()}
+                >
+                  Send Intro Mail
+                </Button>
+                <Button size="xs" variant="subtle" color="gray" onClick={() => setSelectedIds(new Set())}>
+                  Clear selection
+                </Button>
+              </Group>
+            )}
 
             <Card withBorder radius="md" padding="lg">
               {prospects === null ? (
@@ -1230,25 +1303,42 @@ export function GkAdminVendorsPage() {
                 <Table striped highlightOnHover>
                   <Table.Thead>
                     <Table.Tr>
+                      <Table.Th>
+                        <Checkbox
+                          checked={allSelected}
+                          indeterminate={someSelected && !allSelected}
+                          onChange={toggleSelectAll}
+                          aria-label="Select all"
+                        />
+                      </Table.Th>
                       <Table.Th>ID</Table.Th>
                       <Table.Th>Name / Business</Table.Th>
                       <Table.Th>Contact</Table.Th>
                       <Table.Th>Category</Table.Th>
+                      <Table.Th>Tags</Table.Th>
                       <Table.Th>Status</Table.Th>
                       <Table.Th>Last Contact</Table.Th>
+                      <Table.Th>Page Seen</Table.Th>
                       <Table.Th>Actions</Table.Th>
                     </Table.Tr>
                   </Table.Thead>
                   <Table.Tbody>
                     {prospects.length === 0 && (
                       <Table.Tr>
-                        <Table.Td colSpan={7}>
+                        <Table.Td colSpan={10}>
                           <Text size="sm" c="dimmed">No prospects found.</Text>
                         </Table.Td>
                       </Table.Tr>
                     )}
                     {prospects.map((v) => (
                       <Table.Tr key={v.id}>
+                        <Table.Td>
+                          <Checkbox
+                            checked={selectedIds.has(v.id)}
+                            onChange={() => toggleSelect(v.id)}
+                            aria-label={`Select ${v.contact_person}`}
+                          />
+                        </Table.Td>
                         <Table.Td>
                           <Text size="xs" c="dimmed" ff="monospace">{v.vendor_id}</Text>
                         </Table.Td>
@@ -1267,6 +1357,13 @@ export function GkAdminVendorsPage() {
                         </Table.Td>
                         <Table.Td><Text size="sm">{v.category || "—"}</Text></Table.Td>
                         <Table.Td>
+                          <Group gap={4} wrap="wrap">
+                            {(v.tags ?? []).map((tag) => (
+                              <Badge key={tag} size="xs" variant="outline" color="grape">{tag}</Badge>
+                            ))}
+                          </Group>
+                        </Table.Td>
+                        <Table.Td>
                           <Badge size="xs" color={STATUS_COLORS[v.status] ?? "gray"}>
                             {v.status.replace(/_/g, " ")}
                           </Badge>
@@ -1275,27 +1372,34 @@ export function GkAdminVendorsPage() {
                           <Text size="xs" c="dimmed">{v.last_contact_date ?? "—"}</Text>
                         </Table.Td>
                         <Table.Td>
+                          {v.page_view_count > 0 ? (
+                            <Tooltip
+                              label={`Last seen: ${v.last_seen ? new Date(v.last_seen).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "unknown"}`}
+                              withArrow
+                            >
+                              <Badge size="xs" color="teal" leftSection={<IconEye size={10} />}>
+                                {v.page_view_count}×
+                              </Badge>
+                            </Tooltip>
+                          ) : (
+                            <Text size="xs" c="dimmed">—</Text>
+                          )}
+                        </Table.Td>
+                        <Table.Td>
                           <Group gap={4} wrap="nowrap">
                             <Tooltip label={v.phone ? "WhatsApp" : "No phone on record"} withArrow>
-                              <ActionIcon
-                                size="sm"
-                                variant="subtle"
-                                color="green"
-                                disabled={!v.phone}
-                                onClick={() => openWaModal(v)}
-                              >
+                              <ActionIcon size="sm" variant="subtle" color="green" disabled={!v.phone} onClick={() => openWaModal(v)}>
                                 <IconBrandWhatsapp size={14} />
                               </ActionIcon>
                             </Tooltip>
                             <Tooltip label={v.email ? "Send Email" : "No email on record"} withArrow>
-                              <ActionIcon
-                                size="sm"
-                                variant="subtle"
-                                color="blue"
-                                disabled={!v.email}
-                                onClick={() => openEmailModal(v)}
-                              >
+                              <ActionIcon size="sm" variant="subtle" color="blue" disabled={!v.email} onClick={() => openEmailModal(v)}>
                                 <IconMail size={14} />
+                              </ActionIcon>
+                            </Tooltip>
+                            <Tooltip label={v.email ? "Send Intro Mail" : "No email on record"} withArrow>
+                              <ActionIcon size="sm" variant="subtle" color="indigo" disabled={!v.email} onClick={() => void handleSendIntroSingle(v)}>
+                                <IconSend size={14} />
                               </ActionIcon>
                             </Tooltip>
                             <Tooltip label="Outreach history" withArrow>
@@ -1338,6 +1442,7 @@ export function GkAdminVendorsPage() {
         onClose={closeDrawer}
         prospect={editingProspect}
         onSaved={handleProspectSaved}
+        allTags={allTags}
       />
 
       <EmailComposeModal
@@ -1362,6 +1467,14 @@ export function GkAdminVendorsPage() {
         onClose={closeLog}
         templates={templates}
       />
+
+      {bulkResults && (
+        <BulkIntroResultModal
+          results={bulkResults}
+          opened={bulkResultsOpen}
+          onClose={closeBulkResults}
+        />
+      )}
     </Stack>
   );
 }

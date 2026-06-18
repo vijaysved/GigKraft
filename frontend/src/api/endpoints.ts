@@ -415,6 +415,9 @@ export interface VendorContact {
   status: string;
   preferred_channel: string;
   last_contact_date: string | null;
+  last_seen: string | null;
+  tags: string[];
+  page_view_count: number;
   notes: string;
   whatsapp_link: string;
   email_link: string;
@@ -433,18 +436,56 @@ export interface VendorIn {
   status?: string;
   preferred_channel?: string;
   last_contact_date?: string | null;
+  tags?: string[];
   notes?: string;
+}
+
+export interface ProspectStats {
+  total: number;
+  new_7_days: number;
+  total_emails_sent: number;
+  total_page_views: number;
+}
+
+export interface BulkIntroResult {
+  prospect_id: number;
+  vendor_id: string;
+  email: string;
+  sent: boolean;
+  error: string;
+}
+
+export async function getProspectStats(): Promise<ProspectStats> {
+  const { data, error, response } = await client.GET("/api/vendors/stats" as never);
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to load stats."));
+  return data as ProspectStats;
+}
+
+export async function bulkSendIntroEmails(ids: number[], templateId?: number): Promise<BulkIntroResult[]> {
+  const { data, error, response } = await client.POST("/api/vendors/bulk-intro" as never, {
+    body: { ids, template_id: templateId ?? null },
+  } as never);
+  if (!data) throw new ApiError(response.status, detailOf(error, "Bulk intro send failed."));
+  return data as BulkIntroResult[];
+}
+
+export async function trackProPageView(proHandle: string, ref?: string): Promise<void> {
+  await client.POST("/api/vendors/track-view" as never, {
+    body: { pro_handle: proHandle, ref: ref ?? null },
+  } as never);
 }
 
 export async function listVendors(params?: {
   status?: string;
   source?: string;
   search?: string;
+  tag?: string;
 }): Promise<VendorContact[]> {
   const query: Record<string, string> = {};
   if (params?.status) query.status = params.status;
   if (params?.source) query.source = params.source;
   if (params?.search) query.search = params.search;
+  if (params?.tag) query.tag = params.tag;
   const { data, error, response } = await client.GET("/api/vendors" as never, {
     params: { query },
   } as never);

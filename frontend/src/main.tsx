@@ -1,4 +1,5 @@
 import "@mantine/core/styles.css";
+import "@mantine/tiptap/styles.css";
 import "./theme/theme.css";
 
 import { GoogleOAuthProvider } from "@react-oauth/google";

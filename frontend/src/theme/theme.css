@@ -47,3 +47,29 @@ body {
   );
   pointer-events: none;
 }
+
+/* Kraft description HTML rendering */
+.kraft-description p { margin: 0 0 0.5em; }
+.kraft-description p:last-child { margin-bottom: 0; }
+.kraft-description ul, .kraft-description ol { margin: 0.25em 0 0.5em 1.4em; padding: 0; }
+.kraft-description li { margin-bottom: 0.2em; }
+.kraft-description strong { font-weight: 600; }
+.kraft-description a { color: var(--gk-accent-primary); }
+.kraft-description h1, .kraft-description h2, .kraft-description h3 { margin: 0.6em 0 0.3em; font-weight: 700; line-height: 1.2; }
+.kraft-description h1 { font-size: 1.15em; }
+.kraft-description h2 { font-size: 1.05em; }
+.kraft-description h3 { font-size: 0.95em; }
+
+/* ProseMirror editor — tight paragraph spacing */
+.ProseMirror { padding: 10px 12px; min-height: 140px; outline: none; }
+.ProseMirror p { margin: 0; line-height: 1.55; }
+.ProseMirror p + p { margin-top: 0.35em; }
+.ProseMirror h1, .ProseMirror h2, .ProseMirror h3 { margin: 0.5em 0 0.2em; font-weight: 700; line-height: 1.2; }
+.ProseMirror h1 { font-size: 1.25em; }
+.ProseMirror h2 { font-size: 1.1em; }
+.ProseMirror h3 { font-size: 1em; }
+.ProseMirror ul, .ProseMirror ol { margin: 0.25em 0; padding-left: 1.4em; }
+.ProseMirror li { margin-bottom: 0.1em; }
+.ProseMirror li p { margin: 0; }
+.ProseMirror mark { background: #fff176; border-radius: 2px; padding: 0 2px; }
+.ProseMirror p.is-editor-empty:first-child::before { color: var(--mantine-color-dimmed); content: attr(data-placeholder); float: left; height: 0; pointer-events: none; }

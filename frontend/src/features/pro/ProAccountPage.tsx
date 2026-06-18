@@ -3,6 +3,7 @@ import {
   Alert,
   Avatar,
   Badge,
+  Box,
   Button,
   Card,
   Chip,
@@ -28,13 +29,12 @@ import {
 } from "@mantine/core";
 import {
   IconAt,
-  IconBolt,
-  IconBuildingStore,
   IconCamera,
-  IconCertificate,
   IconCheck,
   IconCopy,
   IconCreditCard,
+  IconDeviceFloppy,
+  IconDownload,
   IconExternalLink,
   IconMail,
   IconMessage,
@@ -42,13 +42,14 @@ import {
   IconPhoto,
   IconPlus,
   IconShare,
-  IconShieldCheck,
-  IconStarFilled,
   IconUpload,
   IconX,
 } from "@tabler/icons-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+
+import jsPDF from "jspdf";
+import { toCanvas } from "html-to-image";
 
 import { useAuth } from "../../auth/AuthContext";
 import { ThemeSettingsCard } from "../../components/ThemeSettingsCard";
@@ -61,6 +62,7 @@ import { ReviewsSection } from "../../components/ReviewsSection";
 import { ImageCropModal } from "../../components/ImageCropModal";
 import {
   clearAvatar,
+  compressDataUrl,
   fileToDataUrl,
   loadAvatar,
   saveAvatar,
@@ -83,7 +85,7 @@ const TRADE_SKILLS: Record<string, string[]> = {
 };
 
 const WALLPAPERS: { id: number; label: string; gradient: string }[] = [
-  { id: 0, label: "Brand",   gradient: "var(--gk-brand-gradient)" },
+  { id: 0, label: "Brand",   gradient: "url('/brand/gigkraft-wallpaper.png')" },
   { id: 1, label: "Ocean",   gradient: "linear-gradient(135deg, #0D1B30 0%, #1B3D5C 100%)" },
   { id: 2, label: "Sunset",  gradient: "linear-gradient(135deg, #7A3D18 0%, #D4713A 100%)" },
   { id: 3, label: "Forest",  gradient: "linear-gradient(135deg, #006058 0%, #00A896 100%)" },
@@ -181,6 +183,7 @@ export function ProAccountPage() {
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   // ── Edit section state ──
   const [editSection, setEditSection] = useState<EditSection>(null);
@@ -287,6 +290,7 @@ export function ProAccountPage() {
   const [photoSaved, setPhotoSaved] = useState(false);
   const [avatarCropSrc, setAvatarCropSrc] = useState<string | null>(null);
   const resetRef = useRef<() => void>(null);
+  const profileContentRef = useRef<HTMLDivElement>(null);
   const existingAvatar = loadAvatar();
   const liveAvatarSrc = photoPreview ?? (photoUrl.trim() || existingAvatar) ?? undefined;
 
@@ -302,13 +306,22 @@ export function ProAccountPage() {
       .catch(() => setPhotoError("Could not read image — try another file."));
   }
 
-  async function savePhoto() {
-    if (photoPreview) {
-      saveAvatar(photoPreview);
-      await client.PATCH("/api/pros/me", { body: { avatar_url: photoPreview } } as never);
+  async function savePhoto(): Promise<boolean> {
+    if (!photoPreview) return false;
+    setPhotoError(null);
+    try {
+      // Compress to max 400×400 JPEG before saving — prevents oversized payloads from
+      // silently failing on the backend (Django body limit ~2.5 MB).
+      const compressed = await compressDataUrl(photoPreview, 400);
+      saveAvatar(compressed);
+      await client.PATCH("/api/pros/me", { body: { avatar_url: compressed } } as never);
+      setPhotoSaved(true);
+      setTimeout(() => setPhotoSaved(false), 2000);
+      return true;
+    } catch {
+      setPhotoError("Failed to save photo — please try again.");
+      return false;
     }
-    setPhotoSaved(true);
-    setTimeout(() => setPhotoSaved(false), 2000);
   }
 
   function handleUrlCrop() {
@@ -339,7 +352,7 @@ export function ProAccountPage() {
 
   const bannerBg = wallpaperId === -1 && wpCustomUrl
     ? `url("${wpCustomUrl}")`
-    : (WALLPAPERS[wallpaperId]?.gradient ?? "var(--gk-brand-gradient)");
+    : (WALLPAPERS[wallpaperId]?.gradient ?? "url('/brand/gigkraft-wallpaper.png')");
 
   // ── Contact info ──
   const [contactEmail, setContactEmail] = useState(user?.email ?? "");
@@ -373,6 +386,54 @@ export function ProAccountPage() {
   }
 
   const recMessage = `Hi ${recName || "[Name]"}! ${displayName} is requesting a recommendation on GigKraft. It only takes a minute — visit gigkraft.com/review to share your experience.`;
+
+  async function exportToPDF() {
+    if (exporting) return;
+    setExporting(true);
+    setSaveError(null);
+    try {
+      const el = profileContentRef.current;
+      if (!el) throw new Error("Profile content not found.");
+
+      const canvas = await toCanvas(el, {
+        backgroundColor: "#ffffff",
+        pixelRatio: 2,
+      });
+
+      const doc = new jsPDF({ unit: "pt", format: "letter" });
+      const pdfW = doc.internal.pageSize.getWidth();
+      const pdfH = doc.internal.pageSize.getHeight();
+      const margin = 24;
+      const usableW = pdfW - margin * 2;
+      const ratio = usableW / canvas.width;
+      const totalPdfH = canvas.height * ratio;
+      const pageH = pdfH - margin * 2;
+
+      if (totalPdfH <= pageH) {
+        doc.addImage(canvas, "JPEG", margin, margin, usableW, totalPdfH);
+      } else {
+        const pages = Math.ceil(totalPdfH / pageH);
+        for (let i = 0; i < pages; i++) {
+          if (i > 0) doc.addPage();
+          const srcY = Math.floor((i * pageH) / ratio);
+          const srcH = Math.min(Math.ceil(pageH / ratio), canvas.height - srcY);
+          const tmp = document.createElement("canvas");
+          tmp.width = canvas.width;
+          tmp.height = srcH;
+          tmp.getContext("2d")!.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
+          doc.addImage(tmp, "JPEG", margin, margin, usableW, srcH * ratio);
+        }
+      }
+
+      const fileName = `${displayName.replace(/\s+/g, "-").toLowerCase()}-${(trade || "pro").replace(/\s+/g, "-").toLowerCase()}.pdf`;
+      doc.save(fileName);
+    } catch (err) {
+      console.error("PDF export failed:", err);
+      setSaveError(err instanceof Error ? err.message : "Failed to generate PDF.");
+    } finally {
+      setExporting(false);
+    }
+  }
 
   // ── Shared profile hero (used in settings tab) ──
   const ProfileHero = (
@@ -413,31 +474,28 @@ export function ProAccountPage() {
   );
 
   return (
-    <Stack>
-      <Group justify="space-between" align="center">
-        <Title order={3}>Account</Title>
-        {handle && (
-          <Button component={Link} to={`/pros/${handle}`} target="_blank" size="xs" variant="light" rightSection={<IconExternalLink size={13} />}>
-            Preview public page
-          </Button>
-        )}
-      </Group>
-
-      <Tabs value={activeTab} onChange={(v) => setSearchParams(v ? { tab: v } : {})}>
-        <Tabs.List>
-          <Tabs.Tab value="public">Public page</Tabs.Tab>
-          <Tabs.Tab value="settings">Settings</Tabs.Tab>
+    <Stack maw={860}>
+      <Tabs value={activeTab} onChange={(v) => setSearchParams(v ? { tab: v } : {})} color="var(--gk-accent-primary)">
+        <Tabs.List style={{ borderColor: "var(--gk-accent-primary)", borderBottomWidth: 2 }}>
+          <Tabs.Tab value="public"
+            style={{ color: activeTab === "public" ? "var(--gk-accent-primary)" : "var(--gk-accent-secondary)" }}>
+            Profile
+          </Tabs.Tab>
+          <Tabs.Tab value="settings"
+            style={{ color: activeTab === "settings" ? "var(--gk-accent-primary)" : "var(--gk-accent-secondary)" }}>
+            Settings
+          </Tabs.Tab>
         </Tabs.List>
 
         {/* ══════════════════════════ PUBLIC PAGE TAB ══════════════════════════ */}
         <Tabs.Panel value="public" pt="md">
-          <Stack>
+          <Stack ref={profileContentRef}>
 
             {/* ── Hero card — public profile layout with inline edit sections ── */}
             <Card withBorder radius="md" padding={0} style={{ overflow: "hidden" }}>
               {/* Wallpaper banner — click to open picker */}
               <div
-                style={{ height: 120, background: bannerBg, backgroundSize: "cover", backgroundPosition: "center", position: "relative", cursor: "pointer" }}
+                style={{ height: 120, backgroundImage: bannerBg, backgroundSize: "cover", backgroundPosition: "center", position: "relative", cursor: "pointer" }}
                 onClick={() => setOpenModal("wallpaper")}
                 onMouseEnter={(e) => {
                   const el = e.currentTarget.querySelector<HTMLElement>(".wp-hint");
@@ -524,81 +582,137 @@ export function ProAccountPage() {
                     )}
                   </Stack>
 
-                  <Button size="xs" variant="light" leftSection={<IconShare size={13} />}
-                    onClick={shareProfile} color={copied ? "green" : undefined}
-                    disabled={handleLoading || !profileUrl}>
-                    {copied ? "Copied!" : "Share"}
-                  </Button>
+                  {/* Download PDF · Save · Share */}
+                  <Group gap={4}>
+                    <Tooltip label={exporting ? "Generating PDF…" : "Download PDF"} withArrow>
+                      <ActionIcon size="sm" variant="subtle" loading={exporting} onClick={() => void exportToPDF()}>
+                        <IconDownload size={15} color="var(--gk-accent-secondary)" />
+                      </ActionIcon>
+                    </Tooltip>
+                    <Tooltip label={saveSuccess ? "Saved!" : "Save profile"} withArrow>
+                      <ActionIcon size="sm" variant="subtle" loading={saving}
+                        onClick={() => void saveProfile()}>
+                        <IconDeviceFloppy size={15} color={saveSuccess ? "var(--mantine-color-green-6)" : "var(--gk-accent-primary)"} />
+                      </ActionIcon>
+                    </Tooltip>
+                    <Tooltip label={copied ? "Copied!" : "Share"} withArrow>
+                      <ActionIcon size="sm" variant="subtle" onClick={shareProfile}
+                        disabled={handleLoading || !profileUrl}>
+                        <IconShare size={15} color={copied ? "var(--mantine-color-green-6)" : "var(--gk-accent-secondary)"} />
+                      </ActionIcon>
+                    </Tooltip>
+                  </Group>
                 </Group>
 
-                {/* 2-col: Left = Bio + Contact | Right = About pills */}
-                <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md" mt="md">
+                {/* 2-col equal cards: Left = Bio + Contact | Right = About */}
+                <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md" mt="md" style={{ alignItems: "stretch" }}>
 
-                  {/* LEFT — Bio + Contact */}
-                  <Stack gap="sm">
-                    {/* Bio */}
-                    <Stack gap="xs">
-                      <SectionHeader label="Bio" editing={editSection === "bio"}
-                        onEdit={() => setEditSection("bio")} onDone={() => setEditSection(null)} />
-                      {editSection === "bio" ? (
-                        <Textarea placeholder="Tell homeowners about your background…"
-                          minRows={3} maxRows={8} autosize maxLength={500}
-                          value={bio} onChange={(e) => setBio(e.currentTarget.value)}
-                          description={`${bio.length}/500`}
-                          styles={{ input: { fontSize: "var(--mantine-font-size-sm)" } }} />
-                      ) : (
-                        bio
-                          ? <Text size="sm" c="dimmed" style={{ lineHeight: 1.6 }}>{bio}</Text>
-                          : <Text size="sm" c="dimmed" fs="italic">No bio yet. Click edit to add one.</Text>
-                      )}
+                  {/* LEFT card — Bio + Contact */}
+                  <Card withBorder radius="md" padding="md"
+                    style={{ borderColor: "var(--gk-border)", background: "var(--gk-bg-surface)", display: "flex", flexDirection: "column" }}>
+                    <Stack gap="md" style={{ flex: 1 }}>
+
+                      {/* Bio */}
+                      <Stack gap="xs">
+                        <Group justify="space-between" align="center">
+                          <Text size="xs" fw={700} tt="uppercase"
+                            style={{ color: "var(--gk-accent-primary)", letterSpacing: "0.07em" }}>Bio</Text>
+                          {editSection === "bio"
+                            ? <Button size="xs" variant="light" color="blue" onClick={() => setEditSection(null)}>Done</Button>
+                            : <Tooltip label="Edit bio" withArrow><ActionIcon size="xs" variant="subtle" onClick={() => setEditSection("bio")}><IconPencil size={12} /></ActionIcon></Tooltip>
+                          }
+                        </Group>
+                        {editSection === "bio" ? (
+                          <Textarea placeholder="Tell homeowners about your background…"
+                            minRows={3} maxRows={6} autosize maxLength={500}
+                            value={bio} onChange={(e) => setBio(e.currentTarget.value)}
+                            description={`${bio.length}/500`}
+                            styles={{ input: { fontSize: "var(--mantine-font-size-sm)" } }} />
+                        ) : (
+                          bio
+                            ? <Text size="sm" style={{ lineHeight: 1.7 }}>{bio}</Text>
+                            : <Text size="sm" c="dimmed" fs="italic">No bio yet. Click edit to add one.</Text>
+                        )}
+                      </Stack>
+
+                      <Divider style={{ borderColor: "var(--gk-border)" }} />
+
+                      {/* Contact */}
+                      <Stack gap="xs">
+                        <Group justify="space-between" align="center">
+                          <Text size="xs" fw={700} tt="uppercase"
+                            style={{ color: "var(--gk-accent-primary)", letterSpacing: "0.07em" }}>Contact</Text>
+                          {editSection === "contact"
+                            ? <Button size="xs" variant="light" color="blue" onClick={() => setEditSection(null)}>Done</Button>
+                            : <Tooltip label="Edit contact" withArrow><ActionIcon size="xs" variant="subtle" onClick={() => setEditSection("contact")}><IconPencil size={12} /></ActionIcon></Tooltip>
+                          }
+                        </Group>
+                        {editSection === "contact" ? (
+                          <Stack gap="xs">
+                            <TextInput size="xs" label="Email" leftSection={<IconMail size={13} />}
+                              value={contactEmail} onChange={(e) => setContactEmail(e.currentTarget.value)} />
+                            <TextInput size="xs" label="Phone" leftSection={<IconMessage size={13} />}
+                              value={contactPhone} onChange={(e) => setContactPhone(e.currentTarget.value)} />
+                          </Stack>
+                        ) : (
+                          <Stack gap={4}>
+                            <Group gap={6}>
+                              <IconMail size={14} color="var(--gk-accent-primary)" />
+                              <Text size="sm">{contactEmail || user?.email || "—"}</Text>
+                            </Group>
+                            <Group gap={6}>
+                              <IconMessage size={14} color="var(--gk-accent-primary)" />
+                              <Text size="sm">{contactPhone || user?.phone || "—"}</Text>
+                            </Group>
+                          </Stack>
+                        )}
+                      </Stack>
+
                     </Stack>
+                  </Card>
 
-                    {/* Contact info */}
-                    <Stack gap="xs">
-                      <SectionHeader label="Contact info" editing={editSection === "contact"}
-                        onEdit={() => setEditSection("contact")} onDone={() => setEditSection(null)} />
-                      {editSection === "contact" ? (
-                        <SimpleGrid cols={1} spacing="xs">
-                          <TextInput size="xs" label="Email" leftSection={<IconMail size={13} />}
-                            value={contactEmail} onChange={(e) => setContactEmail(e.currentTarget.value)} />
-                          <TextInput size="xs" label="Phone" leftSection={<IconMessage size={13} />}
-                            value={contactPhone} onChange={(e) => setContactPhone(e.currentTarget.value)} />
-                        </SimpleGrid>
-                      ) : (
-                        <Stack gap={4}>
-                          <Group gap={6}>
-                            <IconMail size={14} color="var(--gk-text-muted)" />
-                            <Text size="sm">{contactEmail || user?.email || "—"}</Text>
-                          </Group>
-                          <Group gap={6}>
-                            <IconMessage size={14} color="var(--gk-text-muted)" />
-                            <Text size="sm">{contactPhone || user?.phone || "—"}</Text>
-                          </Group>
-                        </Stack>
-                      )}
-                    </Stack>
-                  </Stack>
-
-                  {/* RIGHT — About pills + Trade & Credentials */}
-                  <Stack gap="sm" pt={{ base: 0, sm: 4 }}>
-                    {/* Trade & skills */}
-                    <Stack gap="xs">
-                      <SectionHeader label="Trade & skills" editing={editSection === "trade"}
-                        onEdit={() => setEditSection("trade")} onDone={() => setEditSection(null)} />
-                      <Group gap="xs" wrap="wrap">
-                        {trade && <Badge variant="light" leftSection={<IconBuildingStore size={12} />}>{trade}</Badge>}
-                        <Badge variant="light" color="blue">⚡ {responseTime}h response</Badge>
-                        {skills.map((s) => <Badge key={s} variant="dot" size="sm">{s}</Badge>)}
-                        {!trade && !skills.length && <Text size="xs" c="dimmed" fs="italic">No trade set yet.</Text>}
+                  {/* RIGHT card — Trade / Response / Skills (no label above) */}
+                  <Card withBorder radius="md" padding="md"
+                    style={{ borderColor: "var(--gk-border)", background: "var(--gk-bg-surface)", display: "flex", flexDirection: "column" }}>
+                    <Stack gap="xs" style={{ flex: 1 }}>
+                      <Group justify="flex-end">
+                        {editSection === "trade"
+                          ? <Button size="xs" variant="light" color="blue" onClick={() => setEditSection(null)}>Done</Button>
+                          : <Tooltip label="Edit" withArrow><ActionIcon size="xs" variant="subtle" onClick={() => setEditSection("trade")}><IconPencil size={12} /></ActionIcon></Tooltip>
+                        }
                       </Group>
-                      {editSection === "trade" && (
-                        <Stack gap="xs" mt={4}>
+
+                      {editSection !== "trade" ? (
+                        trade || skills.length > 0 ? (
+                          <Stack gap="xs">
+                            <Group justify="space-between" align="center" wrap="nowrap">
+                              <Text fw={700} size="sm" style={{ color: "var(--gk-accent-primary)" }}>{trade}</Text>
+                              <Text size="sm" style={{ color: "var(--gk-accent-secondary)", flexShrink: 0 }}>
+                                ⚡ {responseTime}h response
+                              </Text>
+                            </Group>
+                            {skills.length > 0 && (
+                              <>
+                                <Divider style={{ borderColor: "var(--gk-border)" }} />
+                                <Stack gap={2}>
+                                  {skills.map((s) => <Text key={s} size="sm">{s}</Text>)}
+                                  {licensed && <Text size="sm" c="dimmed">Licensed{licenseNumber ? ` · ${licenseNumber}` : ""}</Text>}
+                                  {insured && <Text size="sm" c="dimmed">Insured</Text>}
+                                </Stack>
+                              </>
+                            )}
+                          </Stack>
+                        ) : (
+                          <Text size="xs" c="dimmed" fs="italic">No trade set yet. Click edit to add.</Text>
+                        )
+                      ) : (
+                        <Stack gap="xs">
                           <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="xs">
                             <Select size="xs" label="Primary trade" data={TRADES} value={trade || null}
                               onChange={(v) => { if (v) handleTradeChange(v); }} />
-                            <Select size="xs" label="Response time (hours)" value={responseTime}
+                            <Select size="xs" label="Response time" value={responseTime}
                               onChange={(v) => { if (v) setResponseTime(v); }}
-                              data={[{ value: "1", label: "1 hour" }, { value: "2", label: "2 hours" }, { value: "4", label: "4 hours" }, { value: "8", label: "8 hours" }]} />
+                              data={[{ value: "1", label: "1h" }, { value: "2", label: "2h" }, { value: "4", label: "4h" }, { value: "8", label: "8h" }]} />
                           </SimpleGrid>
                           {trade && (
                             <div>
@@ -612,27 +726,6 @@ export function ProAccountPage() {
                               </Chip.Group>
                             </div>
                           )}
-                        </Stack>
-                      )}
-                    </Stack>
-
-                    {/* Credentials */}
-                    <Stack gap="xs">
-                      <SectionHeader label="Credentials" editing={editSection === "credentials"}
-                        onEdit={() => setEditSection("credentials")} onDone={() => setEditSection(null)} />
-                      <Group gap="xs" wrap="wrap">
-                        {licensed && (
-                          <Badge color="green" leftSection={<IconCertificate size={12} />} variant="light">
-                            Licensed{licenseNumber ? ` · ${licenseNumber}` : ""}
-                          </Badge>
-                        )}
-                        {insured && (
-                          <Badge color="teal" leftSection={<IconShieldCheck size={12} />} variant="light">Insured</Badge>
-                        )}
-                        {!licensed && !insured && <Text size="xs" c="dimmed" fs="italic">No credentials set.</Text>}
-                      </Group>
-                      {editSection === "credentials" && (
-                        <Stack gap="xs" mt={4}>
                           <Group gap="xl">
                             <Switch size="sm" label="Licensed" checked={licensed} onChange={(e) => setLicensed(e.currentTarget.checked)} />
                             <Switch size="sm" label="Insured" checked={insured} onChange={(e) => setInsured(e.currentTarget.checked)} />
@@ -644,7 +737,8 @@ export function ProAccountPage() {
                         </Stack>
                       )}
                     </Stack>
-                  </Stack>
+                  </Card>
+
                 </SimpleGrid>
 
                 <Divider my="md" />
@@ -700,38 +794,25 @@ export function ProAccountPage() {
                   )}
                 </Stack>
 
-                <Divider my="md" />
-
-                {/* Stats + Save */}
                 {saveError && (
-                  <Alert color="red" variant="light" onClose={() => setSaveError(null)} withCloseButton mb="sm">
+                  <Alert color="red" variant="light" onClose={() => setSaveError(null)} withCloseButton mt="sm">
                     {saveError}
                   </Alert>
                 )}
-                <Group justify="space-between" align="center" wrap="wrap">
-                  <Group gap="sm" wrap="wrap">
-                    <Badge size="lg" variant="light" color="yellow" leftSection={<IconStarFilled size={13} />}>0 Reviews</Badge>
-                    <Badge size="lg" variant="light" color="blue" leftSection={<IconPhoto size={13} />}>{krafts.length} Krafts</Badge>
-                    <Badge size="lg" variant="light" color="teal" leftSection={<IconBolt size={13} />}>{responseTime}h avg response</Badge>
-                  </Group>
-                  <Button
-                    leftSection={saveSuccess ? <IconCheck size={15} /> : undefined}
-                    loading={saving}
-                    color={saveSuccess ? "green" : undefined}
-                    onClick={() => void saveProfile()}
-                  >
-                    {saveSuccess ? "Saved!" : "Save profile"}
-                  </Button>
-                </Group>
 
               </div>
             </Card>
 
             {/* ── Krafts ── */}
             <Stack gap="sm">
-              <Group justify="space-between">
+              <Group justify="space-between" align="center">
                 <Title order={4} style={{ color: "var(--gk-accent-primary)" }}>Krafts</Title>
-                <Button size="xs" leftSection={<IconPlus size={14} />} component={Link} to="/pro/krafts/new">Add Kraft</Button>
+                <Tooltip label="Add Kraft" withArrow>
+                  <ActionIcon component={Link} to="/pro/krafts/new" size="md" variant="light"
+                    style={{ background: "var(--gk-brand-gradient)" }}>
+                    <IconPlus size={15} color="white" />
+                  </ActionIcon>
+                </Tooltip>
               </Group>
               {krafts.length > 0 ? (
                 <Stack gap="md">
@@ -755,7 +836,7 @@ export function ProAccountPage() {
               ) : (
                 <Card withBorder radius="md" padding="xl" style={{ textAlign: "center" }}>
                   <Stack align="center" gap="sm">
-                    <IconPhoto size={40} color="var(--gk-text-muted)" />
+                    <IconPhoto size={40} color="var(--gk-accent-primary)" />
                     <Text fw={600}>No Krafts yet</Text>
                     <Text size="sm" c="dimmed">Add before/after photos of your work to build trust with homeowners.</Text>
                     <Button size="sm" leftSection={<IconPlus size={14} />} component={Link} to="/pro/krafts/new">
@@ -766,8 +847,36 @@ export function ProAccountPage() {
               )}
             </Stack>
 
-            {/* ── Recommendations ── */}
-            <ReviewsSection handle={handle} />
+            {/* ── Reviews ── */}
+            <Stack gap="sm">
+              <Group justify="space-between" align="center">
+                <Title order={4} style={{ color: "var(--gk-accent-primary)" }}>Reviews</Title>
+                <Tooltip label="Request recommendation" withArrow>
+                  <ActionIcon size="md" variant="light" onClick={() => setOpenModal("rec-request")}>
+                    <IconPlus size={15} />
+                  </ActionIcon>
+                </Tooltip>
+              </Group>
+              <ReviewsSection handle={handle} />
+            </Stack>
+
+            {/* PDF / page footer */}
+            <Group
+              justify="center"
+              align="center"
+              gap={8}
+              pt="md"
+              style={{ borderTop: "1px solid var(--gk-border)", opacity: 0.7 }}
+            >
+              <Box
+                component="img"
+                src="/brand/gigKraftLogo.png"
+                h={28}
+                w="auto"
+                style={{ display: "block", objectFit: "contain" }}
+              />
+              <Text size="sm" style={{ color: "#000" }}>Powered by gigKraft.com</Text>
+            </Group>
           </Stack>
         </Tabs.Panel>
 
@@ -960,9 +1069,13 @@ export function ProAccountPage() {
             </Button>
           </Group>
           <Group justify="flex-end">
-            <Button size="sm" onClick={() => { void savePhoto(); setOpenModal(null); }} color={photoSaved ? "green" : undefined}
-              disabled={!photoPreview}>
-              Save photo
+            <Button
+              size="sm"
+              onClick={async () => { const ok = await savePhoto(); if (ok) setOpenModal(null); }}
+              color={photoSaved ? "green" : undefined}
+              disabled={!photoPreview}
+            >
+              {photoSaved ? "Saved!" : "Save photo"}
             </Button>
           </Group>
         </Stack>

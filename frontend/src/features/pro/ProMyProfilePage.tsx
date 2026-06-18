@@ -174,7 +174,7 @@ export function ProMyProfilePage() {
         <Group justify="space-between" align="center">
           <Stack gap={2}>
             <Group gap={6}>
-              <IconAt size={14} color="var(--gk-text-muted)" />
+              <IconAt size={14} color="var(--gk-accent-primary)" />
               <Text size="sm" fw={600} style={{ fontFamily: "var(--mantine-font-family-monospace)" }}>
                 {handleLoading ? "…" : (handle ?? "—")}
               </Text>

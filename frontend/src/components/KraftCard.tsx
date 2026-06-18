@@ -1,5 +1,6 @@
-import { Badge, Group, Stack, Text, Title } from "@mantine/core";
+import { Badge, Box, Group, Stack, Text, Title } from "@mantine/core";
 import { IconPhoto } from "@tabler/icons-react";
+import DOMPurify from "dompurify";
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
@@ -25,6 +26,19 @@ function GradientLine() {
       opacity: 0.7,
     }} />
   );
+}
+
+function DescriptionBlock({ description }: { description: string }) {
+  if (description.startsWith("<")) {
+    return (
+      <Box
+        style={{ lineHeight: 1.7, fontSize: "var(--mantine-font-size-sm)" }}
+        className="kraft-description"
+        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(description) }}
+      />
+    );
+  }
+  return <Text size="sm" style={{ lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{description}</Text>;
 }
 
 export interface KraftCardProps {
@@ -89,39 +103,65 @@ export function KraftCard({
 
           <GradientLine />
 
-          {/* Photos */}
-          {beforeUrl && afterUrl ? (
-            <Group grow gap="sm" align="flex-start">
-              <Stack gap={4}>
-                <Text size="xs" c="dimmed" fw={600} tt="uppercase">Before</Text>
-                <div style={{ height: 180, borderRadius: 8, overflow: "hidden", background: "var(--gk-bg-canvas)", border: "1px solid var(--gk-border)" }}>
-                  <img src={beforeUrl} alt="Before" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "grayscale(40%)" }} />
-                </div>
+          {/* Before + After: photos stacked left, description right */}
+          {beforeUrl && afterUrl && (
+            <Group align="flex-start" gap="md" wrap="nowrap">
+              <Stack gap={6} style={{ width: 200, flexShrink: 0 }}>
+                <Stack gap={4}>
+                  <Text size="xs" c="dimmed" fw={600} tt="uppercase">Before</Text>
+                  <div style={{ height: 140, borderRadius: 8, overflow: "hidden", background: "var(--gk-bg-canvas)", border: "1px solid var(--gk-border)" }}>
+                    <img src={beforeUrl} alt="Before" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "grayscale(40%)" }} />
+                  </div>
+                </Stack>
+                <Stack gap={4}>
+                  <Text size="xs" fw={600} tt="uppercase" c="green">After</Text>
+                  <div style={{ height: 140, borderRadius: 8, overflow: "hidden", background: "var(--gk-bg-canvas)", border: "1px solid var(--gk-border)" }}>
+                    <img src={afterUrl} alt="After" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  </div>
+                </Stack>
               </Stack>
-              <Stack gap={4}>
-                <Text size="xs" fw={600} tt="uppercase" c="green">After</Text>
-                <div style={{ height: 180, borderRadius: 8, overflow: "hidden", background: "var(--gk-bg-canvas)", border: "1px solid var(--gk-border)" }}>
-                  <img src={afterUrl} alt="After" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                </div>
-              </Stack>
+              {description && (
+                <Box style={{ flex: 1, minWidth: 0 }}>
+                  <DescriptionBlock description={description} />
+                </Box>
+              )}
             </Group>
-          ) : afterUrl ? (
-            <div style={{ height: 220, borderRadius: 8, overflow: "hidden", background: "var(--gk-bg-canvas)", border: "1px solid var(--gk-border)" }}>
-              <img src={afterUrl} alt="Photo" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-            </div>
-          ) : (
-            <div style={{ height: 220, borderRadius: 8, background: "var(--gk-bg-canvas)", border: "1px solid var(--gk-border)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Stack align="center" gap={4}>
-                <IconPhoto size={36} color="var(--gk-text-muted)" />
-                <Text size="xs" c="dimmed">No photo</Text>
+          )}
+
+          {/* Single photo: image right, description left (always side-by-side when description exists) */}
+          {!beforeUrl && afterUrl && description && (
+            <Group align="flex-start" gap="md" wrap="nowrap">
+              <Stack gap={4} style={{ flex: 1, minWidth: 0 }}>
+                <DescriptionBlock description={description} />
               </Stack>
+              <div style={{ width: 220, flexShrink: 0, borderRadius: 8, overflow: "hidden", background: "var(--gk-bg-canvas)", border: "1px solid var(--gk-border)" }}>
+                <img src={afterUrl} alt="Photo" style={{ width: "100%", display: "block", objectFit: "cover" }} />
+              </div>
+            </Group>
+          )}
+
+          {/* Single photo with no description: image full width */}
+          {!beforeUrl && afterUrl && !description && (
+            <div style={{ borderRadius: 8, overflow: "hidden", background: "var(--gk-bg-canvas)", border: "1px solid var(--gk-border)" }}>
+              <img src={afterUrl} alt="Photo" style={{ width: "100%", display: "block", objectFit: "contain", maxHeight: 320 }} />
             </div>
           )}
 
-          {description && (
+          {/* No photo */}
+          {!beforeUrl && !afterUrl && (
             <>
-              <GradientLine />
-              <Text size="sm" style={{ lineHeight: 1.7 }}>{description}</Text>
+              <div style={{ height: 220, borderRadius: 8, background: "var(--gk-bg-canvas)", border: "1px solid var(--gk-border)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Stack align="center" gap={4}>
+                  <IconPhoto size={36} color="var(--gk-accent-primary)" />
+                  <Text size="xs" c="dimmed">No photo</Text>
+                </Stack>
+              </div>
+              {description && (
+                <>
+                  <GradientLine />
+                  <DescriptionBlock description={description} />
+                </>
+              )}
             </>
           )}
 
