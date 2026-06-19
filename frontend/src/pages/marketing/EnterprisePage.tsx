@@ -1,14 +1,16 @@
 import { Alert, Box, Button, Card, Container, Grid, Group, Stack, Text, ThemeIcon, Title } from "@mantine/core";
-import { IconCheck } from "@tabler/icons-react";
+import { IconBuilding, IconBuildingFactory, IconCheck, IconShield } from "@tabler/icons-react";
 import { useState } from "react";
 
 import { GoogleSignInButton } from "../../components/GoogleSignInButton";
 import { decodeGoogleJwt, joinWaitlist } from "../../api/waitlist";
 
+const MK_ICON = { color: "var(--gk-accent-primary)", background: "rgba(255,107,26,0.1)", border: "1px solid rgba(255,107,26,0.15)", flexShrink: 0 as const };
+
 const ROADMAP = [
-  { icon: "🏗️", title: "General contractors", body: "Staff sites fast with subs proven on the exact trade." },
-  { icon: "🏢", title: "Property management", body: "Route turnover & maintenance to vetted local pros." },
-  { icon: "🛡️", title: "Insurance & warranty", body: "Close claims with auditable before/after proof." },
+  { icon: <IconBuildingFactory size={20} />, title: "General contractors", body: "Staff sites fast with subs proven on the exact trade." },
+  { icon: <IconBuilding size={20} />, title: "Property management", body: "Route turnover & maintenance to vetted local pros." },
+  { icon: <IconShield size={20} />, title: "Insurance & warranty", body: "Close claims with auditable before/after proof." },
 ];
 
 export function EnterprisePage() {
@@ -76,7 +78,7 @@ export function EnterprisePage() {
                 <Stack gap="md">
                   {ROADMAP.map((r) => (
                     <Group key={r.title} gap="md" align="flex-start">
-                      <Box style={{ width: 40, height: 40, borderRadius: 11, background: "var(--gk-bg-canvas)", border: "1px solid var(--gk-border)", display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0 }}>{r.icon}</Box>
+                      <ThemeIcon size={40} radius={11} style={MK_ICON}>{r.icon}</ThemeIcon>
                       <Box>
                         <Text fw={700} size="md">{r.title}</Text>
                         <Text size="sm" c="dimmed" lh={1.5}>{r.body}</Text>

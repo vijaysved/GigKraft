@@ -1,20 +1,23 @@
-import { Badge, Box, Button, Card, Container, Divider, Grid, Group, Stack, Text, Title } from "@mantine/core";
+import { Badge, Box, Button, Card, Container, Divider, Grid, Group, Stack, Text, ThemeIcon, Title } from "@mantine/core";
+import { IconBolt, IconBriefcase, IconCamera, IconCoin, IconMapPin, IconShieldCheck, IconThumbUp, IconUserCircle } from "@tabler/icons-react";
 import { Link } from "react-router-dom";
 
 import { HeroSlider } from "../../components/marketing/HeroSlider";
 import { useWaitlist } from "../../components/marketing/WaitlistModal";
 
+const MK_ICON = { color: "var(--gk-accent-primary)", background: "rgba(255,107,26,0.1)", border: "1px solid rgba(255,107,26,0.15)", flexShrink: 0 as const };
+
 const VALUE_PROPS = [
-  { icon: "🗄️", title: "Portfolio you own", body: "Your Krafts and client data are yours. Export them, point a custom domain at them, take them anywhere." },
-  { icon: "✨", title: "Proof, not prose", body: "A mandatory \"after\" image plus a real endorsement from the homeowner who hired you. Invoice verification coming soon." },
-  { icon: "📍", title: "Know your zipcode standing", body: "See how your Krafts stack up against other pros in your zipcode — and where you can climb." },
-  { icon: "⚡", title: "One flat rate", body: "$24.99/mo or $249.99/yr to publish case studies and build your reputation. No per-lead bidding, no rake." },
+  { icon: <IconBriefcase size={22} />, title: "Portfolio you own", body: "Your Krafts and client data are yours. Export them, point a custom domain at them, take them anywhere." },
+  { icon: <IconShieldCheck size={22} />, title: "Proof, not prose", body: "A mandatory \"after\" image plus a real endorsement from the homeowner who hired you. Invoice verification coming soon." },
+  { icon: <IconMapPin size={22} />, title: "Know your zipcode standing", body: "See how your Krafts stack up against other pros in your zipcode — and where you can climb." },
+  { icon: <IconCoin size={22} />, title: "One flat rate", body: "$24.99/mo or $249.99/yr to publish case studies and build your reputation. No per-lead bidding, no rake." },
 ];
 
 const STEPS = [
-  { num: "01", icon: "👤", title: "Create your profile", body: "Set up your pro profile and pin it to the zipcodes where you work." },
-  { num: "02", icon: "➕", title: "Add your Krafts", body: "Upload before/after Krafts of finished jobs. The \"after\" image is mandatory — that's the proof." },
-  { num: "03", icon: "⭐", title: "Get recommendations", body: "The homeowner who hired you endorses the Kraft, building your verified reputation in the zipcode." },
+  { num: "01", icon: <IconUserCircle size={16} />, title: "Create your profile", body: "Set up your pro profile and pin it to the zipcodes where you work." },
+  { num: "02", icon: <IconCamera size={16} />, title: "Add your Krafts", body: "Upload before/after Krafts of finished jobs. The \"after\" image is mandatory — that's the proof." },
+  { num: "03", icon: <IconThumbUp size={16} />, title: "Get recommendations", body: "The homeowner who hired you endorses the Kraft, building your verified reputation in the zipcode." },
 ];
 
 const STATS = [
@@ -42,7 +45,7 @@ export function HomePage() {
             <Grid.Col span={{ base: 12, md: 6 }}>
               <Stack gap="lg">
                 <Badge variant="outline" radius="xl" size="sm" style={{ alignSelf: "flex-start", letterSpacing: 1.5, textTransform: "uppercase", borderColor: "rgba(255,255,255,0.5)", color: "white" }}>
-                  🟠 Built for the trades
+                  Built for the trades
                 </Badge>
                 <Title order={1} style={{ fontSize: "clamp(38px,5vw,62px)", lineHeight: 1.04, letterSpacing: -1, color: "white" }}>
                   Own the proof.<br />Own the work.
@@ -78,7 +81,7 @@ export function HomePage() {
                 <HeroSlider />
                 <Group justify="space-between" pt="sm" px={6}>
                   <Group gap="xs">
-                    <Box style={{ width: 30, height: 30, borderRadius: "50%", background: "var(--gk-bg-canvas)", border: "1px solid var(--gk-border)", display: "grid", placeItems: "center", fontSize: 14 }}>👷‍♂️</Box>
+                    <ThemeIcon size={30} radius="xl" style={{ color: "var(--gk-accent-primary)", background: "rgba(255,107,26,0.1)", border: "1px solid rgba(255,107,26,0.15)", flexShrink: 0 }}><IconUserCircle size={16} /></ThemeIcon>
                     <Box>
                       <Text size="sm" fw={700} lh={1.1}>Marcus T.</Text>
                       <Text size="xs" c="dimmed" fw={600}>Licensed plumber · 1.4 mi away</Text>
@@ -97,7 +100,10 @@ export function HomePage() {
       <Box className="mk-proof-bar">
         <Container size="xl" py="sm">
           <Group justify="center" gap="sm" wrap="wrap">
-            <Text fw={700} style={{ color: "white" }}>⚡ Coming soon</Text>
+            <Group gap="xs" align="center">
+              <IconBolt size={16} style={{ color: "white" }} />
+              <Text fw={700} style={{ color: "white" }}>Coming soon</Text>
+            </Group>
             <Text style={{ color: "rgba(255,255,255,0.75)" }}>Invoice-verified Krafts and emergency SMS &amp; WhatsApp broadcast are on the way.</Text>
           </Group>
         </Container>
@@ -117,7 +123,7 @@ export function HomePage() {
               <Grid.Col key={p.title} span={{ base: 12, sm: 6, md: 3 }}>
                 <Card withBorder shadow="xs" radius="lg" h="100%" p="md">
                   <Stack gap="sm">
-                    <Box style={{ width: 44, height: 44, borderRadius: 12, background: "var(--gk-bg-canvas)", border: "1px solid var(--gk-border)", display: "grid", placeItems: "center", fontSize: 20 }}>{p.icon}</Box>
+                    <ThemeIcon size={44} radius={12} style={MK_ICON}>{p.icon}</ThemeIcon>
                     <Text fw={700} size="md">{p.title}</Text>
                     <Text size="sm" c="dimmed" lh={1.55}>{p.body}</Text>
                   </Stack>
@@ -145,7 +151,10 @@ export function HomePage() {
               <Grid.Col key={s.num} span={{ base: 12, md: 4 }}>
                 <Card withBorder shadow="xs" radius="lg" p="md">
                   <Text size="xs" fw={700} c="var(--gk-accent-primary)" style={{ letterSpacing: 1 }}>STEP {s.num}</Text>
-                  <Title order={3} mt={6} mb={8}>{s.icon} {s.title}</Title>
+                  <Group gap="xs" mt={6} mb={8} align="center">
+                    <ThemeIcon size={28} radius="sm" style={MK_ICON}>{s.icon}</ThemeIcon>
+                    <Title order={3}>{s.title}</Title>
+                  </Group>
                   <Text size="sm" c="dimmed" lh={1.55}>{s.body}</Text>
                 </Card>
               </Grid.Col>

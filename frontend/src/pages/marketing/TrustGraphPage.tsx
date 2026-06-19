@@ -1,5 +1,8 @@
-import { Box, Button, Card, Container, Grid, Stack, Text, Title } from "@mantine/core";
+import { Box, Button, Card, Container, Grid, Stack, Text, ThemeIcon, Title } from "@mantine/core";
+import { IconCircleCheck, IconNetwork, IconReceipt2 } from "@tabler/icons-react";
 import { Link } from "react-router-dom";
+
+const MK_ICON = { color: "var(--gk-accent-primary)", background: "rgba(255,107,26,0.1)", border: "1px solid rgba(255,107,26,0.15)", flexShrink: 0 as const };
 
 const FAILURES = [
   { num: "FAILURE 01", title: "Unverifiable", body: "No proof a review came from a real, paying customer — or that the job ever happened at all." },
@@ -8,9 +11,9 @@ const FAILURES = [
 ];
 
 const ANSWERS = [
-  { icon: "✅", title: "Binary, not blurred", body: "Recommend or don't. No half-stars to interpret, no review essays to wade through." },
-  { icon: "🧾", title: "Endorsement-backed", body: "Every recommendation is welded to a real homeowner endorsement. Invoice verification is coming soon." },
-  { icon: "🕸️", title: "Graph, not average", body: "Strength is read per job type, per zipcode — so you see exactly what a pro is proven at." },
+  { icon: <IconCircleCheck size={22} />, title: "Binary, not blurred", body: "Recommend or don't. No half-stars to interpret, no review essays to wade through." },
+  { icon: <IconReceipt2 size={22} />, title: "Endorsement-backed", body: "Every recommendation is welded to a real homeowner endorsement. Invoice verification is coming soon." },
+  { icon: <IconNetwork size={22} />, title: "Graph, not average", body: "Strength is read per job type, per zipcode — so you see exactly what a pro is proven at." },
 ];
 
 export function TrustGraphPage() {
@@ -73,7 +76,7 @@ export function TrustGraphPage() {
             {ANSWERS.map((a) => (
               <Grid.Col key={a.title} span={{ base: 12, md: 4 }}>
                 <Card withBorder shadow="xs" radius="lg" p="md" h="100%">
-                  <Text style={{ fontSize: 24 }} mb="sm">{a.icon}</Text>
+                  <ThemeIcon size={44} radius={12} mb="sm" style={MK_ICON}>{a.icon}</ThemeIcon>
                   <Title order={4} mb={8}>{a.title}</Title>
                   <Text size="sm" c="dimmed" lh={1.55}>{a.body}</Text>
                 </Card>

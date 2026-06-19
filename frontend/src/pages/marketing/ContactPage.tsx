@@ -1,12 +1,14 @@
 import { Box, Button, Card, Container, Grid, Group, Select, Stack, Text, Textarea, TextInput, ThemeIcon, Title } from "@mantine/core";
-import { IconCheck } from "@tabler/icons-react";
+import { IconBrandWhatsapp, IconBuilding, IconCheck, IconCircleFilled, IconDeviceMobile, IconHardHat, IconHome, IconNews } from "@tabler/icons-react";
 import { useState } from "react";
 
+const MK_ICON = { color: "var(--gk-accent-primary)", background: "rgba(255,107,26,0.1)", border: "1px solid rgba(255,107,26,0.15)", flexShrink: 0 as const };
+
 const DESKS = [
-  { icon: "🏢", title: "Sales & Enterprise", desc: "Node coverage, demos, contracts.", email: "sales@gigkraft.com" },
-  { icon: "👷‍♂️", title: "Pro Support", desc: "Krafts, billing, the vault.", email: "pros@gigkraft.com" },
-  { icon: "🏠", title: "Client Support", desc: "Hiring, broadcasts, disputes.", email: "help@gigkraft.com" },
-  { icon: "📰", title: "Press & General", desc: "Media, partnerships, other.", email: "hello@gigkraft.com" },
+  { icon: <IconBuilding size={20} />, title: "Sales & Enterprise", desc: "Node coverage, demos, contracts.", email: "sales@gigkraft.com" },
+  { icon: <IconHardHat size={20} />, title: "Pro Support", desc: "Krafts, billing, the vault.", email: "pros@gigkraft.com" },
+  { icon: <IconHome size={20} />, title: "Client Support", desc: "Hiring, broadcasts, disputes.", email: "help@gigkraft.com" },
+  { icon: <IconNews size={20} />, title: "Press & General", desc: "Media, partnerships, other.", email: "hello@gigkraft.com" },
 ];
 
 export function ContactPage() {
@@ -47,7 +49,7 @@ export function ContactPage() {
             <Grid.Col key={d.title} span={{ base: 12, sm: 6, md: 3 }}>
               <Card withBorder shadow="xs" radius="lg" p="md" h="100%">
                 <Stack gap={8}>
-                  <Text style={{ fontSize: 22 }}>{d.icon}</Text>
+                  <ThemeIcon size={44} radius={12} style={MK_ICON}>{d.icon}</ThemeIcon>
                   <Title order={4} mt={4}>{d.title}</Title>
                   <Text size="sm" c="dimmed" lh={1.5}>{d.desc}</Text>
                   <Text size="sm" fw={600} ff="monospace" c="var(--gk-accent-primary)" mt={4}>{d.email}</Text>
@@ -120,12 +122,12 @@ export function ContactPage() {
                 <Text size="xs" fw={700} tt="uppercase" c="var(--gk-accent-primary)" mb={12} style={{ letterSpacing: 1.5 }}>Native channels</Text>
                 <Stack gap="sm">
                   {[
-                    { icon: "💬", label: "WhatsApp dispatch" },
-                    { icon: "📲", label: "SMS broadcast" },
-                    { icon: "🟢", label: "System status: operational" },
+                    { icon: <IconBrandWhatsapp size={16} />, label: "WhatsApp dispatch" },
+                    { icon: <IconDeviceMobile size={16} />, label: "SMS broadcast" },
+                    { icon: <IconCircleFilled size={10} style={{ color: "#6EF0A0" }} />, label: "System status: operational" },
                   ].map((c) => (
                     <Group key={c.label} gap="sm">
-                      <Box style={{ width: 30, height: 30, borderRadius: 8, background: "var(--gk-bg-surface)", border: "1px solid var(--gk-border)", display: "grid", placeItems: "center" }}>{c.icon}</Box>
+                      <ThemeIcon size={30} radius={8} style={MK_ICON}>{c.icon}</ThemeIcon>
                       <Text size="sm" fw={600}>{c.label}</Text>
                     </Group>
                   ))}

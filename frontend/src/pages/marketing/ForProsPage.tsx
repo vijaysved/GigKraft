@@ -1,6 +1,9 @@
-import { Badge, Box, Button, Card, Container, Grid, Group, Stack, Text, Title } from "@mantine/core";
+import { Badge, Box, Button, Card, Container, Grid, Group, Stack, Text, ThemeIcon, Title } from "@mantine/core";
+import { IconCamera, IconCameraCheck, IconFileExport, IconHandshake, IconId, IconMapPin, IconReceipt } from "@tabler/icons-react";
 import { Link } from "react-router-dom";
 import { useWaitlist } from "../../components/marketing/WaitlistModal";
+
+const MK_ICON = { color: "var(--gk-accent-primary)", background: "rgba(255,107,26,0.1)", border: "1px solid rgba(255,107,26,0.15)", flexShrink: 0 as const };
 
 const SHIFT_BAD = [
   "Pay $30–80 per shared lead, bid against 5 others",
@@ -16,16 +19,16 @@ const SHIFT_GOOD = [
 ];
 
 const HOW = [
-  { num: "01", icon: "📷", title: "Optional \"before\"", body: "Add the rough starting state if you have it. Skippable — never a blocker.", bold: false },
-  { num: "02", icon: "✨", title: "Mandatory \"after\"", body: "The finished result is required. No after image, no Kraft — that's the rule.", bold: true },
-  { num: "03", icon: "🧾", title: "Invoice confirm — soon", body: "Coming soon: the job cost will be matched against a confirmed invoice for hard, auditable proof.", bold: false },
-  { num: "04", icon: "📍", title: "Pin to zipcode", body: "Published to your zipcode so nearby homeowners find proven, local work first.", bold: false },
+  { num: "01", icon: <IconCamera size={16} />, title: "Optional \"before\"", body: "Add the rough starting state if you have it. Skippable — never a blocker.", bold: false },
+  { num: "02", icon: <IconCameraCheck size={16} />, title: "Mandatory \"after\"", body: "The finished result is required. No after image, no Kraft — that's the rule.", bold: true },
+  { num: "03", icon: <IconReceipt size={16} />, title: "Invoice confirm — soon", body: "Coming soon: the job cost will be matched against a confirmed invoice for hard, auditable proof.", bold: false },
+  { num: "04", icon: <IconMapPin size={16} />, title: "Pin to zipcode", body: "Published to your zipcode so nearby homeowners find proven, local work first.", bold: false },
 ];
 
 const OWNERSHIP = [
-  { icon: "📇", title: "Your pro profile", body: "A clean profile page that collects your verified Krafts and homeowner endorsements in one place." },
-  { icon: "📤", title: "Full export", body: "Download every Kraft, photo and invoice record as portable files — no lock-in, ever." },
-  { icon: "🤝", title: "Own the client", body: "Repeat customers contact you directly. We route the first job; the relationship is yours." },
+  { icon: <IconId size={22} />, title: "Your pro profile", body: "A clean profile page that collects your verified Krafts and homeowner endorsements in one place." },
+  { icon: <IconFileExport size={22} />, title: "Full export", body: "Download every Kraft, photo and invoice record as portable files — no lock-in, ever." },
+  { icon: <IconHandshake size={22} />, title: "Own the client", body: "Repeat customers contact you directly. We route the first job; the relationship is yours." },
 ];
 
 export function ForProsPage() {
@@ -36,7 +39,7 @@ export function ForProsPage() {
       <Box className="mk-hero">
         <Container size="xl" py={64}>
           <Box className="mk-hero-content">
-            <Badge variant="outline" radius="xl" size="sm" mb="md" style={{ letterSpacing: 1.5, borderColor: "rgba(255,255,255,0.5)", color: "white" }}>👷‍♂️ For tradespeople</Badge>
+            <Badge variant="outline" radius="xl" size="sm" mb="md" style={{ letterSpacing: 1.5, borderColor: "rgba(255,255,255,0.5)", color: "white" }}>For tradespeople</Badge>
             <Title order={1} maw={880} style={{ fontSize: "clamp(34px,5vw,56px)", lineHeight: 1.04, letterSpacing: -1, color: "white" }}>
               Stop renting leads. Start owning a reputation.
             </Title>
@@ -105,7 +108,10 @@ export function ForProsPage() {
                   style={h.bold ? { borderColor: "var(--gk-accent-primary)", borderStyle: "dashed", borderWidth: 2 } : {}}
                 >
                   <Text size="xs" fw={700} c="var(--gk-accent-primary)">{h.num}</Text>
-                  <Title order={4} mt={6} mb={8}>{h.icon} {h.title}</Title>
+                  <Group gap="xs" mt={6} mb={8} align="center">
+                    <ThemeIcon size={28} radius="sm" style={MK_ICON}>{h.icon}</ThemeIcon>
+                    <Title order={4}>{h.title}</Title>
+                  </Group>
                   <Text size="sm" c="dimmed" lh={1.5}>{h.body}</Text>
                 </Card>
               </Grid.Col>
@@ -126,7 +132,7 @@ export function ForProsPage() {
           {OWNERSHIP.map((o) => (
             <Grid.Col key={o.title} span={{ base: 12, md: 4 }}>
               <Card withBorder shadow="xs" radius="lg" p="md" h="100%">
-                <Text style={{ fontSize: 24 }} mb="sm">{o.icon}</Text>
+                <ThemeIcon size={44} radius={12} mb="sm" style={MK_ICON}>{o.icon}</ThemeIcon>
                 <Title order={3} mb={8}>{o.title}</Title>
                 <Text size="sm" c="dimmed" lh={1.55}>{o.body}</Text>
               </Card>

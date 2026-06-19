@@ -1,11 +1,14 @@
-import { Badge, Box, Button, Card, Container, Grid, Group, Stack, Text, Title } from "@mantine/core";
+import { Badge, Box, Button, Card, Container, Grid, Group, Stack, Text, ThemeIcon, Title } from "@mantine/core";
+import { IconMessageCircle, IconSearch, IconShieldCheck } from "@tabler/icons-react";
 import { Link } from "react-router-dom";
 import { useWaitlist } from "../../components/marketing/WaitlistModal";
 
+const MK_ICON = { color: "var(--gk-accent-primary)", background: "rgba(255,107,26,0.1)", border: "1px solid rgba(255,107,26,0.15)", flexShrink: 0 as const };
+
 const STEPS = [
-  { num: "01", icon: "🔍", title: "Browse the feed", body: "Scroll real before/after Krafts from pros in your zipcode. Filter by job type and distance." },
-  { num: "02", icon: "✅", title: "See the endorsement", body: "Every Kraft is endorsed by the homeowner who hired the pro. Invoice-verified pricing is coming soon." },
-  { num: "03", icon: "💬", title: "Request a quote", body: "Message the pro directly, or fire an emergency broadcast to every proven pro nearby at once." },
+  { num: "01", icon: <IconSearch size={16} />, title: "Browse the feed", body: "Scroll real before/after Krafts from pros in your zipcode. Filter by job type and distance." },
+  { num: "02", icon: <IconShieldCheck size={16} />, title: "See the endorsement", body: "Every Kraft is endorsed by the homeowner who hired the pro. Invoice-verified pricing is coming soon." },
+  { num: "03", icon: <IconMessageCircle size={16} />, title: "Request a quote", body: "Message the pro directly, or fire an emergency broadcast to every proven pro nearby at once." },
 ];
 
 const RECS = [
@@ -22,7 +25,7 @@ export function ForClientsPage() {
       <Box className="mk-hero">
         <Container size="xl" py={64}>
           <Box className="mk-hero-content">
-            <Badge variant="outline" radius="xl" size="sm" mb="md" style={{ letterSpacing: 1.5, borderColor: "rgba(255,255,255,0.5)", color: "white" }}>🏠 For homeowners</Badge>
+            <Badge variant="outline" radius="xl" size="sm" mb="md" style={{ letterSpacing: 1.5, borderColor: "rgba(255,255,255,0.5)", color: "white" }}>For homeowners</Badge>
             <Title order={1} maw={880} style={{ fontSize: "clamp(34px,5vw,56px)", lineHeight: 1.04, letterSpacing: -1, color: "white" }}>
               Hire on proof, not promises.
             </Title>
@@ -53,7 +56,7 @@ export function ForClientsPage() {
           <Grid.Col span={{ base: 12, md: 6 }}>
             <Card withBorder shadow="lg" radius="xl" p="lg">
               <Group gap="sm" mb="md">
-                <Box style={{ width: 42, height: 42, borderRadius: "50%", background: "var(--gk-bg-canvas)", border: "1px solid var(--gk-border)", display: "grid", placeItems: "center", fontSize: 18 }}>👷‍♂️</Box>
+                <ThemeIcon size={42} radius="xl" style={MK_ICON}><IconShieldCheck size={20} /></ThemeIcon>
                 <Box>
                   <Text fw={700} size="md">Marcus T.</Text>
                   <Text size="xs" c="dimmed" fw={600}>Licensed plumber · zip 85032</Text>
@@ -99,7 +102,10 @@ export function ForClientsPage() {
               <Grid.Col key={s.num} span={{ base: 12, md: 4 }}>
                 <Card withBorder shadow="xs" radius="lg" p="md" h="100%">
                   <Text size="xs" fw={700} c="var(--gk-accent-primary)" style={{ letterSpacing: 1 }}>STEP {s.num}</Text>
-                  <Title order={3} mt={6} mb={8}>{s.icon} {s.title}</Title>
+                  <Group gap="xs" mt={6} mb={8} align="center">
+                    <ThemeIcon size={28} radius="sm" style={MK_ICON}>{s.icon}</ThemeIcon>
+                    <Title order={3}>{s.title}</Title>
+                  </Group>
                   <Text size="sm" c="dimmed" lh={1.55}>{s.body}</Text>
                 </Card>
               </Grid.Col>
@@ -114,7 +120,7 @@ export function ForClientsPage() {
           <Box style={{ position: "relative", zIndex: 1 }}>
             <Group justify="space-between" align="center" wrap="wrap" gap="xl">
               <Box maw={560}>
-                <Text size="xs" fw={700} tt="uppercase" style={{ color: "rgba(255,255,255,0.65)", letterSpacing: 1.5 }}>🚨 Emergency broadcast · coming soon</Text>
+                <Text size="xs" fw={700} tt="uppercase" style={{ color: "rgba(255,255,255,0.65)", letterSpacing: 1.5 }}>Emergency broadcast · coming soon</Text>
                 <Title order={2} mt={12} style={{ fontSize: "clamp(26px,3.2vw,38px)", lineHeight: 1.06, letterSpacing: -0.5, color: "white" }}>
                   Burst pipe at 2am? Blast every proven pro nearby.
                 </Title>

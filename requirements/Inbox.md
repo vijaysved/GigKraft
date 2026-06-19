@@ -79,3 +79,5 @@ The inbox interface must partition message threads dynamically into three distin
 ### 4.3 Receipt Quarantine
 
 - Senders operating within the `REQUESTS` view must not receive read receipts or delivery confirmations until the recipient actively clicks an **Accept Request** prompt[cite: 1].
+
+In the inbox there should be a compose and one should be able to type a handle and send message for example @pro-handle should send them an message whatver it is . it shows in sentbox for the sender and inbox for the receiver
