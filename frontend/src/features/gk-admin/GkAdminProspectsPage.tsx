@@ -10,7 +10,6 @@ import {
   Group,
   Loader,
   Modal,
-  Paper,
   Progress,
   Select,
   SimpleGrid,

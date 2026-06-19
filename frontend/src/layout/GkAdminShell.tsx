@@ -9,7 +9,6 @@ import {
   NavLink,
   Stack,
   Text,
-  Tooltip,
   UnstyledButton,
 } from "@mantine/core";
 import {
