@@ -183,6 +183,42 @@ class SavedPro(models.Model):
         ]
 
 
+class ProProfileView(models.Model):
+    """Fired each time any visitor loads a pro's public profile page."""
+
+    pro = models.ForeignKey(ProProfile, on_delete=models.CASCADE, related_name="profile_views")
+    viewer = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    viewer_zip = models.CharField(max_length=10, blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["pro", "created_at"])]
+
+
+class KraftImpression(models.Model):
+    """Fired for each Kraft card rendered on a pro's public profile page."""
+
+    kraft = models.ForeignKey("krafts.Kraft", on_delete=models.CASCADE, related_name="impressions")
+    pro = models.ForeignKey(ProProfile, on_delete=models.CASCADE, related_name="kraft_impressions")
+    viewer = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["pro", "created_at"]), models.Index(fields=["kraft", "created_at"])]
+
+
+class KraftClick(models.Model):
+    """Fired when a visitor explicitly opens a Kraft item."""
+
+    kraft = models.ForeignKey("krafts.Kraft", on_delete=models.CASCADE, related_name="clicks")
+    pro = models.ForeignKey(ProProfile, on_delete=models.CASCADE, related_name="kraft_clicks")
+    viewer = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["pro", "created_at"]), models.Index(fields=["kraft", "created_at"])]
+
+
 class NotificationPref(models.Model):
     """Dispatch alert toggles (screen 2.6)."""
 

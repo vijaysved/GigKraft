@@ -27,9 +27,9 @@ import { GkLogo } from "../brand/GkLogo";
 import { useProAvatar } from "../hooks/useProAvatar";
 
 const NAV_ITEMS = [
+  { label: "Dashboard", icon: IconChartBar,  to: "/pro/dashboard" },
   { label: "Reviews", icon: IconStar,        to: "/pro/reviews" },
   { label: "Krafts",  icon: IconPhoto,       to: "/pro/krafts" },
-  { label: "Stats",   icon: IconChartBar,    to: "/pro/stats" },
   { label: "Network", icon: IconNetwork,     to: "/pro/network" },
   { label: "Billing", icon: IconCreditCard,  to: "/pro/billing" },
   { label: "Profile", icon: IconUser,        to: "/pro/account" },

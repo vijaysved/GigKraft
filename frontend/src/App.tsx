@@ -36,7 +36,7 @@ import { AdminSettingsPage } from "./features/admin/AdminSettingsPage";
 import { ProKraftEditorPage, KraftPublicPreviewPage } from "./features/pro/ProKraftEditorPage";
 import { ProKraftListPage } from "./features/pro/ProKraftListPage";
 import { ProReviewsPage } from "./features/pro/ProReviewsPage";
-import { ProStatsPage } from "./features/pro/ProStatsPage";
+import { ProDashboardPage } from "./features/pro/ProDashboardPage";
 import { ProNetworkPage } from "./features/pro/ProNetworkPage";
 import { ProBillingPage } from "./features/pro/ProBillingPage";
 import { ProAccountPage } from "./features/pro/ProAccountPage";
@@ -137,7 +137,8 @@ export default function App() {
         <Route path="krafts/new" element={<ProKraftEditorPage />} />
         <Route path="krafts/:id" element={<ProKraftEditorPage />} />
         <Route path="krafts/:id/preview" element={<KraftPublicPreviewPage />} />
-        <Route path="stats" element={<ProStatsPage />} />
+        <Route path="dashboard" element={<ProDashboardPage />} />
+        <Route path="stats" element={<Navigate to="/pro/dashboard" replace />} />
         <Route path="network" element={<ProNetworkPage />} />
         <Route path="billing" element={<ProBillingPage />} />
         <Route path="profile" element={<Navigate to="/pro/account?tab=public" replace />} />

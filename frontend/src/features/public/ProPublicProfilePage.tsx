@@ -27,7 +27,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
-import { getKraftsByPro, getProByHandle, trackProPageView, type KraftPublicOut, type ProOut } from "../../api/endpoints";
+import { getKraftsByPro, getProByHandle, trackKraftClick, trackKraftImpression, trackProfileView, trackProPageView, type KraftPublicOut, type ProOut } from "../../api/endpoints";
 import { useAuth } from "../../auth/AuthContext";
 import { GkLogo } from "../../brand/GkLogo";
 import { GoogleSignInButton } from "../../components/GoogleSignInButton";
@@ -164,6 +164,7 @@ export function ProPublicProfilePage() {
     // Fire-and-forget page view tracking; ref=GK-XXX links view to a prospect
     const ref = searchParams.get("ref") ?? undefined;
     trackProPageView(handle, ref).catch(() => {});
+    trackProfileView(handle);
   }, [handle, searchParams]);
 
   useEffect(() => {
@@ -177,7 +178,13 @@ export function ProPublicProfilePage() {
         setLoading(false);
         return getKraftsByPro(data.id);
       })
-      .then((ks) => setKrafts(ks))
+      .then((ks) => {
+        setKrafts(ks);
+        // Fire impression for every Kraft rendered
+        if (handle) {
+          ks.forEach((k) => trackKraftImpression(k.id, handle));
+        }
+      })
       .catch(() => { setNotFound(true); setLoading(false); });
   }, [handle]);
 
@@ -423,20 +430,22 @@ export function ProPublicProfilePage() {
                 <Title order={4} style={{ color: "var(--gk-accent-primary)" }}>Krafts</Title>
                 <Stack gap="md">
                   {krafts.map((k) => (
-                    <KraftCard
-                      key={k.id}
-                      title={k.title}
-                      skill={k.skill}
-                      gigType={k.gig_type}
-                      description={k.description}
-                      location={k.location}
-                      startMonth={k.start_month}
-                      startYear={k.start_year}
-                      endMonth={k.end_month}
-                      endYear={k.end_year}
-                      beforeUrl={k.before_url}
-                      afterUrl={k.after_url}
-                    />
+                    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
+                    <div key={k.id} onClick={() => handle && trackKraftClick(k.id, handle)}>
+                      <KraftCard
+                        title={k.title}
+                        skill={k.skill}
+                        gigType={k.gig_type}
+                        description={k.description}
+                        location={k.location}
+                        startMonth={k.start_month}
+                        startYear={k.start_year}
+                        endMonth={k.end_month}
+                        endYear={k.end_year}
+                        beforeUrl={k.before_url}
+                        afterUrl={k.after_url}
+                      />
+                    </div>
                   ))}
                 </Stack>
               </Stack>

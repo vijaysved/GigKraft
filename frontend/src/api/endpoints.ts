@@ -475,6 +475,97 @@ export async function trackProPageView(proHandle: string, ref?: string): Promise
   } as never);
 }
 
+// ---------- Pro Analytics Tracking (fire-and-forget) ----------
+
+export function trackProfileView(proHandle: string): void {
+  void fetch(`${import.meta.env.VITE_API_BASE_URL ?? ""}/api/pros/track/profile-view`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ pro_handle: proHandle }),
+  }).catch(() => {});
+}
+
+export function trackKraftImpression(kraftId: number, proHandle: string): void {
+  void fetch(`${import.meta.env.VITE_API_BASE_URL ?? ""}/api/pros/track/kraft-impression`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ kraft_id: kraftId, pro_handle: proHandle }),
+  }).catch(() => {});
+}
+
+export function trackKraftClick(kraftId: number, proHandle: string): void {
+  void fetch(`${import.meta.env.VITE_API_BASE_URL ?? ""}/api/pros/track/kraft-click`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ kraft_id: kraftId, pro_handle: proHandle }),
+  }).catch(() => {});
+}
+
+// ---------- Pro Dashboard ----------
+
+export interface KraftEngagement {
+  kraft_id: number;
+  title: string;
+  impressions: number;
+  clicks: number;
+  ctr_pct: number;
+}
+
+export interface TimelinePoint {
+  label: string;
+  visitors: number;
+  requests: number;
+}
+
+export interface DashboardData {
+  range: string;
+  total_visitors: number;
+  visitors_delta_pct: number;
+  neighbors: number;
+  neighbors_delta_pct: number;
+  project_requests: number;
+  requests_delta_pct: number;
+  conversion_pct: number;
+  timeline: TimelinePoint[];
+  krafts: KraftEngagement[];
+}
+
+export interface ZipBreakdownRow {
+  zip: string;
+  visitors: number;
+  requests: number;
+}
+
+export interface MarketShareData {
+  available: boolean;
+  pro_count: number;
+  required_count: number;
+  my_lead_pct: number;
+  avg_lead_pct: number;
+}
+
+export interface MarketData {
+  range: string;
+  zip_breakdown: ZipBreakdownRow[];
+  market_share: MarketShareData;
+}
+
+export async function getProDashboard(range = "30d"): Promise<DashboardData> {
+  const { data, error, response } = await client.GET("/api/pros/me/dashboard" as never, {
+    params: { query: { range } },
+  } as never);
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to load dashboard."));
+  return data as DashboardData;
+}
+
+export async function getProMarket(range = "30d"): Promise<MarketData> {
+  const { data, error, response } = await client.GET("/api/pros/me/market" as never, {
+    params: { query: { range } },
+  } as never);
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to load market data."));
+  return data as MarketData;
+}
+
 export async function listVendors(params?: {
   status?: string;
   source?: string;

@@ -13,7 +13,7 @@ from ninja import Router, Schema
 from ninja.errors import HttpError
 
 from accounts.auth import jwt_auth
-from accounts.models import ProProfile
+from accounts.models import KraftClick, KraftImpression, ProProfile, ProProfileView
 from common.permissions import require_pro
 from krafts.models import Kraft
 from leads.models import Lead, Quote
@@ -352,6 +352,242 @@ def my_performance(request, range: str = "30d"):
         "avg_response_minutes": _pseudo(seed + ":resp", 30, 150),
         "sla_target_hours": pro.response_hours,
     }
+
+
+# --- Analytics tracking (fire-and-forget, no auth required) ---
+
+class ProfileViewIn(Schema):
+    pro_handle: str
+    viewer_zip: str = ""
+
+
+class KraftEventIn(Schema):
+    kraft_id: int
+    pro_handle: str
+
+
+@public_router.post("/track/profile-view", auth=None, response={200: dict})
+def track_profile_view(request, payload: ProfileViewIn):
+    pro = ProProfile.objects.filter(handle=payload.pro_handle).first()
+    if not pro:
+        return 200, {}
+    viewer = request.user if request.user.is_authenticated else None
+    viewer_zip = ""
+    if viewer:
+        hp = getattr(viewer, "homeowner_profile", None)
+        viewer_zip = (hp.default_zip if hp else "") or ""
+    ProProfileView.objects.create(pro=pro, viewer=viewer, viewer_zip=viewer_zip)
+    return 200, {}
+
+
+@public_router.post("/track/kraft-impression", auth=None, response={200: dict})
+def track_kraft_impression(request, payload: KraftEventIn):
+    pro = ProProfile.objects.filter(handle=payload.pro_handle).first()
+    kraft = Kraft.objects.filter(id=payload.kraft_id).first()
+    if not pro or not kraft:
+        return 200, {}
+    viewer = request.user if request.user.is_authenticated else None
+    KraftImpression.objects.create(kraft=kraft, pro=pro, viewer=viewer)
+    return 200, {}
+
+
+@public_router.post("/track/kraft-click", auth=None, response={200: dict})
+def track_kraft_click(request, payload: KraftEventIn):
+    pro = ProProfile.objects.filter(handle=payload.pro_handle).first()
+    kraft = Kraft.objects.filter(id=payload.kraft_id).first()
+    if not pro or not kraft:
+        return 200, {}
+    viewer = request.user if request.user.is_authenticated else None
+    KraftClick.objects.create(kraft=kraft, pro=pro, viewer=viewer)
+    return 200, {}
+
+
+# --- Dashboard endpoint (Tab 1: My Performance) ---
+
+class KraftEngagementOut(Schema):
+    kraft_id: int
+    title: str
+    impressions: int
+    clicks: int
+    ctr_pct: int
+
+
+class TimelinePoint(Schema):
+    label: str
+    visitors: int
+    requests: int
+
+
+class DashboardOut(Schema):
+    range: str
+    total_visitors: int
+    visitors_delta_pct: int
+    neighbors: int
+    neighbors_delta_pct: int
+    project_requests: int
+    requests_delta_pct: int
+    conversion_pct: int
+    timeline: list[TimelinePoint]
+    krafts: list[KraftEngagementOut]
+
+
+def _delta_pct(current: int, prior: int) -> int:
+    if prior == 0:
+        return 0
+    return round(100 * (current - prior) / prior)
+
+
+@router.get("/me/dashboard", response=DashboardOut)
+def my_dashboard(request, range: str = "30d"):
+    if range not in RANGE_DAYS:
+        raise HttpError(400, "range must be one of 7d, 30d, 90d.")
+    pro = require_pro(request)
+    days = RANGE_DAYS[range]
+    now = timezone.now()
+    since = now - timedelta(days=days)
+    prior_since = since - timedelta(days=days)
+
+    views_qs = ProProfileView.objects.filter(pro=pro)
+    current_views = views_qs.filter(created_at__gte=since).count()
+    prior_views = views_qs.filter(created_at__gte=prior_since, created_at__lt=since).count()
+
+    current_neighbors = views_qs.filter(
+        created_at__gte=since, viewer__isnull=False,
+        viewer_zip=pro.base_zip,
+    ).count() if pro.base_zip else 0
+    prior_neighbors = views_qs.filter(
+        created_at__gte=prior_since, created_at__lt=since,
+        viewer__isnull=False, viewer_zip=pro.base_zip,
+    ).count() if pro.base_zip else 0
+
+    leads_qs = Lead.objects.filter(pro=pro)
+    current_reqs = leads_qs.filter(created_at__gte=since).count()
+    prior_reqs = leads_qs.filter(created_at__gte=prior_since, created_at__lt=since).count()
+
+    conversion = round(100 * current_reqs / current_views) if current_views else 0
+
+    # Weekly timeline buckets (oldest → newest)
+    buckets = max(4, min(12, days // 7))
+    timeline = []
+    for i in builtin_range(buckets):
+        start = now - timedelta(days=(buckets - i) * 7)
+        end = start + timedelta(days=7)
+        timeline.append({
+            "label": f"W{i + 1}",
+            "visitors": views_qs.filter(created_at__gte=start, created_at__lt=end).count(),
+            "requests": leads_qs.filter(created_at__gte=start, created_at__lt=end).count(),
+        })
+
+    # Per-Kraft engagement
+    krafts_data = []
+    for k in Kraft.objects.filter(pro=pro):
+        imp = KraftImpression.objects.filter(kraft=k, created_at__gte=since).count()
+        clk = KraftClick.objects.filter(kraft=k, created_at__gte=since).count()
+        krafts_data.append({
+            "kraft_id": k.id,
+            "title": k.title,
+            "impressions": imp,
+            "clicks": clk,
+            "ctr_pct": round(100 * clk / imp) if imp else 0,
+        })
+
+    return {
+        "range": range,
+        "total_visitors": current_views,
+        "visitors_delta_pct": _delta_pct(current_views, prior_views),
+        "neighbors": current_neighbors,
+        "neighbors_delta_pct": _delta_pct(current_neighbors, prior_neighbors),
+        "project_requests": current_reqs,
+        "requests_delta_pct": _delta_pct(current_reqs, prior_reqs),
+        "conversion_pct": conversion,
+        "timeline": timeline,
+        "krafts": krafts_data,
+    }
+
+
+# --- Market endpoint (Tab 2: Market & Comparison) ---
+
+class ZipBreakdownRow(Schema):
+    zip: str
+    visitors: int
+    requests: int
+
+
+class MarketShareOut(Schema):
+    available: bool
+    pro_count: int
+    required_count: int
+    my_lead_pct: float
+    avg_lead_pct: float
+
+
+class MarketOut(Schema):
+    range: str
+    zip_breakdown: list[ZipBreakdownRow]
+    market_share: MarketShareOut
+
+
+@router.get("/me/market", response=MarketOut)
+def my_market(request, range: str = "30d"):
+    if range not in RANGE_DAYS:
+        raise HttpError(400, "range must be one of 7d, 30d, 90d.")
+    pro = require_pro(request)
+    days = RANGE_DAYS[range]
+    since = timezone.now() - timedelta(days=days)
+
+    # Zip breakdown of visitors
+    from django.db.models import Count
+    zip_rows = (
+        ProProfileView.objects
+        .filter(pro=pro, created_at__gte=since)
+        .exclude(viewer_zip="")
+        .values("viewer_zip")
+        .annotate(visitors=Count("id"))
+        .order_by("-visitors")[:10]
+    )
+    zips_seen = {r["viewer_zip"] for r in zip_rows}
+    req_by_zip: dict[str, int] = {}
+    if zips_seen:
+        from leads.models import Lead as LeadModel
+        for lead in LeadModel.objects.filter(pro=pro, created_at__gte=since).select_related("homeowner__homeowner_profile"):
+            hp = getattr(getattr(lead, "homeowner", None), "homeowner_profile", None)
+            if hp and hp.default_zip in zips_seen:
+                req_by_zip[hp.default_zip] = req_by_zip.get(hp.default_zip, 0) + 1
+
+    zip_breakdown = [
+        {"zip": r["viewer_zip"], "visitors": r["visitors"], "requests": req_by_zip.get(r["viewer_zip"], 0)}
+        for r in zip_rows
+    ]
+
+    # Market share
+    REQUIRED = 5
+    trade = pro.primary_trade
+    base_zip = pro.base_zip
+    peers = (
+        ProProfile.objects
+        .filter(primary_trade=trade)
+        .filter(Q(base_zip=base_zip) | Q(service_zips__icontains=base_zip))
+        .exclude(pk=pro.pk)
+        if trade and base_zip else ProProfile.objects.none()
+    )
+    peer_count = peers.count()
+
+    if peer_count >= REQUIRED:
+        my_leads = Lead.objects.filter(pro=pro, created_at__gte=since).count()
+        peer_lead_counts = [
+            Lead.objects.filter(pro=p, created_at__gte=since).count()
+            for p in peers[:20]
+        ]
+        total_peer_leads = sum(peer_lead_counts)
+        avg_peer = total_peer_leads / len(peer_lead_counts) if peer_lead_counts else 0
+        all_leads = my_leads + total_peer_leads
+        my_pct = round(100 * my_leads / all_leads, 1) if all_leads else 0.0
+        avg_pct = round(100 * avg_peer / (all_leads / (len(peer_lead_counts) + 1)), 1) if all_leads else 0.0
+        market_share = {"available": True, "pro_count": peer_count, "required_count": REQUIRED, "my_lead_pct": my_pct, "avg_lead_pct": avg_pct}
+    else:
+        market_share = {"available": False, "pro_count": peer_count, "required_count": REQUIRED, "my_lead_pct": 0.0, "avg_lead_pct": 0.0}
+
+    return {"range": range, "zip_breakdown": zip_breakdown, "market_share": market_share}
 
 
 # --- Public endpoints (no auth required) ---
