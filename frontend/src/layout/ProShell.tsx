@@ -22,6 +22,7 @@ import {
   IconUser,
 } from "@tabler/icons-react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 
 import { useAuth } from "../auth/AuthContext";
 import { GkLogo } from "../brand/GkLogo";
@@ -53,6 +54,12 @@ export function ProShell() {
   const initials = (user?.first_name?.[0] ?? user?.email?.[0] ?? "P").toUpperCase();
   const displayName = [user?.first_name, user?.last_name].filter(Boolean).join(" ") || user?.email || "Pro";
   const avatarSrc = useProAvatar();
+
+  useEffect(() => {
+    const handle = user?.pro_handle;
+    document.title = handle ? `@${handle} · gigkraft.com` : "GigKraft";
+    return () => { document.title = "GigKraft"; };
+  }, [user?.pro_handle]);
 
   return (
     <AppShell navbar={{ width: 240, breakpoint: "sm" }} padding="md">

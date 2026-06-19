@@ -53,43 +53,6 @@ const WALLPAPERS = [
   "linear-gradient(135deg, #120900 0%, #3D1F00 100%)",
 ];
 
-// ── Compact ZIP map via Nominatim + OSM embed ─────────────────────────────────
-function ZipMap({ zip }: { zip: string }) {
-  const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
-
-  useEffect(() => {
-    if (!zip) return;
-    fetch(
-      `https://nominatim.openstreetmap.org/search?postalcode=${encodeURIComponent(zip)}&country=US&format=json&limit=1`,
-      { headers: { "Accept-Language": "en" } }
-    )
-      .then((r) => r.json())
-      .then((results: { lat: string; lon: string }[]) => {
-        if (results[0]) setCoords({ lat: parseFloat(results[0].lat), lon: parseFloat(results[0].lon) });
-      })
-      .catch(() => {});
-  }, [zip]);
-
-  if (!coords) return null;
-
-  const { lat, lon } = coords;
-  const d = 0.06;
-  const src = `https://www.openstreetmap.org/export/embed.html?bbox=${lon - d},${lat - d},${lon + d},${lat + d}&layer=mapnik&marker=${lat},${lon}`;
-
-  return (
-    <Box style={{ borderRadius: 8, overflow: "hidden", border: "1px solid var(--gk-border)", height: 140 }}>
-      <iframe
-        src={src}
-        title="Service area map"
-        width="100%"
-        height="140"
-        style={{ border: "none", display: "block" }}
-        loading="lazy"
-      />
-    </Box>
-  );
-}
-
 // ── Main page ─────────────────────────────────────────────────────────────────
 export function ProPublicProfilePage() {
   const { id: handle } = useParams<{ id: string }>();
@@ -176,13 +139,6 @@ export function ProPublicProfilePage() {
     return { background: WALLPAPERS[pro?.wallpaper_id ?? 0] ?? WALLPAPERS[0] };
   }, [pro?.wallpaper_url, pro?.wallpaper_id]);
 
-  // ZIP to show in map — first explicit zip, or center zip for radial
-  const mapZip = useMemo(() => {
-    if (!pro) return "";
-    if (pro.service_mode === "explicit") return pro.service_zips?.[0] ?? "";
-    return pro.service_center_zip ?? "";
-  }, [pro]);
-
   useEffect(() => {
     if (!handle) return;
     // Fire-and-forget page view tracking; ref=GK-XXX links view to a prospect
@@ -212,15 +168,11 @@ export function ProPublicProfilePage() {
       .catch(() => { setNotFound(true); setLoading(false); });
   }, [handle]);
 
-  // § 1.2 Preservation Gate — called when unauthenticated user hits Send
+  // § 1.2 Preservation Gate — called when unauthenticated user hits Send in the quote modal
   function handleQuoteClick() {
-    if (!draftTitle.trim() && !draftText.trim()) {
-      setQuoteFormOpen(true);
-      return;
-    }
     if (!isLoggedIn) {
-      // Preserve the draft in the ref before triggering the auth modal
       draftRef.current = draftText;
+      setQuoteFormOpen(false);
       setAuthGateOpen(true);
       return;
     }
@@ -487,7 +439,6 @@ export function ProPublicProfilePage() {
                         ? <Badge variant="outline" size="sm">{pro.service_center_zip} · {pro.service_radius_miles} mi radius</Badge>
                         : <Text size="xs" c="dimmed">Not specified</Text>}
                   </Group>
-                  {mapZip && <ZipMap zip={mapZip} />}
                 </Stack>
 
                 <Divider my="md" />
@@ -496,78 +447,11 @@ export function ProPublicProfilePage() {
             </Card>
             </div>
 
-            {/* ── § 1.1 Request a Quote — anonymous draft hook ── */}
-            {submitSuccess ? (
+            {/* success banner replaces floating button after send */}
+            {submitSuccess && (
               <Alert color="green" variant="light" title="Request sent!">
                 Your quote request was delivered. Check your <Link to="/home/messages">Messages</Link> for the conversation.
               </Alert>
-            ) : (
-              <div style={{
-                borderRadius: 18,
-                padding: 3,
-                background: "var(--gk-brand-gradient)",
-                boxShadow: "0 4px 20px color-mix(in srgb, var(--gk-accent-primary) 18%, transparent)",
-              }}>
-                <Card radius="lg" padding="lg" style={{ background: "var(--gk-bg-surface)" }}>
-                  <Stack gap="sm">
-                    <Group gap="xs">
-                      <IconSend size={18} color="var(--gk-accent-primary)" />
-                      <Text fw={700} size="md" style={{ color: "var(--gk-accent-primary)" }}>
-                        Request a Quote from {pro.name}
-                      </Text>
-                    </Group>
-                    <TextInput
-                      placeholder="What do you need done? (e.g. Fix leaky faucet)"
-                      value={draftTitle}
-                      onChange={(e) => setDraftTitle(e.currentTarget.value)}
-                      size="sm"
-                    />
-                    <Textarea
-                      placeholder="Add details — location, scope, any photos needed…"
-                      value={draftText}
-                      onChange={(e) => setDraftText(e.currentTarget.value)}
-                      minRows={2}
-                      maxRows={5}
-                      autosize
-                      size="sm"
-                    />
-                    <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
-                      <Select
-                        placeholder="Estimated budget"
-                        data={BUDGET_OPTIONS}
-                        value={draftBudget}
-                        onChange={setDraftBudget}
-                        size="sm"
-                        clearable
-                      />
-                      <Select
-                        placeholder="Timeline"
-                        data={TIMELINE_OPTIONS}
-                        value={draftTimeline}
-                        onChange={setDraftTimeline}
-                        size="sm"
-                        clearable
-                      />
-                    </SimpleGrid>
-                    {submitError && <Alert color="red" variant="light">{submitError}</Alert>}
-                    <Button
-                      fullWidth
-                      leftSection={isLoggedIn ? <IconSend size={15} /> : <IconLock size={15} />}
-                      loading={submitting}
-                      onClick={handleQuoteClick}
-                      disabled={!draftTitle.trim()}
-                      style={{ background: "var(--gk-brand-gradient)" }}
-                    >
-                      {isLoggedIn ? "Send Quote Request" : "Send — secure your free @handle to deliver"}
-                    </Button>
-                    {!isLoggedIn && (
-                      <Text size="xs" c="dimmed" ta="center">
-                        Your message is saved — we'll deliver it right after you sign up (free).
-                      </Text>
-                    )}
-                  </Stack>
-                </Card>
-              </div>
             )}
 
             {/* Krafts */}
@@ -638,6 +522,89 @@ export function ProPublicProfilePage() {
           <Text size="sm" style={{ color: "#000" }}>Powered by gigKraft.com</Text>
         </Group>
       </Box>
+
+      {/* Floating "Request a Quote" button */}
+      {pro && !submitSuccess && (
+        <Box style={{ position: "fixed", bottom: 28, right: 28, zIndex: 200 }}>
+          <Button
+            leftSection={<IconSend size={16} />}
+            radius="xl"
+            size="md"
+            onClick={() => setQuoteFormOpen(true)}
+            style={{
+              background: "var(--gk-brand-gradient)",
+              boxShadow: "0 4px 24px color-mix(in srgb, var(--gk-accent-primary) 45%, transparent)",
+            }}
+          >
+            Request a Quote
+          </Button>
+        </Box>
+      )}
+
+      {/* Quote request form modal */}
+      <Modal
+        opened={quoteFormOpen}
+        onClose={() => setQuoteFormOpen(false)}
+        title={<Text fw={700} style={{ color: "var(--gk-accent-primary)" }}>Request a Quote from {pro?.name}</Text>}
+        size="md"
+      >
+        <Stack gap="sm">
+          <TextInput
+            label="What do you need done?"
+            placeholder="e.g. Fix leaky faucet"
+            value={draftTitle}
+            onChange={(e) => setDraftTitle(e.currentTarget.value)}
+            size="sm"
+          />
+          <Textarea
+            label="Details"
+            placeholder="Location, scope, any other info…"
+            value={draftText}
+            onChange={(e) => setDraftText(e.currentTarget.value)}
+            minRows={3}
+            maxRows={6}
+            autosize
+            size="sm"
+          />
+          <SimpleGrid cols={2} spacing="sm">
+            <Select
+              label="Budget"
+              placeholder="Estimated budget"
+              data={BUDGET_OPTIONS}
+              value={draftBudget}
+              onChange={setDraftBudget}
+              size="sm"
+              clearable
+            />
+            <Select
+              label="Timeline"
+              placeholder="When do you need it?"
+              data={TIMELINE_OPTIONS}
+              value={draftTimeline}
+              onChange={setDraftTimeline}
+              size="sm"
+              clearable
+            />
+          </SimpleGrid>
+          {submitError && <Alert color="red" variant="light">{submitError}</Alert>}
+          <Button
+            fullWidth
+            leftSection={isLoggedIn ? <IconSend size={15} /> : <IconLock size={15} />}
+            loading={submitting}
+            onClick={handleQuoteClick}
+            disabled={!draftTitle.trim()}
+            style={{ background: "var(--gk-brand-gradient)" }}
+            mt="xs"
+          >
+            {isLoggedIn ? "Send Quote Request" : "Continue — sign up to send"}
+          </Button>
+          {!isLoggedIn && (
+            <Text size="xs" c="dimmed" ta="center">
+              Free account — your message is saved and delivered instantly after signup.
+            </Text>
+          )}
+        </Stack>
+      </Modal>
 
       {/* § 1.2 Preservation Gate — auth modal triggered when anonymous user clicks Send */}
       <Modal
