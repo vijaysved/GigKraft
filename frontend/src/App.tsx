@@ -40,6 +40,7 @@ import { ProDashboardPage } from "./features/pro/ProDashboardPage";
 import { ProNetworkPage } from "./features/pro/ProNetworkPage";
 import { ProBillingPage } from "./features/pro/ProBillingPage";
 import { ProAccountPage } from "./features/pro/ProAccountPage";
+import { ProInboxPage } from "./features/pro/ProInboxPage";
 
 import { ProServiceAreaPage } from "./features/pro/ProServiceAreaPage";
 import { ProProfilePage } from "./features/pro/ProProfilePage";
@@ -130,14 +131,16 @@ export default function App() {
           </RequireAuth>
         }
       >
-        <Route index element={<Navigate to="/pro/reviews" replace />} />
+        <Route index element={<Navigate to="/pro/dashboard" replace />} />
+        <Route path="dashboard" element={<ProDashboardPage />} />
+        <Route path="inbox" element={<ProInboxPage />} />
+        <Route path="inbox/:leadId" element={<ProInboxPage />} />
         <Route path="reviews" element={<ProReviewsPage />} />
         <Route path="reviews/:id" element={<ProReviewsPage />} />
         <Route path="krafts" element={<ProKraftListPage />} />
         <Route path="krafts/new" element={<ProKraftEditorPage />} />
         <Route path="krafts/:id" element={<ProKraftEditorPage />} />
         <Route path="krafts/:id/preview" element={<KraftPublicPreviewPage />} />
-        <Route path="dashboard" element={<ProDashboardPage />} />
         <Route path="stats" element={<Navigate to="/pro/dashboard" replace />} />
         <Route path="network" element={<ProNetworkPage />} />
         <Route path="billing" element={<ProBillingPage />} />
@@ -145,6 +148,9 @@ export default function App() {
         <Route path="account" element={<ProAccountPage />} />
         <Route path="account/service-area" element={<ProServiceAreaPage />} />
         <Route path="account/profile" element={<ProProfilePage />} />
+        {/* Legacy leads routes — redirect to inbox */}
+        <Route path="leads" element={<Navigate to="/pro/inbox" replace />} />
+        <Route path="leads/:id" element={<Navigate to="/pro/inbox" replace />} />
       </Route>
 
       {/* Pro onboarding — outside ProShell (full-bleed wallpaper) */}

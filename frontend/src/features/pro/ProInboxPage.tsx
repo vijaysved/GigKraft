@@ -9,19 +9,29 @@ import {
   Divider,
   Group,
   Loader,
+  Modal,
+  NumberInput,
   ScrollArea,
   Stack,
   Tabs,
   Text,
+  TextInput,
   Textarea,
   Title,
+  Tooltip,
 } from "@mantine/core";
 import {
   IconArchive,
+  IconArrowLeft,
   IconCheck,
+  IconCircleCheck,
+  IconFileInvoice,
   IconLock,
+  IconPlus,
   IconReceiptDollar,
   IconSend,
+  IconTrash,
+  IconX,
 } from "@tabler/icons-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -30,12 +40,15 @@ import {
   type InboxLead,
   type InboxMessage,
   type InboxQuote,
-  acceptQuote,
+  type InboxQuoteLineItem,
+  acceptRequest,
   archiveLead,
+  completeLead,
   getLead,
   listLeadMessages,
   listLeads,
   sendLeadMessage,
+  sendLeadQuote,
 } from "../../api/endpoints";
 import { GkEmptyState } from "../../components/GkEmptyState";
 
@@ -54,6 +67,7 @@ function RoleBadge({ role }: { role: string }) {
   );
 }
 
+// ── Thread tab labels ─────────────────────────────────────────────────────────
 type TabKey = "lead" | "chat" | "request";
 const TABS: { key: TabKey; label: string }[] = [
   { key: "lead",    label: "Leads / Quotes" },
@@ -61,6 +75,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "request", label: "Requests" },
 ];
 
+// ── Relative time ─────────────────────────────────────────────────────────────
 function relTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const m = Math.floor(diff / 60000);
@@ -71,26 +86,8 @@ function relTime(iso: string): string {
   return `${Math.floor(h / 24)}d`;
 }
 
-// ── Rich Quote Card ───────────────────────────────────────────────────────────
-function QuoteCard({
-  quote,
-  onAccept,
-}: {
-  quote: InboxQuote;
-  onAccept?: (id: number) => void;
-}) {
-  const [accepting, setAccepting] = useState(false);
-
-  async function handleAccept() {
-    if (!onAccept) return;
-    setAccepting(true);
-    try {
-      onAccept(quote.id);
-    } finally {
-      setAccepting(false);
-    }
-  }
-
+// ── Rich Quote Card (locked display) ─────────────────────────────────────────
+function QuoteCard({ quote, onAccept }: { quote: InboxQuote; onAccept?: (id: number) => void }) {
   return (
     <Card
       withBorder
@@ -128,20 +125,100 @@ function QuoteCard({
             ${quote.total.toLocaleString()}
           </Text>
         </Group>
-        {!quote.accepted && !quote.is_invoice && onAccept && (
-          <Button
-            size="xs"
-            color="green"
-            fullWidth
-            loading={accepting}
-            onClick={() => void handleAccept()}
-            leftSection={<IconCheck size={12} />}
-          >
-            Accept Quote
-          </Button>
-        )}
       </Stack>
     </Card>
+  );
+}
+
+// ── Send Quote modal ──────────────────────────────────────────────────────────
+function SendQuoteModal({
+  opened,
+  onClose,
+  onSend,
+  isInvoice,
+}: {
+  opened: boolean;
+  onClose: () => void;
+  onSend: (items: InboxQuoteLineItem[], isInvoice: boolean) => Promise<void>;
+  isInvoice: boolean;
+}) {
+  const [items, setItems] = useState<{ label: string; amount: number }[]>([{ label: "", amount: 0 }]);
+  const [sending, setSending] = useState(false);
+  const total = items.reduce((s, i) => s + (i.amount || 0), 0);
+
+  function updateItem(index: number, field: "label" | "amount", value: string | number) {
+    setItems((prev) => prev.map((it, i) => i === index ? { ...it, [field]: value } : it));
+  }
+  function addItem() { setItems((p) => [...p, { label: "", amount: 0 }]); }
+  function removeItem(i: number) { setItems((p) => p.filter((_, idx) => idx !== i)); }
+
+  async function handleSend() {
+    const valid = items.filter((it) => it.label.trim() && it.amount > 0);
+    if (!valid.length) return;
+    setSending(true);
+    try {
+      await onSend(valid, isInvoice);
+      setItems([{ label: "", amount: 0 }]);
+      onClose();
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <Modal
+      opened={opened}
+      onClose={onClose}
+      title={isInvoice ? "Send Invoice" : "Send Quote"}
+      size="md"
+    >
+      <Stack gap="sm">
+        <Stack gap="xs">
+          {items.map((item, i) => (
+            <Group key={i} gap="xs" wrap="nowrap">
+              <TextInput
+                placeholder="Line item description"
+                value={item.label}
+                onChange={(e) => updateItem(i, "label", e.currentTarget.value)}
+                style={{ flex: 2 }}
+                size="sm"
+              />
+              <NumberInput
+                placeholder="0"
+                value={item.amount}
+                onChange={(v) => updateItem(i, "amount", Number(v) || 0)}
+                prefix="$"
+                min={0}
+                size="sm"
+                style={{ flex: 1 }}
+              />
+              {items.length > 1 && (
+                <ActionIcon size="sm" variant="subtle" color="red" onClick={() => removeItem(i)}>
+                  <IconTrash size={13} />
+                </ActionIcon>
+              )}
+            </Group>
+          ))}
+        </Stack>
+        <Button size="xs" variant="light" leftSection={<IconPlus size={12} />} onClick={addItem} w="fit-content">
+          Add line
+        </Button>
+        <Divider />
+        <Group justify="space-between">
+          <Text size="sm" fw={700}>Total</Text>
+          <Text size="sm" fw={700} style={{ color: "var(--gk-accent-secondary)" }}>${total.toLocaleString()}</Text>
+        </Group>
+        <Button
+          fullWidth
+          onClick={() => void handleSend()}
+          loading={sending}
+          disabled={!items.some((it) => it.label.trim() && it.amount > 0)}
+          leftSection={isInvoice ? <IconFileInvoice size={15} /> : <IconReceiptDollar size={15} />}
+        >
+          {isInvoice ? "Send Invoice" : "Send Quote"}
+        </Button>
+      </Stack>
+    </Modal>
   );
 }
 
@@ -150,13 +227,16 @@ function ThreadRow({
   lead,
   active,
   onClick,
+  isPro,
 }: {
   lead: InboxLead;
   active: boolean;
   onClick: () => void;
+  isPro: boolean;
 }) {
-  const other = lead.pro;
-  const isSingleLocked = lead.thread_type === "lead" && lead.status === "active";
+  const other = isPro ? lead.homeowner : lead.pro;
+  const isLocked =
+    lead.thread_type === "request" && !lead.request_accepted && !isPro;
 
   return (
     <Box
@@ -177,10 +257,10 @@ function ThreadRow({
         <Stack gap={2} style={{ flex: 1, minWidth: 0 }}>
           <Group gap={4} wrap="nowrap">
             <Text size="sm" fw={active ? 700 : 600} truncate style={{ maxWidth: 130 }}>
-              {other?.name ?? "Pro"}
+              {other?.name ?? "Unknown"}
             </Text>
             {other && <RoleBadge role={other.role} />}
-            {isSingleLocked && <IconLock size={11} color="var(--gk-text-muted)" />}
+            {isLocked && <IconLock size={11} color="var(--gk-text-muted)" />}
           </Group>
           <Text size="xs" fw={500} truncate style={{ color: "var(--gk-accent-primary)" }}>
             {lead.job_title}
@@ -200,7 +280,7 @@ function ThreadRow({
   );
 }
 
-// ── Chat pane (HO) ────────────────────────────────────────────────────────────
+// ── Chat pane ─────────────────────────────────────────────────────────────────
 function ChatPane({
   lead,
   onUpdate,
@@ -212,26 +292,20 @@ function ChatPane({
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [quoteModalOpen, setQuoteModalOpen] = useState(false);
+  const [invoiceModalOpen, setInvoiceModalOpen] = useState(false);
+  const [accepting, setAccepting] = useState(false);
+  const [completing, setCompleting] = useState(false);
   const [archiving, setArchiving] = useState(false);
   const lastIdRef = useRef(0);
   const bottomRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const other = lead.pro;
+  const other = lead.homeowner;
+  const isRequest = lead.thread_type === "request";
+  const isAccepted = lead.request_accepted;
   const isArchived = lead.status === "archived";
   const isWon = lead.status === "won";
-  const isRequest = lead.thread_type === "request";
-
-  // § Single-message lock: in a lead thread, HO cannot send after their first
-  // message until the PRO responds (first_response_at is tracked server-side;
-  // client infers by checking if any sent message exists and status is still active).
-  const hasSentMessage = messages.some((m) => m.is_mine);
-  const proHasResponded = messages.some((m) => !m.is_mine);
-  const singleMessageLocked =
-    lead.thread_type === "lead" &&
-    lead.status === "active" &&
-    hasSentMessage &&
-    !proHasResponded;
 
   const loadMessages = useCallback(async () => {
     try {
@@ -246,7 +320,7 @@ function ChatPane({
         });
       }
     } catch {
-      // polling
+      // polling — silently ignore transient errors
     }
   }, [lead.id]);
 
@@ -279,10 +353,31 @@ function ChatPane({
     }
   }
 
-  async function handleAcceptQuote(quoteId: number) {
-    const updated_quote = await acceptQuote(quoteId);
+  async function handleSendQuote(items: InboxQuoteLineItem[], isInvoice: boolean) {
+    await sendLeadQuote(lead.id, items, isInvoice);
     const updated = await getLead(lead.id);
     onUpdate(updated);
+    await loadMessages();
+  }
+
+  async function handleAcceptRequest() {
+    setAccepting(true);
+    try {
+      const updated = await acceptRequest(lead.id);
+      onUpdate(updated);
+    } finally {
+      setAccepting(false);
+    }
+  }
+
+  async function handleComplete() {
+    setCompleting(true);
+    try {
+      const updated = await completeLead(lead.id);
+      onUpdate(updated);
+    } finally {
+      setCompleting(false);
+    }
   }
 
   async function handleArchive() {
@@ -295,7 +390,7 @@ function ChatPane({
     }
   }
 
-  // Map quote-system messages to Rich Quote Cards
+  // Collect inline quotes to show as Rich Quote Cards in the stream
   const quoteByBody: Map<string, InboxQuote> = new Map();
   for (const q of lead.quotes) {
     const label = q.is_invoice ? "invoice" : "quote";
@@ -303,7 +398,7 @@ function ChatPane({
     quoteByBody.set(key, q);
   }
 
-  const canChat = !isArchived && !isWon && !singleMessageLocked;
+  const canChat = !isArchived && !isWon && (!isRequest || isAccepted);
 
   return (
     <Stack h="100%" gap={0} style={{ minHeight: 0 }}>
@@ -311,13 +406,13 @@ function ChatPane({
       <Box p="md" style={{ borderBottom: "1px solid var(--gk-border)", background: "var(--gk-bg-surface)" }}>
         <Group justify="space-between" wrap="nowrap">
           <Group gap="sm" wrap="nowrap">
-            <Avatar size={40} src={other?.avatar_url || undefined} radius="xl" color="blue">
-              {!other?.avatar_url && (other?.name?.[0]?.toUpperCase() ?? "P")}
+            <Avatar size={40} src={other.avatar_url || undefined} radius="xl" color="blue">
+              {!other.avatar_url && other.name[0]?.toUpperCase()}
             </Avatar>
             <Stack gap={2}>
               <Group gap={6}>
-                <Text fw={700}>{other?.name ?? "Pro"}</Text>
-                {other && <RoleBadge role={other.role} />}
+                <Text fw={700}>{other.name}</Text>
+                <RoleBadge role={other.role} />
                 {(isWon || isArchived) && (
                   <Badge size="xs" color={isWon ? "green" : "gray"} variant="outline">
                     {isWon ? "Complete" : "Archived"}
@@ -329,25 +424,63 @@ function ChatPane({
               </Text>
             </Stack>
           </Group>
-          {!isArchived && !isWon && (
-            <ActionIcon size="sm" variant="light" color="gray" loading={archiving} onClick={() => void handleArchive()}>
-              <IconArchive size={14} />
-            </ActionIcon>
-          )}
+
+          {/* PRO action bar */}
+          <Group gap="xs">
+            {isRequest && !isAccepted && (
+              <Button
+                size="xs"
+                color="blue"
+                leftSection={<IconCheck size={13} />}
+                loading={accepting}
+                onClick={() => void handleAcceptRequest()}
+              >
+                Accept Request
+              </Button>
+            )}
+            {canChat && lead.thread_type === "lead" && (
+              <>
+                <Tooltip label="Send Quote" withArrow>
+                  <ActionIcon size="sm" variant="light" color="blue" onClick={() => setQuoteModalOpen(true)}>
+                    <IconReceiptDollar size={14} />
+                  </ActionIcon>
+                </Tooltip>
+                <Tooltip label="Send Invoice" withArrow>
+                  <ActionIcon size="sm" variant="light" color="orange" onClick={() => setInvoiceModalOpen(true)}>
+                    <IconFileInvoice size={14} />
+                  </ActionIcon>
+                </Tooltip>
+                {!isWon && (
+                  <Tooltip label="Mark Complete" withArrow>
+                    <ActionIcon size="sm" variant="light" color="green" loading={completing} onClick={() => void handleComplete()}>
+                      <IconCircleCheck size={14} />
+                    </ActionIcon>
+                  </Tooltip>
+                )}
+              </>
+            )}
+            {!isArchived && !isWon && (
+              <Tooltip label="Archive" withArrow>
+                <ActionIcon size="sm" variant="light" color="gray" loading={archiving} onClick={() => void handleArchive()}>
+                  <IconArchive size={14} />
+                </ActionIcon>
+              </Tooltip>
+            )}
+          </Group>
         </Group>
       </Box>
 
-      {/* Single-message lock banner */}
-      {singleMessageLocked && (
+      {/* Request quarantine banner — no read receipts shown until accepted */}
+      {isRequest && !isAccepted && (
         <Alert
           variant="light"
-          color="blue"
+          color="yellow"
           icon={<IconLock size={15} />}
           style={{ borderRadius: 0, borderBottom: "1px solid var(--gk-border)" }}
           p="sm"
         >
           <Text size="xs">
-            Your message was sent. You can send another once the pro responds — this keeps the conversation quality high for everyone.
+            This is an unsolicited request. Accept it to start the conversation — the sender will not see read receipts until you do.
           </Text>
         </Alert>
       )}
@@ -360,10 +493,7 @@ function ChatPane({
             if (quoteCard) {
               return (
                 <Box key={msg.id} style={{ display: "flex", justifyContent: msg.is_mine ? "flex-end" : "flex-start" }}>
-                  <QuoteCard
-                    quote={quoteCard}
-                    onAccept={!quoteCard.accepted && !quoteCard.is_invoice ? handleAcceptQuote : undefined}
-                  />
+                  <QuoteCard quote={quoteCard} />
                 </Box>
               );
             }
@@ -385,8 +515,8 @@ function ChatPane({
                   <Text size="sm">{msg.body}</Text>
                   <Group gap={4} mt={2}>
                     <Text size="xs" opacity={0.6}>{relTime(msg.created_at)}</Text>
-                    {/* Receipt quarantine: suppress read receipts for request threads */}
-                    {msg.is_mine && !isRequest && (
+                    {/* Receipt quarantine: hide read status for request threads until accepted */}
+                    {msg.is_mine && !(isRequest && !isAccepted) && (
                       <IconCheck size={10} style={{ opacity: 0.6 }} />
                     )}
                   </Group>
@@ -398,6 +528,7 @@ function ChatPane({
         </Stack>
       </ScrollArea>
 
+      {/* Input area */}
       {error && (
         <Alert color="red" variant="light" p="sm" onClose={() => setError(null)} withCloseButton>
           {error}
@@ -432,20 +563,33 @@ function ChatPane({
       ) : (
         <Box p="sm" style={{ borderTop: "1px solid var(--gk-border)", textAlign: "center" }}>
           <Text size="xs" c="dimmed">
-            {singleMessageLocked
-              ? "Waiting for the pro to reply…"
+            {isRequest && !isAccepted
+              ? "Accept this request to start chatting."
               : isArchived ? "This conversation is archived."
               : isWon ? "This job is complete."
               : ""}
           </Text>
         </Box>
       )}
+
+      <SendQuoteModal
+        opened={quoteModalOpen}
+        onClose={() => setQuoteModalOpen(false)}
+        onSend={handleSendQuote}
+        isInvoice={false}
+      />
+      <SendQuoteModal
+        opened={invoiceModalOpen}
+        onClose={() => setInvoiceModalOpen(false)}
+        onSend={handleSendQuote}
+        isInvoice={true}
+      />
     </Stack>
   );
 }
 
 // ── Main page ─────────────────────────────────────────────────────────────────
-export function HomeMessagesPage() {
+export function ProInboxPage() {
   const { leadId } = useParams<{ leadId?: string }>();
   const navigate = useNavigate();
 
@@ -453,6 +597,7 @@ export function HomeMessagesPage() {
   const [threads, setThreads] = useState<InboxLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<number | null>(leadId ? Number(leadId) : null);
+  const [mobileShowChat, setMobileShowChat] = useState(Boolean(leadId));
 
   useEffect(() => {
     void (async () => {
@@ -470,7 +615,8 @@ export function HomeMessagesPage() {
 
   function handleSelect(lead: InboxLead) {
     setSelectedId(lead.id);
-    navigate(`/home/messages/${lead.id}`, { replace: true });
+    setMobileShowChat(true);
+    navigate(`/pro/inbox/${lead.id}`, { replace: true });
   }
 
   function handleUpdate(updated: InboxLead) {
@@ -492,7 +638,7 @@ export function HomeMessagesPage() {
         padding={0}
         style={{ flex: 1, display: "flex", flexDirection: "row", minHeight: 0, overflow: "hidden" }}
       >
-        {/* Left pane */}
+        {/* Left pane — thread list */}
         <Box
           style={{
             width: 300,
@@ -503,9 +649,10 @@ export function HomeMessagesPage() {
             background: "var(--gk-bg-surface)",
           }}
         >
+          {/* Tabs */}
           <Tabs
             value={activeTab}
-            onChange={(v) => { if (v) { setActiveTab(v as TabKey); setSelectedId(null); } }}
+            onChange={(v) => { if (v) { setActiveTab(v as TabKey); setSelectedId(null); setMobileShowChat(false); } }}
             style={{ borderBottom: "1px solid var(--gk-border)" }}
           >
             <Tabs.List>
@@ -531,16 +678,17 @@ export function HomeMessagesPage() {
             </Tabs.List>
           </Tabs>
 
+          {/* Thread list */}
           <ScrollArea style={{ flex: 1 }} p="xs">
             {loading ? (
               <Stack align="center" pt="xl"><Loader size="sm" /></Stack>
             ) : threads.length === 0 ? (
               <GkEmptyState
-                title={`No ${activeTab === "lead" ? "quote requests" : activeTab + "s"} yet`}
+                title={`No ${activeTab === "lead" ? "leads" : activeTab + "s"} yet`}
                 description={
-                  activeTab === "lead" ? "Your quote requests to pros appear here."
+                  activeTab === "lead" ? "Quote requests from homeowners appear here."
                   : activeTab === "chat" ? "Direct conversations appear here."
-                  : "Messages from pros appear here."
+                  : "Unsolicited messages from new contacts appear here."
                 }
               />
             ) : (
@@ -551,6 +699,7 @@ export function HomeMessagesPage() {
                     lead={lead}
                     active={selectedId === lead.id}
                     onClick={() => handleSelect(lead)}
+                    isPro={true}
                   />
                 ))}
               </Stack>
@@ -558,13 +707,13 @@ export function HomeMessagesPage() {
           </ScrollArea>
         </Box>
 
-        {/* Right pane */}
+        {/* Right pane — chat */}
         <Box style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
           {selected ? (
             <ChatPane lead={selected} onUpdate={handleUpdate} />
           ) : (
             <Stack align="center" justify="center" h="100%" gap="sm">
-              <Title order={4} style={{ color: "var(--gk-accent-primary)" }}>Messages</Title>
+              <Title order={4} style={{ color: "var(--gk-accent-primary)" }}>Sovereign Inbox</Title>
               <Text size="sm" c="dimmed">Select a conversation to open it.</Text>
             </Stack>
           )}

@@ -15,6 +15,11 @@ class Lead(models.Model):
         LOST = "lost", "Lost"
         ARCHIVED = "archived", "Archived"
 
+    class ThreadType(models.TextChoices):
+        LEAD = "lead", "Lead / Quote"
+        CHAT = "chat", "Chat"
+        REQUEST = "request", "Request"
+
     node = models.ForeignKey(
         "nodes.Node", on_delete=models.PROTECT, related_name="leads"
     )
@@ -36,6 +41,10 @@ class Lead(models.Model):
     status = models.CharField(
         max_length=10, choices=Status.choices, default=Status.ACTIVE
     )
+    thread_type = models.CharField(
+        max_length=10, choices=ThreadType.choices, default=ThreadType.LEAD
+    )
+    request_accepted = models.BooleanField(default=False)
     # SLA: created_at + pro.response_hours, set on create (see set_respond_by).
     respond_by = models.DateTimeField(null=True, blank=True)
     first_response_at = models.DateTimeField(null=True, blank=True)

@@ -745,3 +745,141 @@ export async function deleteOutreachLog(logId: number): Promise<void> {
   if (response.status !== 204) throw new ApiError(response.status, "Failed to delete log.");
 }
 
+// ── Sovereign Inbox ────────────────────────────────────────────────────────────
+
+export interface InboxParty {
+  id: number;
+  name: string;
+  avatar_url: string;
+  role: string;
+}
+
+export interface InboxQuoteLineItem {
+  label: string;
+  amount: number;
+}
+
+export interface InboxQuote {
+  id: number;
+  lead_id: number;
+  line_items: InboxQuoteLineItem[];
+  total: number;
+  accepted: boolean;
+  is_invoice: boolean;
+  created_at: string;
+}
+
+export interface InboxMessage {
+  id: number;
+  lead_id: number;
+  sender_id: number;
+  sender_name: string;
+  sender_role: string;
+  is_mine: boolean;
+  body: string;
+  image_url: string;
+  created_at: string;
+}
+
+export interface InboxLead {
+  id: number;
+  job_title: string;
+  detail: string;
+  status: string;
+  thread_type: "lead" | "chat" | "request";
+  request_accepted: boolean;
+  distance_mi: number | null;
+  respond_by: string | null;
+  created_at: string;
+  homeowner: InboxParty;
+  pro: InboxParty | null;
+  last_message: string | null;
+  unread_hint: number;
+  quotes: InboxQuote[];
+}
+
+export interface CreateLeadPayload {
+  pro_id: number;
+  job_title: string;
+  detail?: string;
+  thread_type?: "lead" | "chat" | "request";
+}
+
+const LEADS_BASE = "/api/leads";
+
+export async function listLeads(params?: {
+  status?: string;
+  thread_type?: string;
+}): Promise<InboxLead[]> {
+  const q: Record<string, string> = {};
+  if (params?.status) q.status = params.status;
+  if (params?.thread_type) q.thread_type = params.thread_type;
+  const qs = Object.keys(q).length ? `?${new URLSearchParams(q).toString()}` : "";
+  const { data, response } = await (client.GET as never)(`${LEADS_BASE}${qs}`);
+  if (!data) throw new ApiError((response as Response).status, "Failed to load inbox.");
+  return data as InboxLead[];
+}
+
+export async function createLead(payload: CreateLeadPayload): Promise<InboxLead> {
+  const { data, error, response } = await (client.POST as never)(LEADS_BASE, { body: payload });
+  if (!data) throw new ApiError((response as Response).status, detailOf(error, "Failed to create conversation."));
+  return data as InboxLead;
+}
+
+export async function getLead(leadId: number): Promise<InboxLead> {
+  const { data, response } = await (client.GET as never)(`${LEADS_BASE}/${leadId}`);
+  if (!data) throw new ApiError((response as Response).status, "Lead not found.");
+  return data as InboxLead;
+}
+
+export async function listLeadMessages(leadId: number, since = 0): Promise<InboxMessage[]> {
+  const qs = since ? `?since=${since}` : "";
+  const { data, response } = await (client.GET as never)(`${LEADS_BASE}/${leadId}/messages${qs}`);
+  if (!data) throw new ApiError((response as Response).status, "Failed to load messages.");
+  return data as InboxMessage[];
+}
+
+export async function sendLeadMessage(leadId: number, body: string, imageUrl = ""): Promise<InboxMessage> {
+  const { data, error, response } = await (client.POST as never)(`${LEADS_BASE}/${leadId}/messages`, {
+    body: { body, image_url: imageUrl },
+  });
+  if (!data) throw new ApiError((response as Response).status, detailOf(error, "Failed to send message."));
+  return data as InboxMessage;
+}
+
+export async function sendLeadQuote(
+  leadId: number,
+  lineItems: InboxQuoteLineItem[],
+  isInvoice = false,
+): Promise<InboxQuote> {
+  const { data, error, response } = await (client.POST as never)(`${LEADS_BASE}/${leadId}/quotes`, {
+    body: { line_items: lineItems, is_invoice: isInvoice },
+  });
+  if (!data) throw new ApiError((response as Response).status, detailOf(error, "Failed to send quote."));
+  return data as InboxQuote;
+}
+
+export async function acceptQuote(quoteId: number): Promise<InboxQuote> {
+  const { data, error, response } = await (client.POST as never)(`${LEADS_BASE}/quotes/${quoteId}/accept`);
+  if (!data) throw new ApiError((response as Response).status, detailOf(error, "Failed to accept quote."));
+  return data as InboxQuote;
+}
+
+export async function archiveLead(leadId: number): Promise<InboxLead> {
+  const { data, response } = await (client.POST as never)(`${LEADS_BASE}/${leadId}/archive`);
+  if (!data) throw new ApiError((response as Response).status, "Failed to archive.");
+  return data as InboxLead;
+}
+
+export async function completeLead(leadId: number): Promise<InboxLead> {
+  const { data, response } = await (client.POST as never)(`${LEADS_BASE}/${leadId}/complete`);
+  if (!data) throw new ApiError((response as Response).status, "Failed to mark complete.");
+  return data as InboxLead;
+}
+
+export async function acceptRequest(leadId: number): Promise<InboxLead> {
+  const { data, error, response } = await (client.POST as never)(`${LEADS_BASE}/${leadId}/accept-request`);
+  if (!data) throw new ApiError((response as Response).status, detailOf(error, "Failed to accept request."));
+  return data as InboxLead;
+}
+

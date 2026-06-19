@@ -10,29 +10,40 @@ import {
   Divider,
   Group,
   Loader,
+  Modal,
+  Select,
   SimpleGrid,
   Stack,
   Text,
+  TextInput,
+  Textarea,
   Title,
   Tooltip,
 } from "@mantine/core";
 import {
   IconBrandWhatsapp,
   IconLink,
+  IconLock,
   IconMail,
   IconMapPin,
   IconMessage,
+  IconSend,
   IconStars,
 } from "@tabler/icons-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
-import { getKraftsByPro, getProByHandle, trackKraftClick, trackKraftImpression, trackProfileView, trackProPageView, type KraftPublicOut, type ProOut } from "../../api/endpoints";
+import { createLead, getKraftsByPro, getProByHandle, trackKraftClick, trackKraftImpression, trackProfileView, trackProPageView, type KraftPublicOut, type ProOut } from "../../api/endpoints";
 import { useAuth } from "../../auth/AuthContext";
 import { GkLogo } from "../../brand/GkLogo";
 import { GoogleSignInButton } from "../../components/GoogleSignInButton";
 import { KraftCard } from "../../components/KraftCard";
 import { ReviewsSection } from "../../components/ReviewsSection";
+
+const BUDGET_OPTIONS = [
+  "Under $500", "$500 – $1,000", "$1,000 – $3,000", "$3,000 – $10,000", "$10,000+", "Not sure yet",
+];
+const TIMELINE_OPTIONS = ["ASAP", "Within a week", "This month", "Within 3 months", "Just exploring"];
 
 const WALLPAPERS = [
   "url('/brand/gigkraft-wallpaper.png') center/cover no-repeat",
@@ -90,10 +101,23 @@ export function ProPublicProfilePage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [krafts, setKrafts] = useState<KraftPublicOut[]>([]);
-  const [googleError, setGoogleError] = useState<string | null>(null);
 
   const isLoggedIn = status === "authenticated";
   const profileUrl = window.location.href;
+
+  // ── § 1.1 Anonymous Draft Hook ─────────────────────────────────────────────
+  // Draft preserved in a ref so it survives the auth modal lifecycle.
+  const draftRef = useRef("");
+  const [draftText, setDraftText] = useState("");
+  const [draftTitle, setDraftTitle] = useState("");
+  const [draftBudget, setDraftBudget] = useState<string | null>(null);
+  const [draftTimeline, setDraftTimeline] = useState<string | null>(null);
+  const [authGateOpen, setAuthGateOpen] = useState(false);
+  const [quoteFormOpen, setQuoteFormOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [googleError, setGoogleError] = useState<string | null>(null);
   // Inject OG meta tags so sharing picks up name / avatar / description
   useEffect(() => {
     if (!pro) return;
@@ -187,6 +211,54 @@ export function ProPublicProfilePage() {
       })
       .catch(() => { setNotFound(true); setLoading(false); });
   }, [handle]);
+
+  // § 1.2 Preservation Gate — called when unauthenticated user hits Send
+  function handleQuoteClick() {
+    if (!draftTitle.trim() && !draftText.trim()) {
+      setQuoteFormOpen(true);
+      return;
+    }
+    if (!isLoggedIn) {
+      // Preserve the draft in the ref before triggering the auth modal
+      draftRef.current = draftText;
+      setAuthGateOpen(true);
+      return;
+    }
+    void submitQuote();
+  }
+
+  // § 1.3 Post-Signup Execution — call after auth completes with preserved draft
+  async function submitQuote() {
+    if (!pro) return;
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      const detail = [
+        draftTitle ? `Project: ${draftTitle}` : null,
+        draftText || null,
+        draftBudget ? `Budget: ${draftBudget}` : null,
+        draftTimeline ? `Timeline: ${draftTimeline}` : null,
+      ].filter(Boolean).join("\n");
+      await createLead({
+        pro_id: pro.id,
+        job_title: draftTitle || "Quote Request",
+        detail,
+        thread_type: "lead",
+      });
+      setSubmitSuccess(true);
+      setDraftTitle("");
+      setDraftText("");
+      setDraftBudget(null);
+      setDraftTimeline(null);
+      draftRef.current = "";
+      setQuoteFormOpen(false);
+      navigate("/home/messages");
+    } catch (e) {
+      setSubmitError(e instanceof Error ? e.message : "Failed to send request.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   async function handleShare() {
     const shareData = {
@@ -424,6 +496,80 @@ export function ProPublicProfilePage() {
             </Card>
             </div>
 
+            {/* ── § 1.1 Request a Quote — anonymous draft hook ── */}
+            {submitSuccess ? (
+              <Alert color="green" variant="light" title="Request sent!">
+                Your quote request was delivered. Check your <Link to="/home/messages">Messages</Link> for the conversation.
+              </Alert>
+            ) : (
+              <div style={{
+                borderRadius: 18,
+                padding: 3,
+                background: "var(--gk-brand-gradient)",
+                boxShadow: "0 4px 20px color-mix(in srgb, var(--gk-accent-primary) 18%, transparent)",
+              }}>
+                <Card radius="lg" padding="lg" style={{ background: "var(--gk-bg-surface)" }}>
+                  <Stack gap="sm">
+                    <Group gap="xs">
+                      <IconSend size={18} color="var(--gk-accent-primary)" />
+                      <Text fw={700} size="md" style={{ color: "var(--gk-accent-primary)" }}>
+                        Request a Quote from {pro.name}
+                      </Text>
+                    </Group>
+                    <TextInput
+                      placeholder="What do you need done? (e.g. Fix leaky faucet)"
+                      value={draftTitle}
+                      onChange={(e) => setDraftTitle(e.currentTarget.value)}
+                      size="sm"
+                    />
+                    <Textarea
+                      placeholder="Add details — location, scope, any photos needed…"
+                      value={draftText}
+                      onChange={(e) => setDraftText(e.currentTarget.value)}
+                      minRows={2}
+                      maxRows={5}
+                      autosize
+                      size="sm"
+                    />
+                    <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
+                      <Select
+                        placeholder="Estimated budget"
+                        data={BUDGET_OPTIONS}
+                        value={draftBudget}
+                        onChange={setDraftBudget}
+                        size="sm"
+                        clearable
+                      />
+                      <Select
+                        placeholder="Timeline"
+                        data={TIMELINE_OPTIONS}
+                        value={draftTimeline}
+                        onChange={setDraftTimeline}
+                        size="sm"
+                        clearable
+                      />
+                    </SimpleGrid>
+                    {submitError && <Alert color="red" variant="light">{submitError}</Alert>}
+                    <Button
+                      fullWidth
+                      leftSection={isLoggedIn ? <IconSend size={15} /> : <IconLock size={15} />}
+                      loading={submitting}
+                      onClick={handleQuoteClick}
+                      disabled={!draftTitle.trim()}
+                      style={{ background: "var(--gk-brand-gradient)" }}
+                    >
+                      {isLoggedIn ? "Send Quote Request" : "Send — secure your free @handle to deliver"}
+                    </Button>
+                    {!isLoggedIn && (
+                      <Text size="xs" c="dimmed" ta="center">
+                        Your message is saved — we'll deliver it right after you sign up (free).
+                      </Text>
+                    )}
+                  </Stack>
+                </Card>
+              </div>
+            )}
+
             {/* Krafts */}
             {krafts.length > 0 && (
               <Stack gap="sm">
@@ -492,6 +638,48 @@ export function ProPublicProfilePage() {
           <Text size="sm" style={{ color: "#000" }}>Powered by gigKraft.com</Text>
         </Group>
       </Box>
+
+      {/* § 1.2 Preservation Gate — auth modal triggered when anonymous user clicks Send */}
+      <Modal
+        opened={authGateOpen}
+        onClose={() => setAuthGateOpen(false)}
+        title="Secure your free @handle to send"
+        size="sm"
+      >
+        <Stack gap="sm">
+          <Alert variant="light" color="blue" icon={<IconLock size={15} />}>
+            Your message is saved. Create your free account and it will be delivered instantly.
+          </Alert>
+          <Text size="sm" c="dimmed">
+            Quote request: <strong>{draftTitle || "(no title)"}</strong>
+          </Text>
+          {googleError && <Text size="xs" c="red">{googleError}</Text>}
+          <GoogleSignInButton
+            label="signup_with"
+            fullWidth
+            onSuccess={async (idToken) => {
+              await loginWithGoogle(idToken, "homeowner");
+              setAuthGateOpen(false);
+              // § 1.3 Post-Signup Execution — deliver the cached draft
+              await submitQuote();
+            }}
+            onError={setGoogleError}
+          />
+          <Divider label="or" labelPosition="center" />
+          <Button
+            variant="light"
+            fullWidth
+            component={Link}
+            to={`/register?next=${encodeURIComponent(window.location.pathname)}`}
+          >
+            Create account with email
+          </Button>
+          <Text size="xs" c="dimmed" ta="center">
+            Already have an account?{" "}
+            <Link to={`/login?next=${encodeURIComponent(window.location.pathname)}`}>Sign in</Link>
+          </Text>
+        </Stack>
+      </Modal>
     </Box>
   );
 }

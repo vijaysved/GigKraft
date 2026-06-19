@@ -1,7 +1,20 @@
-"""Lead + chat + quote endpoints (screens 1.9, 1.10, 2.4).
+"""Lead + chat + quote endpoints.
 
 Realtime is polling-based: clients poll the messages endpoint with
-`?since=<message id>`."""
+`?since=<message id>`.
+
+Thread types:
+  lead    — homeowner-initiated quote request (default)
+  chat    — peer-to-peer networking / general message
+  request — unsolicited: HO typed handle directly, no prior contact
+
+Abuse controls enforced here:
+  § Global lead cap  — HO may have at most 3 active unaccepted leads at once.
+  § Single-message lock — In a `lead` thread, the HO may not send follow-up
+    messages until the PRO has responded (first_response_at is set).
+  § Receipt quarantine — `request` threads: request_accepted=False is exposed
+    to the frontend; read-receipt display is suppressed client-side.
+"""
 from typing import Optional
 
 from django.utils import timezone
@@ -17,6 +30,8 @@ from nodes.models import Node
 
 router = Router(tags=["leads"], auth=jwt_auth)
 
+ACTIVE_LEAD_CAP = 3
+
 
 class ErrorOut(Schema):
     detail: str
@@ -26,6 +41,7 @@ class PartyOut(Schema):
     id: int
     name: str
     avatar_url: str
+    role: str
 
 
 class QuoteLineItem(Schema):
@@ -48,6 +64,7 @@ class MessageOut(Schema):
     lead_id: int
     sender_id: int
     sender_name: str
+    sender_role: str
     is_mine: bool
     body: str
     image_url: str
@@ -59,6 +76,8 @@ class LeadOut(Schema):
     job_title: str
     detail: str
     status: str
+    thread_type: str
+    request_accepted: bool
     distance_mi: Optional[float]
     respond_by: Optional[str]
     created_at: str
@@ -73,6 +92,7 @@ class LeadCreateIn(Schema):
     pro_id: int
     job_title: str
     detail: str = ""
+    thread_type: str = "lead"
 
 
 class MessageIn(Schema):
@@ -87,7 +107,12 @@ class QuoteIn(Schema):
 
 def _party(user: User, avatar_url: str = "") -> dict:
     name = f"{user.first_name} {user.last_name}".strip() or str(user)
-    return {"id": user.id, "name": name, "avatar_url": avatar_url}
+    return {
+        "id": user.id,
+        "name": name,
+        "avatar_url": avatar_url,
+        "role": user.role,
+    }
 
 
 def serialize_quote(quote: Quote) -> dict:
@@ -110,6 +135,8 @@ def serialize_lead(lead: Lead, viewer: User) -> dict:
         "job_title": lead.job_title,
         "detail": lead.detail,
         "status": lead.status,
+        "thread_type": lead.thread_type,
+        "request_accepted": lead.request_accepted,
         "distance_mi": float(lead.distance_mi) if lead.distance_mi else None,
         "respond_by": lead.respond_by.isoformat() if lead.respond_by else None,
         "created_at": lead.created_at.isoformat(),
@@ -119,8 +146,7 @@ def serialize_lead(lead: Lead, viewer: User) -> dict:
                 getattr(lead.homeowner, "homeowner_profile", None),
                 "avatar_url",
                 "",
-            )
-            or "",
+            ) or "",
         ),
         "pro": _party(lead.pro.user, lead.pro.avatar_url) if lead.pro else None,
         "last_message": (last.body or "[photo]") if last else None,
@@ -139,6 +165,7 @@ def serialize_message(message: Message, viewer: User) -> dict:
         "lead_id": message.lead_id,
         "sender_id": message.sender_id,
         "sender_name": sender_name,
+        "sender_role": message.sender.role,
         "is_mine": message.sender_id == viewer.id,
         "body": message.body,
         "image_url": message.image_url,
@@ -163,7 +190,7 @@ def _lead_for_viewer(request, lead_id: int) -> Lead:
 
 
 @router.get("", response=list[LeadOut])
-def list_leads(request, status: Optional[str] = None):
+def list_leads(request, status: Optional[str] = None, thread_type: Optional[str] = None):
     """Role-aware list: pros see their leads, homeowners see theirs."""
     user = request.auth
     if user.role == User.Role.PRO:
@@ -174,16 +201,39 @@ def list_leads(request, status: Optional[str] = None):
     if status:
         statuses = [s for s in status.split(",") if s]
         leads = leads.filter(status__in=statuses)
-    leads = leads.select_related("homeowner", "pro", "pro__user")
+    if thread_type:
+        types = [t for t in thread_type.split(",") if t]
+        leads = leads.filter(thread_type__in=types)
+    leads = leads.select_related("homeowner", "pro", "pro__user").prefetch_related("quotes", "messages")
     return [serialize_lead(lead, user) for lead in leads[:100]]
 
 
 @router.post("", response={201: LeadOut, 400: ErrorOut})
 def create_lead(request, payload: LeadCreateIn):
-    """Homeowner requests a quote from a pro (screen 2.2 footer).
+    """Homeowner requests a quote from a pro.
 
-    Sets respond_by = created_at + pro.response_hours (the SLA timer)."""
+    Enforces § global lead cap: HO may not have more than ACTIVE_LEAD_CAP
+    active unaccepted `lead`-type threads simultaneously."""
     homeowner_profile = require_homeowner(request)
+
+    if payload.thread_type not in ("lead", "chat", "request"):
+        return 400, {"detail": "Invalid thread_type."}
+
+    # § Global lead cap: max 3 active unaccepted lead threads
+    if payload.thread_type == "lead":
+        active_count = Lead.objects.filter(
+            homeowner=request.auth,
+            thread_type="lead",
+            status__in=["active", "quoted"],
+        ).count()
+        if active_count >= ACTIVE_LEAD_CAP:
+            return 400, {
+                "detail": (
+                    f"You already have {ACTIVE_LEAD_CAP} active quote requests. "
+                    "Archive or wait for a response on an existing one before sending another."
+                )
+            }
+
     pro = ProProfile.objects.filter(pk=payload.pro_id).first()
     if pro is None:
         return 400, {"detail": "Unknown pro."}
@@ -196,12 +246,13 @@ def create_lead(request, payload: LeadCreateIn):
         pro=pro,
         job_title=payload.job_title,
         detail=payload.detail,
+        thread_type=payload.thread_type,
     )
     lead.set_respond_by()
     lead.save(update_fields=["respond_by"])
     if payload.detail:
         Message.objects.create(lead=lead, sender=request.auth, body=payload.detail)
-    notify.notify_user(pro.user, f"New lead: {lead.job_title}")
+    notify.notify_user(pro.user, f"New {'quote request' if payload.thread_type == 'lead' else 'message'}: {lead.job_title}")
     return 201, serialize_lead(lead, request.auth)
 
 
@@ -221,31 +272,57 @@ def list_messages(request, lead_id: int, since: int = 0):
     return [serialize_message(m, request.auth) for m in messages[:200]]
 
 
-@router.post("/{lead_id}/messages", response={201: MessageOut, 400: ErrorOut})
+@router.post("/{lead_id}/messages", response={201: MessageOut, 400: ErrorOut, 423: ErrorOut})
 def send_message(request, lead_id: int, payload: MessageIn):
     lead = _lead_for_viewer(request, lead_id)
+    user = request.auth
     if not payload.body and not payload.image_url:
         return 400, {"detail": "Message needs a body or an image."}
+
+    is_homeowner = lead.homeowner_id == user.id
+    is_pro = lead.pro is not None and lead.pro.user_id == user.id
+
+    # § Single-message lock: HO cannot send a 2nd message in a `lead` thread
+    # until the PRO has responded (first_response_at is set).
+    if is_homeowner and lead.thread_type == "lead" and lead.first_response_at is None:
+        already_sent = lead.messages.filter(sender=user).exists()
+        if already_sent:
+            return 423, {
+                "detail": "Waiting for the pro to respond before you can send another message."
+            }
+
     message = Message.objects.create(
         lead=lead,
-        sender=request.auth,
+        sender=user,
         body=payload.body,
         image_url=payload.image_url,
     )
-    # First pro response stops the SLA clock.
-    if (
-        lead.pro is not None
-        and lead.pro.user_id == request.auth.id
-        and lead.first_response_at is None
-    ):
+    # First pro response stops the SLA clock and lifts the HO lock.
+    if is_pro and lead.first_response_at is None:
         lead.first_response_at = timezone.now()
         lead.save(update_fields=["first_response_at"])
     return 201, serialize_message(message, request.auth)
 
 
+@router.post("/{lead_id}/accept-request", response={200: LeadOut, 400: ErrorOut})
+def accept_request(request, lead_id: int):
+    """PRO accepts a thread classified as `request`, moving it to active chat.
+
+    Until accepted: sender does not receive read receipts (enforced client-side).
+    """
+    require_pro(request)
+    lead = _lead_for_viewer(request, lead_id)
+    if lead.thread_type != "request":
+        return 400, {"detail": "Only 'request' threads can be accepted."}
+    lead.request_accepted = True
+    lead.save(update_fields=["request_accepted"])
+    notify.notify_user(lead.homeowner, f"Your message to {lead.pro.user.first_name or 'the pro'} was accepted.")
+    return 200, serialize_lead(lead, request.auth)
+
+
 @router.post("/{lead_id}/quotes", response={201: QuoteOut, 400: ErrorOut})
 def send_quote(request, lead_id: int, payload: QuoteIn):
-    """Pro sends a quote (or invoice) into the chat (screen 1.10)."""
+    """Pro sends a quote (or invoice) into the chat."""
     require_pro(request)
     lead = _lead_for_viewer(request, lead_id)
     if not payload.line_items:
@@ -272,7 +349,7 @@ def send_quote(request, lead_id: int, payload: QuoteIn):
 
 @router.post("/quotes/{quote_id}/accept", response={200: QuoteOut, 404: ErrorOut})
 def accept_quote(request, quote_id: int):
-    """Homeowner accepts a quote (screen 2.4)."""
+    """Homeowner accepts a quote."""
     require_homeowner(request)
     quote = Quote.objects.filter(pk=quote_id).select_related("lead").first()
     if quote is None or quote.lead.homeowner_id != request.auth.id:
@@ -290,7 +367,7 @@ def accept_quote(request, quote_id: int):
 
 @router.post("/{lead_id}/complete", response=LeadOut)
 def mark_complete(request, lead_id: int):
-    """Pro marks the job complete -> lead won (screen 1.10 quick action)."""
+    """Pro marks the job complete."""
     require_pro(request)
     lead = _lead_for_viewer(request, lead_id)
     lead.status = Lead.Status.WON
