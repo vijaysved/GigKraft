@@ -165,14 +165,12 @@ function MyPerformanceTab() {
   const [range, setRange] = useState<Range>("30d");
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);
-    setError(null);
     getProDashboard(range)
       .then(setData)
-      .catch(() => setError("Failed to load dashboard data."))
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [range]);
 
@@ -284,14 +282,12 @@ function MarketTab() {
   const [range, setRange] = useState<Range>("30d");
   const [data, setData] = useState<MarketData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);
-    setError(null);
     getProMarket(range)
       .then(setData)
-      .catch(() => setError("Failed to load market data."))
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [range]);
 
