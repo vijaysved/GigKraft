@@ -414,8 +414,12 @@ export function ProDashboardPage() {
         color="var(--gk-accent-primary)"
       >
         <Tabs.List style={{ borderColor: "var(--gk-accent-primary)", borderBottomWidth: 2 }}>
-          <Tabs.Tab value="performance">My Performance</Tabs.Tab>
-          <Tabs.Tab value="market">Market & Comparison</Tabs.Tab>
+          <Tabs.Tab value="performance" style={{ color: activeTab === "performance" ? "var(--gk-accent-primary)" : "var(--gk-accent-secondary)" }}>
+            My Performance
+          </Tabs.Tab>
+          <Tabs.Tab value="market" style={{ color: activeTab === "market" ? "var(--gk-accent-primary)" : "var(--gk-accent-secondary)" }}>
+            Market & Comparison
+          </Tabs.Tab>
         </Tabs.List>
 
         <Tabs.Panel value="performance" pt="lg">
