@@ -96,6 +96,12 @@ class LeadCreateIn(Schema):
     thread_type: str = "lead"
 
 
+class ComposeIn(Schema):
+    handle: str
+    body: str
+    subject: str = "Direct message"
+
+
 class MessageIn(Schema):
     body: str = ""
     image_url: str = ""
@@ -191,10 +197,15 @@ def _lead_for_viewer(request, lead_id: int) -> Lead:
 
 
 @router.get("", response=list[LeadOut])
-def list_leads(request, status: Optional[str] = None, thread_type: Optional[str] = None):
-    """Role-aware list: pros see their leads, homeowners see theirs."""
+def list_leads(request, status: Optional[str] = None, thread_type: Optional[str] = None, sent: bool = False):
+    """Role-aware list: pros see their leads, homeowners see theirs.
+
+    Pass ?sent=true to see threads initiated by the current user (homeowner slot),
+    regardless of role — powers the Sent tab in both inboxes."""
     user = request.auth
-    if user.role == User.Role.PRO:
+    if sent:
+        leads = Lead.objects.filter(homeowner=user)
+    elif user.role == User.Role.PRO:
         pro = require_pro(request)
         leads = Lead.objects.filter(pro=pro)
     else:
@@ -254,6 +265,40 @@ def create_lead(request, payload: LeadCreateIn):
     if payload.detail:
         Message.objects.create(lead=lead, sender=request.auth, body=payload.detail)
     notify.notify_user(pro.user, f"New {'quote request' if payload.thread_type == 'lead' else 'message'}: {lead.job_title}")
+    return 201, serialize_lead(lead, request.auth)
+
+
+@router.post("/compose", response={201: LeadOut, 400: ErrorOut})
+def compose_message(request, payload: ComposeIn):
+    """Start a new direct-message chat thread by addressing a pro @handle.
+
+    Any authenticated user (homeowner or pro) can compose. The sender occupies
+    the homeowner slot; the addressed pro occupies the pro slot. The thread is
+    classified as thread_type='chat' and appears in the receiver's Chats tab.
+    Senders can find it in their Sent tab via ?sent=true."""
+    handle = payload.handle.lstrip("@").lower().strip()
+    if not handle:
+        return 400, {"detail": "Handle cannot be empty."}
+    pro = ProProfile.objects.filter(handle__iexact=handle).select_related("user").first()
+    if pro is None:
+        return 400, {"detail": f"No pro found with handle @{handle}."}
+    if pro.user == request.auth:
+        return 400, {"detail": "You cannot send a message to yourself."}
+    node = pro.user.node or request.auth.node or Node.objects.first()
+    if node is None:
+        return 400, {"detail": "No node available."}
+    sender_name = f"{request.auth.first_name} {request.auth.last_name}".strip() or "Someone"
+    subject = payload.subject.strip() if payload.subject.strip() else f"Message from {sender_name}"
+    lead = Lead.objects.create(
+        node=node,
+        homeowner=request.auth,
+        pro=pro,
+        job_title=subject,
+        thread_type=Lead.ThreadType.CHAT,
+    )
+    if payload.body.strip():
+        Message.objects.create(lead=lead, sender=request.auth, body=payload.body.strip())
+    notify.notify_user(pro.user, f"New message from {sender_name}: {subject}")
     return 201, serialize_lead(lead, request.auth)
 
 

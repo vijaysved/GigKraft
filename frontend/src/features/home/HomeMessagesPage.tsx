@@ -9,16 +9,19 @@ import {
   Divider,
   Group,
   Loader,
+  Modal,
   ScrollArea,
   Stack,
   Tabs,
   Text,
+  TextInput,
   Textarea,
   Title,
 } from "@mantine/core";
 import {
   IconArchive,
   IconCheck,
+  IconEdit,
   IconLock,
   IconReceiptDollar,
   IconSend,
@@ -30,8 +33,10 @@ import {
   type InboxLead,
   type InboxMessage,
   type InboxQuote,
+  type ComposePayload,
   acceptQuote,
   archiveLead,
+  composeMessage,
   getLead,
   listLeadMessages,
   listLeads,
@@ -54,11 +59,12 @@ function RoleBadge({ role }: { role: string }) {
   );
 }
 
-type TabKey = "lead" | "chat" | "request";
+type TabKey = "lead" | "chat" | "request" | "sent";
 const TABS: { key: TabKey; label: string }[] = [
   { key: "lead",    label: "Leads / Quotes" },
   { key: "chat",    label: "Chats" },
   { key: "request", label: "Requests" },
+  { key: "sent",    label: "Sent" },
 ];
 
 function relTime(iso: string): string {
@@ -145,6 +151,83 @@ function QuoteCard({
   );
 }
 
+// ── Compose modal ─────────────────────────────────────────────────────────────
+function ComposeModal({
+  opened,
+  onClose,
+  onSent,
+}: {
+  opened: boolean;
+  onClose: () => void;
+  onSent: (lead: InboxLead) => void;
+}) {
+  const [handle, setHandle] = useState("");
+  const [body, setBody] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+
+  function handleClose() {
+    setHandle("");
+    setBody("");
+    setError(null);
+    onClose();
+  }
+
+  async function handleSend() {
+    const h = handle.trim().replace(/^@/, "");
+    const b = body.trim();
+    if (!h || !b) { setError("Both handle and message are required."); return; }
+    setSending(true);
+    setError(null);
+    try {
+      const payload: ComposePayload = { handle: h, body: b };
+      const lead = await composeMessage(payload);
+      handleClose();
+      onSent(lead);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to send.");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <Modal opened={opened} onClose={handleClose} title="New Message" size="md">
+      <Stack gap="sm">
+        <TextInput
+          label="To"
+          placeholder="@pro-handle"
+          value={handle}
+          onChange={(e) => setHandle(e.currentTarget.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); } }}
+          size="sm"
+        />
+        <Textarea
+          label="Message"
+          placeholder="Type your message…"
+          value={body}
+          onChange={(e) => setBody(e.currentTarget.value)}
+          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void handleSend(); } }}
+          autosize
+          minRows={3}
+          maxRows={8}
+          size="sm"
+        />
+        {error && <Alert color="red" variant="light" p="xs"><Text size="xs">{error}</Text></Alert>}
+        <Button
+          fullWidth
+          onClick={() => void handleSend()}
+          loading={sending}
+          disabled={!handle.trim() || !body.trim()}
+          leftSection={<IconSend size={15} />}
+        >
+          Send Message
+        </Button>
+      </Stack>
+    </Modal>
+  );
+}
+
 // ── Thread list row ───────────────────────────────────────────────────────────
 function ThreadRow({
   lead,
@@ -222,9 +305,6 @@ function ChatPane({
   const isWon = lead.status === "won";
   const isRequest = lead.thread_type === "request";
 
-  // § Single-message lock: in a lead thread, HO cannot send after their first
-  // message until the PRO responds (first_response_at is tracked server-side;
-  // client infers by checking if any sent message exists and status is still active).
   const hasSentMessage = messages.some((m) => m.is_mine);
   const proHasResponded = messages.some((m) => !m.is_mine);
   const singleMessageLocked =
@@ -295,7 +375,6 @@ function ChatPane({
     }
   }
 
-  // Map quote-system messages to Rich Quote Cards
   const quoteByBody: Map<string, InboxQuote> = new Map();
   for (const q of lead.quotes) {
     const label = q.is_invoice ? "invoice" : "quote";
@@ -385,7 +464,6 @@ function ChatPane({
                   <Text size="sm">{msg.body}</Text>
                   <Group gap={4} mt={2}>
                     <Text size="xs" opacity={0.6}>{relTime(msg.created_at)}</Text>
-                    {/* Receipt quarantine: suppress read receipts for request threads */}
                     {msg.is_mine && !isRequest && (
                       <IconCheck size={10} style={{ opacity: 0.6 }} />
                     )}
@@ -453,12 +531,15 @@ export function HomeMessagesPage() {
   const [threads, setThreads] = useState<InboxLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<number | null>(leadId ? Number(leadId) : null);
+  const [composeOpen, setComposeOpen] = useState(false);
 
   useEffect(() => {
     void (async () => {
       setLoading(true);
       try {
-        const data = await listLeads({ thread_type: activeTab });
+        const data = activeTab === "sent"
+          ? await listLeads({ sent: true })
+          : await listLeads({ thread_type: activeTab });
         setThreads(data);
       } finally {
         setLoading(false);
@@ -477,7 +558,14 @@ export function HomeMessagesPage() {
     setThreads((prev) => prev.map((t) => t.id === updated.id ? updated : t));
   }
 
-  const tabCounts: Record<TabKey, number> = { lead: 0, chat: 0, request: 0 };
+  function handleComposed(lead: InboxLead) {
+    setActiveTab("sent");
+    setThreads((prev) => [lead, ...prev.filter((t) => t.id !== lead.id)]);
+    setSelectedId(lead.id);
+    navigate(`/home/messages/${lead.id}`, { replace: true });
+  }
+
+  const tabCounts: Record<TabKey, number> = { lead: 0, chat: 0, request: 0, sent: 0 };
   for (const t of threads) {
     if (t.unread_hint > 0 && t.thread_type in tabCounts) {
       tabCounts[t.thread_type as TabKey]++;
@@ -503,6 +591,26 @@ export function HomeMessagesPage() {
             background: "var(--gk-bg-surface)",
           }}
         >
+          {/* Header row with Compose button */}
+          <Box
+            px="sm"
+            py="xs"
+            style={{ borderBottom: "1px solid var(--gk-border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}
+          >
+            <Text size="xs" fw={600} c="dimmed" style={{ textTransform: "uppercase", letterSpacing: "0.06em" }}>
+              Messages
+            </Text>
+            <ActionIcon
+              size="sm"
+              variant="light"
+              color="blue"
+              onClick={() => setComposeOpen(true)}
+              title="Compose new message"
+            >
+              <IconEdit size={14} />
+            </ActionIcon>
+          </Box>
+
           <Tabs
             value={activeTab}
             onChange={(v) => { if (v) { setActiveTab(v as TabKey); setSelectedId(null); } }}
@@ -517,7 +625,7 @@ export function HomeMessagesPage() {
                     fontSize: 11,
                     color: activeTab === key ? "var(--gk-accent-primary)" : "var(--gk-text-muted)",
                     fontWeight: activeTab === key ? 700 : 400,
-                    padding: "8px 10px",
+                    padding: "8px 8px",
                   }}
                   rightSection={
                     tabCounts[key] > 0 ? (
@@ -536,11 +644,17 @@ export function HomeMessagesPage() {
               <Stack align="center" pt="xl"><Loader size="sm" /></Stack>
             ) : threads.length === 0 ? (
               <GkEmptyState
-                title={`No ${activeTab === "lead" ? "quote requests" : activeTab + "s"} yet`}
+                title={
+                  activeTab === "lead" ? "No quote requests yet"
+                  : activeTab === "chat" ? "No chats yet"
+                  : activeTab === "request" ? "No requests yet"
+                  : "Nothing sent yet"
+                }
                 description={
                   activeTab === "lead" ? "Your quote requests to pros appear here."
                   : activeTab === "chat" ? "Direct conversations appear here."
-                  : "Messages from pros appear here."
+                  : activeTab === "request" ? "Messages from pros appear here."
+                  : "Messages you compose via the pencil icon appear here."
                 }
               />
             ) : (
@@ -566,10 +680,24 @@ export function HomeMessagesPage() {
             <Stack align="center" justify="center" h="100%" gap="sm">
               <Title order={4} style={{ color: "var(--gk-accent-primary)" }}>Messages</Title>
               <Text size="sm" c="dimmed">Select a conversation to open it.</Text>
+              <Button
+                size="xs"
+                variant="light"
+                leftSection={<IconEdit size={13} />}
+                onClick={() => setComposeOpen(true)}
+              >
+                Compose new message
+              </Button>
             </Stack>
           )}
         </Box>
       </Card>
+
+      <ComposeModal
+        opened={composeOpen}
+        onClose={() => setComposeOpen(false)}
+        onSent={handleComposed}
+      />
     </Stack>
   );
 }

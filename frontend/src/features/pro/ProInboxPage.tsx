@@ -24,6 +24,7 @@ import {
   IconArchive,
   IconCheck,
   IconCircleCheck,
+  IconEdit,
   IconFileInvoice,
   IconLock,
   IconPlus,
@@ -39,15 +40,18 @@ import {
   type InboxMessage,
   type InboxQuote,
   type InboxQuoteLineItem,
+  type ComposePayload,
   acceptRequest,
   archiveLead,
   completeLead,
+  composeMessage,
   getLead,
   listLeadMessages,
   listLeads,
   sendLeadMessage,
   sendLeadQuote,
 } from "../../api/endpoints";
+import { useAuth } from "../../auth/AuthContext";
 import { GkEmptyState } from "../../components/GkEmptyState";
 
 // ── Role badge ────────────────────────────────────────────────────────────────
@@ -66,11 +70,12 @@ function RoleBadge({ role }: { role: string }) {
 }
 
 // ── Thread tab labels ─────────────────────────────────────────────────────────
-type TabKey = "lead" | "chat" | "request";
+type TabKey = "lead" | "chat" | "request" | "sent";
 const TABS: { key: TabKey; label: string }[] = [
   { key: "lead",    label: "Leads / Quotes" },
   { key: "chat",    label: "Chats" },
   { key: "request", label: "Requests" },
+  { key: "sent",    label: "Sent" },
 ];
 
 // ── Relative time ─────────────────────────────────────────────────────────────
@@ -220,21 +225,98 @@ function SendQuoteModal({
   );
 }
 
+// ── Compose modal ─────────────────────────────────────────────────────────────
+function ComposeModal({
+  opened,
+  onClose,
+  onSent,
+}: {
+  opened: boolean;
+  onClose: () => void;
+  onSent: (lead: InboxLead) => void;
+}) {
+  const [handle, setHandle] = useState("");
+  const [body, setBody] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+
+  function handleClose() {
+    setHandle("");
+    setBody("");
+    setError(null);
+    onClose();
+  }
+
+  async function handleSend() {
+    const h = handle.trim().replace(/^@/, "");
+    const b = body.trim();
+    if (!h || !b) { setError("Both handle and message are required."); return; }
+    setSending(true);
+    setError(null);
+    try {
+      const payload: ComposePayload = { handle: h, body: b };
+      const lead = await composeMessage(payload);
+      handleClose();
+      onSent(lead);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to send.");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <Modal opened={opened} onClose={handleClose} title="New Message" size="md">
+      <Stack gap="sm">
+        <TextInput
+          label="To"
+          placeholder="@pro-handle"
+          value={handle}
+          onChange={(e) => setHandle(e.currentTarget.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); } }}
+          size="sm"
+        />
+        <Textarea
+          label="Message"
+          placeholder="Type your message…"
+          value={body}
+          onChange={(e) => setBody(e.currentTarget.value)}
+          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void handleSend(); } }}
+          autosize
+          minRows={3}
+          maxRows={8}
+          size="sm"
+        />
+        {error && <Alert color="red" variant="light" p="xs"><Text size="xs">{error}</Text></Alert>}
+        <Button
+          fullWidth
+          onClick={() => void handleSend()}
+          loading={sending}
+          disabled={!handle.trim() || !body.trim()}
+          leftSection={<IconSend size={15} />}
+        >
+          Send Message
+        </Button>
+      </Stack>
+    </Modal>
+  );
+}
+
 // ── Thread list row ───────────────────────────────────────────────────────────
 function ThreadRow({
   lead,
   active,
   onClick,
-  isPro,
+  currentUserId,
 }: {
   lead: InboxLead;
   active: boolean;
   onClick: () => void;
-  isPro: boolean;
+  currentUserId: number;
 }) {
-  const other = isPro ? lead.homeowner : lead.pro;
+  const other = lead.homeowner.id === currentUserId ? lead.pro : lead.homeowner;
   const isLocked =
-    lead.thread_type === "request" && !lead.request_accepted && !isPro;
+    lead.thread_type === "request" && !lead.request_accepted && lead.homeowner.id !== currentUserId;
 
   return (
     <Box
@@ -282,9 +364,11 @@ function ThreadRow({
 function ChatPane({
   lead,
   onUpdate,
+  currentUserId,
 }: {
   lead: InboxLead;
   onUpdate: (updated: InboxLead) => void;
+  currentUserId: number;
 }) {
   const [messages, setMessages] = useState<InboxMessage[]>([]);
   const [draft, setDraft] = useState("");
@@ -299,7 +383,10 @@ function ChatPane({
   const bottomRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const other = lead.homeowner;
+  // Determine other party regardless of which slot current user occupies
+  const other = lead.homeowner.id === currentUserId ? lead.pro : lead.homeowner;
+  const viewerIsPro = lead.pro !== null && lead.pro.id !== lead.homeowner.id && lead.homeowner.id !== currentUserId;
+
   const isRequest = lead.thread_type === "request";
   const isAccepted = lead.request_accepted;
   const isArchived = lead.status === "archived";
@@ -404,13 +491,13 @@ function ChatPane({
       <Box p="md" style={{ borderBottom: "1px solid var(--gk-border)", background: "var(--gk-bg-surface)" }}>
         <Group justify="space-between" wrap="nowrap">
           <Group gap="sm" wrap="nowrap">
-            <Avatar size={40} src={other.avatar_url || undefined} radius="xl" color="blue">
-              {!other.avatar_url && other.name[0]?.toUpperCase()}
+            <Avatar size={40} src={other?.avatar_url || undefined} radius="xl" color="blue">
+              {!other?.avatar_url && (other?.name?.[0]?.toUpperCase() ?? "?")}
             </Avatar>
             <Stack gap={2}>
               <Group gap={6}>
-                <Text fw={700}>{other.name}</Text>
-                <RoleBadge role={other.role} />
+                <Text fw={700}>{other?.name ?? "Unknown"}</Text>
+                {other && <RoleBadge role={other.role} />}
                 {(isWon || isArchived) && (
                   <Badge size="xs" color={isWon ? "green" : "gray"} variant="outline">
                     {isWon ? "Complete" : "Archived"}
@@ -423,9 +510,9 @@ function ChatPane({
             </Stack>
           </Group>
 
-          {/* PRO action bar */}
+          {/* PRO action bar (only when viewer is in pro slot) */}
           <Group gap="xs">
-            {isRequest && !isAccepted && (
+            {viewerIsPro && isRequest && !isAccepted && (
               <Button
                 size="xs"
                 color="blue"
@@ -436,7 +523,7 @@ function ChatPane({
                 Accept Request
               </Button>
             )}
-            {canChat && lead.thread_type === "lead" && (
+            {viewerIsPro && canChat && lead.thread_type === "lead" && (
               <>
                 <Tooltip label="Send Quote" withArrow>
                   <ActionIcon size="sm" variant="light" color="blue" onClick={() => setQuoteModalOpen(true)}>
@@ -468,8 +555,8 @@ function ChatPane({
         </Group>
       </Box>
 
-      {/* Request quarantine banner — no read receipts shown until accepted */}
-      {isRequest && !isAccepted && (
+      {/* Request quarantine banner */}
+      {viewerIsPro && isRequest && !isAccepted && (
         <Alert
           variant="light"
           color="yellow"
@@ -513,7 +600,6 @@ function ChatPane({
                   <Text size="sm">{msg.body}</Text>
                   <Group gap={4} mt={2}>
                     <Text size="xs" opacity={0.6}>{relTime(msg.created_at)}</Text>
-                    {/* Receipt quarantine: hide read status for request threads until accepted */}
                     {msg.is_mine && !(isRequest && !isAccepted) && (
                       <IconCheck size={10} style={{ opacity: 0.6 }} />
                     )}
@@ -561,7 +647,7 @@ function ChatPane({
       ) : (
         <Box p="sm" style={{ borderTop: "1px solid var(--gk-border)", textAlign: "center" }}>
           <Text size="xs" c="dimmed">
-            {isRequest && !isAccepted
+            {viewerIsPro && isRequest && !isAccepted
               ? "Accept this request to start chatting."
               : isArchived ? "This conversation is archived."
               : isWon ? "This job is complete."
@@ -590,18 +676,23 @@ function ChatPane({
 export function ProInboxPage() {
   const { leadId } = useParams<{ leadId?: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const currentUserId = user?.id ?? 0;
 
   const [activeTab, setActiveTab] = useState<TabKey>("lead");
   const [threads, setThreads] = useState<InboxLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<number | null>(leadId ? Number(leadId) : null);
   const [, setMobileShowChat] = useState(Boolean(leadId));
+  const [composeOpen, setComposeOpen] = useState(false);
 
   useEffect(() => {
     void (async () => {
       setLoading(true);
       try {
-        const data = await listLeads({ thread_type: activeTab });
+        const data = activeTab === "sent"
+          ? await listLeads({ sent: true })
+          : await listLeads({ thread_type: activeTab });
         setThreads(data);
       } finally {
         setLoading(false);
@@ -621,7 +712,15 @@ export function ProInboxPage() {
     setThreads((prev) => prev.map((t) => t.id === updated.id ? updated : t));
   }
 
-  const tabCounts: Record<TabKey, number> = { lead: 0, chat: 0, request: 0 };
+  function handleComposed(lead: InboxLead) {
+    setActiveTab("sent");
+    setThreads((prev) => [lead, ...prev.filter((t) => t.id !== lead.id)]);
+    setSelectedId(lead.id);
+    setMobileShowChat(true);
+    navigate(`/pro/inbox/${lead.id}`, { replace: true });
+  }
+
+  const tabCounts: Record<TabKey, number> = { lead: 0, chat: 0, request: 0, sent: 0 };
   for (const t of threads) {
     if (t.unread_hint > 0 && t.thread_type in tabCounts) {
       tabCounts[t.thread_type as TabKey]++;
@@ -647,6 +746,27 @@ export function ProInboxPage() {
             background: "var(--gk-bg-surface)",
           }}
         >
+          {/* Header row with Compose button */}
+          <Box
+            px="sm"
+            py="xs"
+            style={{ borderBottom: "1px solid var(--gk-border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}
+          >
+            <Text size="xs" fw={600} c="dimmed" style={{ textTransform: "uppercase", letterSpacing: "0.06em" }}>
+              Inbox
+            </Text>
+            <Tooltip label="Compose new message" withArrow>
+              <ActionIcon
+                size="sm"
+                variant="light"
+                color="blue"
+                onClick={() => setComposeOpen(true)}
+              >
+                <IconEdit size={14} />
+              </ActionIcon>
+            </Tooltip>
+          </Box>
+
           {/* Tabs */}
           <Tabs
             value={activeTab}
@@ -662,7 +782,7 @@ export function ProInboxPage() {
                     fontSize: 11,
                     color: activeTab === key ? "var(--gk-accent-primary)" : "var(--gk-text-muted)",
                     fontWeight: activeTab === key ? 700 : 400,
-                    padding: "8px 10px",
+                    padding: "8px 8px",
                   }}
                   rightSection={
                     tabCounts[key] > 0 ? (
@@ -682,11 +802,17 @@ export function ProInboxPage() {
               <Stack align="center" pt="xl"><Loader size="sm" /></Stack>
             ) : threads.length === 0 ? (
               <GkEmptyState
-                title={`No ${activeTab === "lead" ? "leads" : activeTab + "s"} yet`}
+                title={
+                  activeTab === "lead" ? "No leads yet"
+                  : activeTab === "chat" ? "No chats yet"
+                  : activeTab === "request" ? "No requests yet"
+                  : "Nothing sent yet"
+                }
                 description={
                   activeTab === "lead" ? "Quote requests from homeowners appear here."
                   : activeTab === "chat" ? "Direct conversations appear here."
-                  : "Unsolicited messages from new contacts appear here."
+                  : activeTab === "request" ? "Unsolicited messages from new contacts appear here."
+                  : "Messages you compose via the pencil icon appear here."
                 }
               />
             ) : (
@@ -697,7 +823,7 @@ export function ProInboxPage() {
                     lead={lead}
                     active={selectedId === lead.id}
                     onClick={() => handleSelect(lead)}
-                    isPro={true}
+                    currentUserId={currentUserId}
                   />
                 ))}
               </Stack>
@@ -708,15 +834,29 @@ export function ProInboxPage() {
         {/* Right pane — chat */}
         <Box style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
           {selected ? (
-            <ChatPane lead={selected} onUpdate={handleUpdate} />
+            <ChatPane lead={selected} onUpdate={handleUpdate} currentUserId={currentUserId} />
           ) : (
             <Stack align="center" justify="center" h="100%" gap="sm">
               <Title order={4} style={{ color: "var(--gk-accent-primary)" }}>Sovereign Inbox</Title>
               <Text size="sm" c="dimmed">Select a conversation to open it.</Text>
+              <Button
+                size="xs"
+                variant="light"
+                leftSection={<IconEdit size={13} />}
+                onClick={() => setComposeOpen(true)}
+              >
+                Compose new message
+              </Button>
             </Stack>
           )}
         </Box>
       </Card>
+
+      <ComposeModal
+        opened={composeOpen}
+        onClose={() => setComposeOpen(false)}
+        onSent={handleComposed}
+      />
     </Stack>
   );
 }

@@ -834,14 +834,34 @@ const _post = client.POST as unknown as _Post;
 export async function listLeads(params?: {
   status?: string;
   thread_type?: string;
+  sent?: boolean;
 }): Promise<InboxLead[]> {
   const q: Record<string, string> = {};
   if (params?.status) q.status = params.status;
   if (params?.thread_type) q.thread_type = params.thread_type;
+  if (params?.sent) q.sent = "true";
   const qs = Object.keys(q).length ? `?${new URLSearchParams(q).toString()}` : "";
   const { data, response } = await _get(`${LEADS_BASE}${qs}`);
   if (!data) throw new ApiError(response.status, "Failed to load inbox.");
   return data as InboxLead[];
+}
+
+export interface ComposePayload {
+  handle: string;
+  body: string;
+  subject?: string;
+}
+
+export async function composeMessage(payload: ComposePayload): Promise<InboxLead> {
+  const { data, error, response } = await _post(`${LEADS_BASE}/compose`, {
+    body: {
+      handle: payload.handle.replace(/^@/, ""),
+      body: payload.body,
+      subject: payload.subject ?? "Direct message",
+    },
+  });
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to send message."));
+  return data as InboxLead;
 }
 
 export async function createLead(payload: CreateLeadPayload): Promise<InboxLead> {
