@@ -60,6 +60,18 @@ body {
 .kraft-description h2 { font-size: 1.05em; }
 .kraft-description h3 { font-size: 0.95em; }
 
+/* Hide interactive UI controls when printing / saving as PDF */
+@media print {
+  button,
+  [data-mantine-component="ActionIcon"],
+  [data-mantine-component="Button"],
+  [data-mantine-component="Tooltip"],
+  .mantine-ActionIcon-root,
+  .mantine-Button-root {
+    display: none !important;
+  }
+}
+
 /* ProseMirror editor — tight paragraph spacing */
 .ProseMirror { padding: 10px 12px; min-height: 140px; outline: none; }
 .ProseMirror p { margin: 0; line-height: 1.55; }

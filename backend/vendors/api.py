@@ -296,7 +296,7 @@ def bulk_send_intro(request, payload: BulkIntroIn):
 
 # ── Public tracking endpoint (no auth) ───────────────────────────────────────
 
-@public_router.post("/track-view")
+@public_router.post("/track-view", auth=None, response={200: dict})
 def track_page_view(request, payload: TrackViewIn):
     """Record a visit to /pros/{handle}. Called from the frontend on page load.
     If ref=GK-001 is provided, links the view to that prospect and updates last_seen.
