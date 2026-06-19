@@ -96,20 +96,20 @@ export function ProPublicProfilePage() {
       el.setAttribute("content", content);
     }
 
-    document.title = `${pro.name} · GigKraft`;
-    setMeta("og:title", `${pro.name} on GigKraft`);
-    setMeta("og:description", desc || "Verified pro on GigKraft");
+    document.title = `${pro.name} · gigKraft.com`;
+    setMeta("og:title", `${pro.name} on gigKraft.com`);
+    setMeta("og:description", desc || "Verified pro on gigKraft.com");
     setMeta("og:url", profileUrl);
     setMeta("og:type", "profile");
     if (pro.avatar_url) setMeta("og:image", pro.avatar_url);
 
-    return () => { document.title = "GigKraft"; };
+    return () => { document.title = "gigKraft.com"; };
   }, [pro, profileUrl]);
 
   function handleWhatsAppShare() {
     if (!pro) return;
     const lines = [
-      `👷 *${pro.name}* on GigKraft`,
+      `👷 *${pro.name}* on gigKraft.com`,
       pro.primary_trade ? `🔧 ${pro.primary_trade}` : null,
       pro.stats.recs_approved ? `⭐ ${pro.stats.recs_approved} recommendations` : null,
       pro.stats.avg_stars != null ? `📊 ${pro.stats.avg_stars.toFixed(1)} avg rating` : null,
@@ -217,8 +217,8 @@ export function ProPublicProfilePage() {
 
   async function handleShare() {
     const shareData = {
-      title: pro ? `${pro.name} on GigKraft` : "GigKraft Pro Profile",
-      text: pro ? `Check out ${pro.name}'s profile on GigKraft` : "Check out this pro on GigKraft",
+      title: pro ? `${pro.name} on gigKraft.com` : "gigKraft.com Pro Profile",
+      text: pro ? `Check out ${pro.name}'s profile on gigKraft.com` : "Check out this pro on gigKraft.com",
       url: profileUrl,
     };
     if (navigator.share && navigator.canShare?.(shareData)) {
@@ -243,7 +243,7 @@ export function ProPublicProfilePage() {
         {notFound && (
           <Alert color="red" title="Pro not found" mt="xl">
             No pro profile found for <strong>@{handle}</strong>.{" "}
-            <Link to="/register">Create an account</Link> to join GigKraft.
+            <Link to="/register">Create an account</Link> to join gigKraft.com.
           </Alert>
         )}
 
@@ -343,7 +343,7 @@ export function ProPublicProfilePage() {
                           <Stack gap={4}>
                             <Group gap={6}>
                               <IconMail size={14} color="var(--gk-accent-primary)" />
-                              <Text size="sm">{pro.email ?? "Contact via GigKraft"}</Text>
+                              <Text size="sm">{pro.email ?? "Contact via gigKraft.com"}</Text>
                             </Group>
                             <Group gap={6}>
                               <IconMessage size={14} color="var(--gk-accent-primary)" />

@@ -1,0 +1,151 @@
+/* ── GigKraft Marketing Theme ── */
+/* Orange-to-yellow gradient theme for all public marketing pages */
+
+.mk-page {
+  /* Override brand tokens inside marketing pages */
+  --gk-accent-primary: #FF6B1A;
+  --gk-accent-secondary: #FFBA00;
+  --gk-bg-canvas: #FFFAF5;
+  --gk-bg-sidebar: #1A0600;
+  --gk-text-sidebar: #fff8f2;
+  --gk-border: #F0E0D0;
+
+  /* Marketing-specific tokens */
+  --mk-gradient: linear-gradient(135deg, #C42200 0%, #E84500 18%, #FF6600 42%, #FF9100 68%, #FFBA00 88%, #FFD200 100%);
+  --mk-gradient-dark: linear-gradient(135deg, #150200 0%, #4A1200 40%, #7A2800 100%);
+  --mk-hero-text: #ffffff;
+  --mk-hero-muted: rgba(255, 255, 255, 0.82);
+  --mk-hero-badge-border: rgba(255, 255, 255, 0.5);
+  --mk-nav-border: rgba(255, 100, 0, 0.18);
+  --mk-blob-a: rgba(255, 210, 0, 0.32);
+  --mk-blob-b: rgba(160, 10, 0, 0.28);
+}
+
+/* ── Hero section ── */
+.mk-hero {
+  background: var(--mk-gradient);
+  position: relative;
+  overflow: hidden;
+  color: var(--mk-hero-text);
+}
+
+/* Top-right warm blob */
+.mk-hero::before {
+  content: "";
+  position: absolute;
+  top: -18%;
+  right: -8%;
+  width: 52%;
+  height: 80%;
+  background: var(--mk-blob-a);
+  border-radius: 61% 39% 67% 33% / 45% 52% 48% 55%;
+  filter: blur(60px);
+  pointer-events: none;
+}
+
+/* Bottom-left cool blob */
+.mk-hero::after {
+  content: "";
+  position: absolute;
+  bottom: -22%;
+  left: -6%;
+  width: 48%;
+  height: 70%;
+  background: var(--mk-blob-b);
+  border-radius: 43% 57% 40% 60% / 55% 45% 55% 45%;
+  filter: blur(72px);
+  pointer-events: none;
+}
+
+/* Raise hero content above pseudo-element blobs */
+.mk-hero-content {
+  position: relative;
+  z-index: 1;
+}
+
+/* Badge inside hero section */
+.mk-hero .mantine-Badge-root {
+  border-color: var(--mk-hero-badge-border) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* ── CTA band (gradient) ── */
+.mk-cta-band {
+  background: var(--mk-gradient);
+  color: var(--mk-hero-text);
+  position: relative;
+  overflow: hidden;
+}
+
+.mk-cta-band::before {
+  content: "";
+  position: absolute;
+  top: -30%;
+  right: -5%;
+  width: 40%;
+  height: 160%;
+  background: var(--mk-blob-a);
+  border-radius: 50% 50% 40% 60% / 60% 40% 60% 40%;
+  filter: blur(50px);
+  pointer-events: none;
+}
+
+/* ── Footer ── */
+.mk-footer {
+  background: var(--mk-gradient-dark) !important;
+  border-top: 1px solid rgba(255, 80, 0, 0.25) !important;
+  color: rgba(255, 255, 255, 0.88) !important;
+}
+
+.mk-footer .mantine-Text-root {
+  color: inherit !important;
+}
+
+.mk-footer-logo {
+  filter: brightness(0) invert(1);
+  opacity: 0.9;
+}
+
+.mk-footer-link {
+  color: rgba(255, 255, 255, 0.65) !important;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.mk-footer-link:hover {
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+
+.mk-footer-divider {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+/* ── Nav overrides inside mk-page ── */
+.mk-page header {
+  border-bottom-color: var(--mk-nav-border) !important;
+}
+
+/* ── Proof bar ── */
+.mk-proof-bar {
+  background: var(--mk-gradient-dark);
+  color: rgba(255, 255, 255, 0.88);
+}
+
+/* ── Macro / dark section ── */
+.mk-dark-section {
+  background: var(--mk-gradient-dark);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+/* ── Warm canvas for content sections ── */
+.mk-page .mantine-Card-root {
+  border-color: var(--gk-border);
+}
+
+/* Filled buttons in marketing content sections use the orange gradient.
+   Inline style overrides on hero/CTA buttons take natural precedence. */
+.mk-page .mantine-Button-root[data-variant="filled"] {
+  background: var(--mk-gradient);
+  color: #fff;
+  border: none;
+}

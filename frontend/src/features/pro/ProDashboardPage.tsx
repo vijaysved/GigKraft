@@ -383,7 +383,7 @@ function MarketTab() {
                   <Badge variant="outline" color="gray" size="lg">Coming Soon</Badge>
                   <Text size="sm" c="dimmed">
                     {data.market_share.pro_count} of {data.market_share.required_count} pros needed in your area to unlock benchmarks.
-                    Invite more pros to GigKraft to speed this up.
+                    Invite more pros to gigKraft.com to speed this up.
                   </Text>
                 </Stack>
               )}

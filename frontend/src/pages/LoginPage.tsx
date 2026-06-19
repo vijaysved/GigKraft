@@ -104,7 +104,7 @@ export function LoginPage() {
           <Group justify="center"><GkLogo height={40} /></Group>
           <Paper withBorder shadow="md" p="lg" radius="lg" bg="var(--gk-bg-surface)">
             <Stack align="center" gap="md">
-              <Title order={4}>Sign in to GigKraft</Title>
+              <Title order={4}>Sign in to gigKraft.com</Title>
               {error && <Alert color="red" variant="light" w="100%">{error}</Alert>}
               <GoogleSignInButton
                 label="signin_with"

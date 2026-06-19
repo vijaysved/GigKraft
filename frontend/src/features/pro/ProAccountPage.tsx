@@ -385,7 +385,7 @@ export function ProAccountPage() {
     setZipInput("");
   }
 
-  const recMessage = `Hi ${recName || "[Name]"}! ${displayName} is requesting a recommendation on GigKraft. It only takes a minute — visit gigkraft.com/review to share your experience.`;
+  const recMessage = `Hi ${recName || "[Name]"}! ${displayName} is requesting a recommendation on gigKraft.com. It only takes a minute — visit gigKraft.com/review to share your experience.`;
 
   async function exportToPDF() {
     if (exporting) return;
@@ -1000,7 +1000,7 @@ export function ProAccountPage() {
               )}
             </CopyButton>
             <Button variant="light" color="blue" leftSection={<IconMail size={15} />} style={{ flex: 1 }}
-              component="a" href={`mailto:${recContact}?subject=Recommendation request on GigKraft&body=${encodeURIComponent(recMessage)}`} target="_blank">
+              component="a" href={`mailto:${recContact}?subject=Recommendation request on gigKraft.com&body=${encodeURIComponent(recMessage)}`} target="_blank">
               Send email
             </Button>
             <Button variant="light" color="green" leftSection={<IconMessage size={15} />} style={{ flex: 1 }}
@@ -1017,7 +1017,7 @@ export function ProAccountPage() {
           <TextInput
             leftSection={<IconAt size={16} />} placeholder="john-smith"
             value={handleInput} onChange={(e) => setHandleInput(e.currentTarget.value)}
-            description={handleInput ? `gigkraft.com/pros/${handleSanitized}` : "3–30 characters"}
+            description={handleInput ? `gigKraft.com/pros/${handleSanitized}` : "3–30 characters"}
             error={handleInput && !handleValid ? "Must be 3–30 characters, letters/numbers/hyphens only" : undefined}
             rightSection={handleValid ? <IconCheck size={16} color="green" /> : undefined}
           />

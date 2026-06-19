@@ -2,13 +2,24 @@ import { Navigate, Route, Routes } from "react-router-dom";
 
 import { RequireAuth } from "./auth/RequireAuth";
 import { RequireRole } from "./auth/RequireRole";
-import { useAuth } from "./auth/AuthContext";
 
 // Layouts
 import { AdminShell } from "./layout/AdminShell";
 import { GkAdminShell } from "./layout/GkAdminShell";
 import { ProShell } from "./layout/ProShell";
 import { HomeShell } from "./layout/HomeShell";
+
+// Marketing site
+import { MarketingLayout } from "./components/marketing/MarketingLayout";
+import { HomePage } from "./pages/marketing/HomePage";
+import { ForProsPage } from "./pages/marketing/ForProsPage";
+import { ForClientsPage } from "./pages/marketing/ForClientsPage";
+import { TrustGraphPage } from "./pages/marketing/TrustGraphPage";
+import { EnterprisePage } from "./pages/marketing/EnterprisePage";
+import { PricingPage } from "./pages/marketing/PricingPage";
+import { AboutPage } from "./pages/marketing/AboutPage";
+import { CareersPage } from "./pages/marketing/CareersPage";
+import { ContactPage } from "./pages/marketing/ContactPage";
 
 // Public pages
 import { LoginPage } from "./pages/LoginPage";
@@ -55,30 +66,26 @@ import { HomeMessagesPage } from "./features/home/HomeMessagesPage";
 import { HomeAccountPage } from "./features/home/HomeAccountPage";
 import { HomeRecommendPage } from "./features/home/HomeRecommendPage";
 
-function RoleRedirect() {
-  const { user, status } = useAuth();
-  if (status === "loading") return null;
-  if (!user) return <Navigate to="/login" replace />;
-  const redirects: Record<string, string> = {
-    pro: "/pro/reviews",
-    homeowner: "/home/discover",
-    node_manager: "/admin/dashboard",
-    gk_admin: "/gk-admin/dashboard",
-  };
-  return <Navigate to={redirects[user.role] ?? "/admin/dashboard"} replace />;
-}
 
 export default function App() {
   return (
     <Routes>
-      {/* Public */}
+      {/* Marketing site (public) */}
+      <Route path="/" element={<MarketingLayout><HomePage /></MarketingLayout>} />
+      <Route path="/for-pros" element={<MarketingLayout><ForProsPage /></MarketingLayout>} />
+      <Route path="/for-homeowners" element={<MarketingLayout><ForClientsPage /></MarketingLayout>} />
+      <Route path="/trust-graph" element={<MarketingLayout><TrustGraphPage /></MarketingLayout>} />
+      <Route path="/enterprise" element={<MarketingLayout><EnterprisePage /></MarketingLayout>} />
+      <Route path="/pricing" element={<MarketingLayout><PricingPage /></MarketingLayout>} />
+      <Route path="/about" element={<MarketingLayout><AboutPage /></MarketingLayout>} />
+      <Route path="/careers" element={<MarketingLayout><CareersPage /></MarketingLayout>} />
+      <Route path="/contact" element={<MarketingLayout><ContactPage /></MarketingLayout>} />
+
+      {/* Public app pages */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/review/:handle/:token" element={<ReviewPage />} />
       <Route path="/pros/:id" element={<ProPublicProfilePage />} />
-
-      {/* Role-based root redirect */}
-      <Route path="/" element={<RequireAuth><RoleRedirect /></RequireAuth>} />
 
       {/* GK Admin (super-admin, cross-node) */}
       <Route

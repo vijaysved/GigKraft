@@ -17,7 +17,7 @@ export function AppLayout() {
     <AppShell header={{ height: 56 }} padding="md">
       <AppShell.Header>
         <Group h="100%" px="md" justify="space-between">
-          <Title order={4}>GigKraft</Title>
+          <Title order={4}>gigKraft.com</Title>
           <Group gap="sm">
             <ThemeSelector />
             {user && (

@@ -56,8 +56,8 @@ export function ProShell() {
   const avatarSrc = useProAvatar();
 
   useEffect(() => {
-    document.title = displayName !== "Pro" ? `${displayName} · gigkraft.com` : "GigKraft";
-    return () => { document.title = "GigKraft"; };
+    document.title = displayName !== "Pro" ? `${displayName} · gigKraft.com` : "gigKraft.com";
+    return () => { document.title = "gigKraft.com"; };
   }, [displayName]);
 
   return (

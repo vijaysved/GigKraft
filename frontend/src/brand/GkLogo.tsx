@@ -11,7 +11,7 @@ export function GkLogo({ height = 48, showTagline = false }: GkLogoProps) {
       <Box
         component="img"
         src="/brand/gigKraftLogo.png"
-        alt="GigKraft"
+        alt="gigKraft.com"
         h={height}
         w="auto"
         style={{ display: "block", objectFit: "contain" }}

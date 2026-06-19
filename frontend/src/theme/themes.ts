@@ -5,7 +5,8 @@ export type ThemeId =
   | "blueprint"
   | "warm_light"
   | "cool_light"
-  | "gigkraft_dark";
+  | "gigkraft_dark"
+  | "lime_n_orange";
 
 export interface ThemeBrandTokens {
   bgCanvas: string;
@@ -66,6 +67,12 @@ const plasmaBlue = mantineScale([
 const cyberGrapefruit = mantineScale([
   "#ffe8e8", "#ffc5c5", "#ff9d9d", "#ff7474", "#ff6060",
   "#FF4E4E", "#E03C3C", "#C12A2A", "#A31A1A", "#840A0A",
+]);
+
+// Lime n Orange — deep orange buttons
+const limeOrange = mantineScale([
+  "#FFF3E8", "#FFE0C0", "#FFCC9A", "#FFB370", "#FF9A46",
+  "#FF6B1A", "#E04F00", "#C03600", "#9A1F00", "#7A0A00",
 ]);
 
 const sharedBase: MantineThemeOverride = {
@@ -255,6 +262,36 @@ export const THEMES: Record<ThemeId, ThemeDefinition> = {
       primaryColor: "cyberGrapefruit",
       primaryShade: 5,
       colors: { cyberGrapefruit },
+    }),
+  },
+
+  lime_n_orange: {
+    id: "lime_n_orange",
+    label: "Lime n Orange",
+    tagline: "Warm canvas, burning gradient",
+    description: "Warm cream canvas with a burning red-to-gold gradient header and deep orange action buttons.",
+    colorScheme: "light",
+    swatchColors: ["#C42200", "#FF6B1A", "#FFBA00", "#1A0600", "#FFFAF5"],
+    brand: {
+      bgCanvas: "#FFFAF5",
+      bgSurface: "#FFFFFF",
+      bgSidebar: "#1A0600",
+      bgSidebarActive: "linear-gradient(135deg, #C42200 0%, #FF6600 50%, #FFBA00 100%)",
+      brandGradient: "linear-gradient(135deg, #C42200 0%, #E84500 18%, #FF6600 42%, #FF9100 68%, #FFBA00 88%, #FFD200 100%)",
+      accentPrimary: "#FF6B1A",
+      accentSecondary: "#FFBA00",
+      accentTertiary: "#C42200",
+      textOnSidebar: "#FFF8F2",
+      textMuted: "#9A6B4B",
+      border: "#F0E0D0",
+      cardHero: "#C42200",
+      useWallpaper: false,
+    },
+    theme: createTheme({
+      ...sharedBase,
+      primaryColor: "limeOrange",
+      primaryShade: 5,
+      colors: { limeOrange },
     }),
   },
 };

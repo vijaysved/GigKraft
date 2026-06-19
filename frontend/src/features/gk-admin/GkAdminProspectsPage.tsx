@@ -103,9 +103,9 @@ const SOURCE_OPTIONS = [
 
 const CHAT_TEMPLATES: Record<number, (p: Prospect) => string> = {
   1: (p) =>
-    `Hi ${p.name}! Noticed your excellent work on ${p.source}. I'm Vijay, admin for *GigKraft*—a local trust network for pros in ${p.primary_zip}. We build sovereign digital portfolios for independent contractors. No lead fees or hidden cuts—just your own verified link to show clients. It's *$24.99/mo* or *$249.99/yr* flat.\n\nIf you'd like to reserve your profile link, check it out here: ${buildSignupUrl(p)}`,
+    `Hi ${p.name}! Noticed your excellent work on ${p.source}. I'm Vijay, admin for *gigKraft.com*—a local trust network for pros in ${p.primary_zip}. We build sovereign digital portfolios for independent contractors. No lead fees or hidden cuts—just your own verified link to show clients. It's *$24.99/mo* or *$249.99/yr* flat.\n\nIf you'd like to reserve your profile link, check it out here: ${buildSignupUrl(p)}`,
   2: (p) =>
-    `Hey ${p.name}, just following up! Local pros are loving *GigKraft* because they fully own their reviews and portfolio link, bypassing unpredictable platform algorithms. Great for dropping directly into your WhatsApp groups or Nextdoor replies.\n\nSet up your verified local profile in 2 mins: ${buildSignupUrl(p)}`,
+    `Hey ${p.name}, just following up! Local pros are loving *gigKraft.com* because they fully own their reviews and portfolio link, bypassing unpredictable platform algorithms. Great for dropping directly into your WhatsApp groups or Nextdoor replies.\n\nSet up your verified local profile in 2 mins: ${buildSignupUrl(p)}`,
   3: (p) =>
     `Hi ${p.name}, closing out your pending invite for now so I don't bug you. If you ever want to stand out to nearby homeowners with a clean profile for *$24.99/mo*, you can unlock it anytime here: ${buildSignupUrl(p)}. Wish you all the best!`,
 };

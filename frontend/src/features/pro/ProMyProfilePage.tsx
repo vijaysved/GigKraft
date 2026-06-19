@@ -337,7 +337,7 @@ export function ProMyProfilePage() {
             placeholder="john-smith"
             value={handleInput}
             onChange={(e) => setHandleInput(e.currentTarget.value)}
-            description={handleInput ? `gigkraft.com/pros/${handleSanitized}` : "3–30 characters"}
+            description={handleInput ? `gigKraft.com/pros/${handleSanitized}` : "3–30 characters"}
             error={handleInput && !handleValid ? "Must be 3–30 characters, letters/numbers/hyphens only" : undefined}
             rightSection={handleValid ? <IconCheck size={16} color="green" /> : undefined}
           />

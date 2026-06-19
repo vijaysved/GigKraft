@@ -219,6 +219,31 @@ class KraftClick(models.Model):
         indexes = [models.Index(fields=["pro", "created_at"]), models.Index(fields=["kraft", "created_at"])]
 
 
+class WaitlistEntry(models.Model):
+    """Marketing site waitlist — captured via Google Sign-In on the public site."""
+
+    class UserType(models.TextChoices):
+        GENERAL = "general", "General"
+        PRO = "pro", "Pro"
+        ENTERPRISE = "enterprise", "Enterprise"
+
+    email = models.EmailField(unique=True)
+    name = models.CharField(max_length=200, blank=True, default="")
+    google_sub = models.CharField(max_length=200, blank=True, default="")
+    user_type = models.CharField(
+        max_length=20, choices=UserType.choices, default=UserType.GENERAL
+    )
+    zipcode = models.CharField(max_length=10, blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name_plural = "Waitlist entries"
+
+    def __str__(self):
+        return f"{self.email} ({self.user_type})"
+
+
 class NotificationPref(models.Model):
     """Dispatch alert toggles (screen 2.6)."""
 

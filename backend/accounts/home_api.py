@@ -1,10 +1,10 @@
-"""Homeowner account hub endpoints (screen 2.6) + notification prefs."""
+"""Homeowner account hub endpoints (screen 2.6) + notification prefs + public waitlist."""
 from typing import Optional
 
 from ninja import Router, Schema
 
 from accounts.auth import jwt_auth
-from accounts.models import Address, NotificationPref, ProProfile, SavedPro
+from accounts.models import Address, NotificationPref, ProProfile, SavedPro, WaitlistEntry
 from accounts.pros_api import ProOut, serialize_pro
 from common.permissions import require_homeowner
 from krafts.models import Kraft, KraftPhoto
@@ -13,6 +13,7 @@ from recommendations.models import Recommendation
 
 router = Router(tags=["home"], auth=jwt_auth)
 prefs_router = Router(tags=["me"], auth=jwt_auth)
+waitlist_router = Router(tags=["waitlist"])
 
 
 class ErrorOut(Schema):
@@ -306,3 +307,37 @@ def update_notif_prefs(request, payload: NotifPrefIn):
             setattr(pref, field, value)
     pref.save()
     return pref
+
+
+# ---------------------------------------------------------------------------
+# Public waitlist (no auth)
+# ---------------------------------------------------------------------------
+
+class WaitlistIn(Schema):
+    email: str
+    name: str = ""
+    google_sub: str = ""
+    user_type: str = "general"
+    zipcode: str = ""
+
+
+class WaitlistOut(Schema):
+    ok: bool
+    already_registered: bool = False
+
+
+@waitlist_router.post("/", response=WaitlistOut)
+def join_waitlist(request, data: WaitlistIn):
+    email = data.email.lower().strip()
+    if not email:
+        return WaitlistOut(ok=False)
+    _, created = WaitlistEntry.objects.get_or_create(
+        email=email,
+        defaults={
+            "name": data.name,
+            "google_sub": data.google_sub,
+            "user_type": data.user_type,
+            "zipcode": data.zipcode,
+        },
+    )
+    return WaitlistOut(ok=True, already_registered=not created)

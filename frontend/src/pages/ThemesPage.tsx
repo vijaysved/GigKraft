@@ -66,7 +66,7 @@ function AppShellPreview() {
             mb="lg"
             style={{ letterSpacing: 1 }}
           >
-            GigKraft
+            gigKraft.com
           </Text>
           <Stack gap={6}>
             {nav.map((item, i) => (

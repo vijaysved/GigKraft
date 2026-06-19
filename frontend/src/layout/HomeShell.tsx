@@ -48,8 +48,8 @@ export function HomeShell() {
   const displayName = [user?.first_name, user?.last_name].filter(Boolean).join(" ") || user?.email || user?.phone || "You";
 
   useEffect(() => {
-    document.title = displayName !== "You" ? `${displayName} · gigkraft.com` : "GigKraft";
-    return () => { document.title = "GigKraft"; };
+    document.title = displayName !== "You" ? `${displayName} · gigKraft.com` : "gigKraft.com";
+    return () => { document.title = "gigKraft.com"; };
   }, [displayName]);
 
   return (
