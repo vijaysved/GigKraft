@@ -367,3 +367,47 @@ def test_stripe_connection(request):
         return StripeConnectionOut(ok=False, mode=cfg.mode, account_id=None, account_name=None, error="Invalid API key.")
     except Exception as exc:
         return StripeConnectionOut(ok=False, mode=cfg.mode, account_id=None, account_name=None, error=str(exc))
+
+
+# ── Anonymous leads (captured inquiries) ──────────────────────────────────────
+
+class AnonLeadRow(Schema):
+    id: int
+    job_title: str
+    detail: str
+    status: str
+    pro_name: str
+    pro_handle: str
+    created_at: str
+
+
+@router.get("/anonymous-leads", response=List[AnonLeadRow])
+def list_anonymous_leads(request):
+    """All leads captured from anonymous visitors (not yet linked to a real HO account)."""
+    require_gk_admin(request)
+    try:
+        anon = User.objects.get(email="anonymous@gigkraft.internal")
+    except User.DoesNotExist:
+        return []
+    leads = (
+        Lead.objects.filter(homeowner=anon)
+        .select_related("pro", "pro__user")
+        .order_by("-created_at")[:200]
+    )
+    rows = []
+    for lead in leads:
+        pro_name = ""
+        pro_handle = ""
+        if lead.pro:
+            pro_name = f"{lead.pro.user.first_name} {lead.pro.user.last_name}".strip() or str(lead.pro.user)
+            pro_handle = lead.pro.handle or ""
+        rows.append({
+            "id": lead.id,
+            "job_title": lead.job_title,
+            "detail": lead.detail,
+            "status": lead.status,
+            "pro_name": pro_name,
+            "pro_handle": pro_handle,
+            "created_at": lead.created_at.isoformat(),
+        })
+    return rows

@@ -280,7 +280,7 @@ function ChatPane({
   }
 
   async function handleAcceptQuote(quoteId: number) {
-    const updated_quote = await acceptQuote(quoteId);
+    await acceptQuote(quoteId);
     const updated = await getLead(lead.id);
     onUpdate(updated);
   }

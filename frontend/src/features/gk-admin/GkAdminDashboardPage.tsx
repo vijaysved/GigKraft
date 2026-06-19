@@ -15,20 +15,27 @@ import { useEffect, useState } from "react";
 import {
   ApiError,
   getGkPlatformMetrics,
+  listAnonymousLeads,
+  type AnonLeadRow,
   type GkPlatformMetrics,
 } from "../../api/endpoints";
 import { GkStatTile } from "../../components/GkStatTile";
 
+function fmtDate(iso: string) {
+  return new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
 export function GkAdminDashboardPage() {
   const [metrics, setMetrics] = useState<GkPlatformMetrics | null>(null);
+  const [anonLeads, setAnonLeads] = useState<AnonLeadRow[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
       try {
-        const m = await getGkPlatformMetrics();
-        if (!cancelled) setMetrics(m);
+        const [m, al] = await Promise.all([getGkPlatformMetrics(), listAnonymousLeads()]);
+        if (!cancelled) { setMetrics(m); setAnonLeads(al); }
       } catch (err) {
         if (!cancelled) setError(err instanceof ApiError ? err.message : "Failed to load metrics.");
       }
@@ -69,6 +76,61 @@ export function GkAdminDashboardPage() {
       <SimpleGrid cols={{ base: 1, sm: 3 }}>
         <GkStatTile label="Open Infractions" value={metrics?.open_infractions} hint="Platform-wide safety flags" />
       </SimpleGrid>
+
+      {/* Anonymous captured leads */}
+      <Card withBorder radius="md" padding="lg">
+        <Stack>
+          <Group justify="space-between">
+            <Title order={4}>Anonymous Inquiries</Title>
+            <Badge color="orange" size="sm" variant="light">{anonLeads.length} captured</Badge>
+          </Group>
+          <Text size="xs" c="dimmed">
+            Visitors who filled the quote form but did not complete sign-up. The pro can already see these.
+          </Text>
+          <Table striped highlightOnHover>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th>Captured</Table.Th>
+                <Table.Th>Job</Table.Th>
+                <Table.Th>Detail</Table.Th>
+                <Table.Th>Pro</Table.Th>
+                <Table.Th>Status</Table.Th>
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
+              {anonLeads.length === 0 && (
+                <Table.Tr>
+                  <Table.Td colSpan={5}>
+                    <Text size="sm" c="dimmed">No anonymous inquiries yet.</Text>
+                  </Table.Td>
+                </Table.Tr>
+              )}
+              {anonLeads.map((al) => (
+                <Table.Tr key={al.id}>
+                  <Table.Td><Text size="xs" c="dimmed">{fmtDate(al.created_at)}</Text></Table.Td>
+                  <Table.Td><Text size="sm" fw={600}>{al.job_title}</Text></Table.Td>
+                  <Table.Td>
+                    <Text size="xs" c="dimmed" lineClamp={2} style={{ maxWidth: 260 }}>
+                      {al.detail || "—"}
+                    </Text>
+                  </Table.Td>
+                  <Table.Td>
+                    <Text size="sm">{al.pro_name}</Text>
+                    {al.pro_handle && (
+                      <Text size="xs" c="dimmed" style={{ fontFamily: "var(--mantine-font-family-monospace)" }}>
+                        @{al.pro_handle}
+                      </Text>
+                    )}
+                  </Table.Td>
+                  <Table.Td>
+                    <Badge size="xs" color="gray" variant="outline">{al.status}</Badge>
+                  </Table.Td>
+                </Table.Tr>
+              ))}
+            </Table.Tbody>
+          </Table>
+        </Stack>
+      </Card>
 
       {/* Nodes table */}
       <Card withBorder radius="md" padding="lg">

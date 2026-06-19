@@ -56,10 +56,9 @@ export function ProShell() {
   const avatarSrc = useProAvatar();
 
   useEffect(() => {
-    const handle = user?.pro_handle;
-    document.title = handle ? `@${handle} · gigkraft.com` : "GigKraft";
+    document.title = displayName !== "Pro" ? `${displayName} · gigkraft.com` : "GigKraft";
     return () => { document.title = "GigKraft"; };
-  }, [user?.pro_handle]);
+  }, [displayName]);
 
   return (
     <AppShell navbar={{ width: 240, breakpoint: "sm" }} padding="md">

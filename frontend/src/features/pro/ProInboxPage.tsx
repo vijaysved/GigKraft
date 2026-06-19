@@ -22,7 +22,6 @@ import {
 } from "@mantine/core";
 import {
   IconArchive,
-  IconArrowLeft,
   IconCheck,
   IconCircleCheck,
   IconFileInvoice,
@@ -31,7 +30,6 @@ import {
   IconReceiptDollar,
   IconSend,
   IconTrash,
-  IconX,
 } from "@tabler/icons-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -87,7 +85,7 @@ function relTime(iso: string): string {
 }
 
 // ── Rich Quote Card (locked display) ─────────────────────────────────────────
-function QuoteCard({ quote, onAccept }: { quote: InboxQuote; onAccept?: (id: number) => void }) {
+function QuoteCard({ quote }: { quote: InboxQuote; onAccept?: (id: number) => void }) {
   return (
     <Card
       withBorder
@@ -597,7 +595,7 @@ export function ProInboxPage() {
   const [threads, setThreads] = useState<InboxLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<number | null>(leadId ? Number(leadId) : null);
-  const [mobileShowChat, setMobileShowChat] = useState(Boolean(leadId));
+  const [, setMobileShowChat] = useState(Boolean(leadId));
 
   useEffect(() => {
     void (async () => {

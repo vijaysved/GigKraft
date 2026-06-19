@@ -400,6 +400,22 @@ export async function getGkNodes(): Promise<GkNodeSummary[]> {
   return data as GkNodeSummary[];
 }
 
+export interface AnonLeadRow {
+  id: number;
+  job_title: string;
+  detail: string;
+  status: string;
+  pro_name: string;
+  pro_handle: string;
+  created_at: string;
+}
+
+export async function listAnonymousLeads(): Promise<AnonLeadRow[]> {
+  const { data, error, response } = await client.GET("/api/gk-admin/anonymous-leads" as never);
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to load anonymous leads."));
+  return data as AnonLeadRow[];
+}
+
 // ---------- Prospects ----------
 
 export interface VendorContact {
@@ -807,6 +823,14 @@ export interface CreateLeadPayload {
 
 const LEADS_BASE = "/api/leads";
 
+// openapi-fetch client.GET/POST only accepts paths defined in the generated schema.
+// These helpers cast to a generic callable so the leads API (not in schema) can use
+// the same auth middleware without adding synthetic OpenAPI paths.
+type _Get = (path: string) => Promise<{ data?: unknown; response: Response }>;
+type _Post = (path: string, opts?: { body?: unknown }) => Promise<{ data?: unknown; error?: unknown; response: Response }>;
+const _get = client.GET as unknown as _Get;
+const _post = client.POST as unknown as _Post;
+
 export async function listLeads(params?: {
   status?: string;
   thread_type?: string;
@@ -815,35 +839,35 @@ export async function listLeads(params?: {
   if (params?.status) q.status = params.status;
   if (params?.thread_type) q.thread_type = params.thread_type;
   const qs = Object.keys(q).length ? `?${new URLSearchParams(q).toString()}` : "";
-  const { data, response } = await (client.GET as never)(`${LEADS_BASE}${qs}`);
-  if (!data) throw new ApiError((response as Response).status, "Failed to load inbox.");
+  const { data, response } = await _get(`${LEADS_BASE}${qs}`);
+  if (!data) throw new ApiError(response.status, "Failed to load inbox.");
   return data as InboxLead[];
 }
 
 export async function createLead(payload: CreateLeadPayload): Promise<InboxLead> {
-  const { data, error, response } = await (client.POST as never)(LEADS_BASE, { body: payload });
-  if (!data) throw new ApiError((response as Response).status, detailOf(error, "Failed to create conversation."));
+  const { data, error, response } = await _post(LEADS_BASE, { body: payload });
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to create conversation."));
   return data as InboxLead;
 }
 
 export async function getLead(leadId: number): Promise<InboxLead> {
-  const { data, response } = await (client.GET as never)(`${LEADS_BASE}/${leadId}`);
-  if (!data) throw new ApiError((response as Response).status, "Lead not found.");
+  const { data, response } = await _get(`${LEADS_BASE}/${leadId}`);
+  if (!data) throw new ApiError(response.status, "Lead not found.");
   return data as InboxLead;
 }
 
 export async function listLeadMessages(leadId: number, since = 0): Promise<InboxMessage[]> {
   const qs = since ? `?since=${since}` : "";
-  const { data, response } = await (client.GET as never)(`${LEADS_BASE}/${leadId}/messages${qs}`);
-  if (!data) throw new ApiError((response as Response).status, "Failed to load messages.");
+  const { data, response } = await _get(`${LEADS_BASE}/${leadId}/messages${qs}`);
+  if (!data) throw new ApiError(response.status, "Failed to load messages.");
   return data as InboxMessage[];
 }
 
 export async function sendLeadMessage(leadId: number, body: string, imageUrl = ""): Promise<InboxMessage> {
-  const { data, error, response } = await (client.POST as never)(`${LEADS_BASE}/${leadId}/messages`, {
+  const { data, error, response } = await _post(`${LEADS_BASE}/${leadId}/messages`, {
     body: { body, image_url: imageUrl },
   });
-  if (!data) throw new ApiError((response as Response).status, detailOf(error, "Failed to send message."));
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to send message."));
   return data as InboxMessage;
 }
 
@@ -852,34 +876,44 @@ export async function sendLeadQuote(
   lineItems: InboxQuoteLineItem[],
   isInvoice = false,
 ): Promise<InboxQuote> {
-  const { data, error, response } = await (client.POST as never)(`${LEADS_BASE}/${leadId}/quotes`, {
+  const { data, error, response } = await _post(`${LEADS_BASE}/${leadId}/quotes`, {
     body: { line_items: lineItems, is_invoice: isInvoice },
   });
-  if (!data) throw new ApiError((response as Response).status, detailOf(error, "Failed to send quote."));
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to send quote."));
   return data as InboxQuote;
 }
 
 export async function acceptQuote(quoteId: number): Promise<InboxQuote> {
-  const { data, error, response } = await (client.POST as never)(`${LEADS_BASE}/quotes/${quoteId}/accept`);
-  if (!data) throw new ApiError((response as Response).status, detailOf(error, "Failed to accept quote."));
+  const { data, error, response } = await _post(`${LEADS_BASE}/quotes/${quoteId}/accept`);
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to accept quote."));
   return data as InboxQuote;
 }
 
 export async function archiveLead(leadId: number): Promise<InboxLead> {
-  const { data, response } = await (client.POST as never)(`${LEADS_BASE}/${leadId}/archive`);
-  if (!data) throw new ApiError((response as Response).status, "Failed to archive.");
+  const { data, response } = await _post(`${LEADS_BASE}/${leadId}/archive`);
+  if (!data) throw new ApiError(response.status, "Failed to archive.");
   return data as InboxLead;
 }
 
 export async function completeLead(leadId: number): Promise<InboxLead> {
-  const { data, response } = await (client.POST as never)(`${LEADS_BASE}/${leadId}/complete`);
-  if (!data) throw new ApiError((response as Response).status, "Failed to mark complete.");
+  const { data, response } = await _post(`${LEADS_BASE}/${leadId}/complete`);
+  if (!data) throw new ApiError(response.status, "Failed to mark complete.");
   return data as InboxLead;
 }
 
 export async function acceptRequest(leadId: number): Promise<InboxLead> {
-  const { data, error, response } = await (client.POST as never)(`${LEADS_BASE}/${leadId}/accept-request`);
-  if (!data) throw new ApiError((response as Response).status, detailOf(error, "Failed to accept request."));
+  const { data, error, response } = await _post(`${LEADS_BASE}/${leadId}/accept-request`);
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to accept request."));
   return data as InboxLead;
+}
+
+export async function createAnonymousLead(payload: {
+  pro_id: number;
+  job_title: string;
+  detail?: string;
+}): Promise<{ id: number; status: string }> {
+  const { data, error, response } = await _post(`${LEADS_BASE}/anonymous`, { body: payload });
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to submit request."));
+  return data as { id: number; status: string };
 }
 

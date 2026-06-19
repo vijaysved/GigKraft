@@ -29,6 +29,7 @@ from leads.models import Lead, Message, Quote
 from nodes.models import Node
 
 router = Router(tags=["leads"], auth=jwt_auth)
+public_router = Router(tags=["leads"])
 
 ACTIVE_LEAD_CAP = 3
 
@@ -375,6 +376,59 @@ def mark_complete(request, lead_id: int):
     lead.save(update_fields=["status", "completed_at"])
     notify.notify_user(lead.homeowner, f"'{lead.job_title}' was marked complete.")
     return serialize_lead(lead, request.auth)
+
+
+# ── Public: anonymous quote request (no account required) ─────────────────────
+
+class AnonLeadIn(Schema):
+    pro_id: int
+    job_title: str
+    detail: str = ""
+
+
+class AnonLeadOut(Schema):
+    id: int
+    status: str
+
+
+@public_router.post("/anonymous", response={201: AnonLeadOut, 400: ErrorOut}, auth=None)
+def create_anonymous_lead(request, payload: AnonLeadIn):
+    """Submit a quote request without signing in.
+
+    The lead is attributed to a sentinel 'anonymous@gigkraft.internal' user so
+    it appears in the PRO's inbox labelled 'Anonymous'. The anon user can later
+    claim the conversation by signing up and linking via the lead ID."""
+    pro = ProProfile.objects.filter(pk=payload.pro_id).first()
+    if pro is None:
+        return 400, {"detail": "Unknown pro."}
+
+    anon_user, _ = User.objects.get_or_create(
+        email="anonymous@gigkraft.internal",
+        defaults={
+            "first_name": "Anonymous",
+            "role": User.Role.HOMEOWNER,
+            "is_active": True,
+        },
+    )
+
+    node = pro.user.node or Node.objects.filter(is_active=True).first()
+    if node is None:
+        return 400, {"detail": "No node available."}
+
+    lead = Lead.objects.create(
+        node=node,
+        homeowner=anon_user,
+        pro=pro,
+        job_title=payload.job_title,
+        detail=payload.detail,
+        thread_type=Lead.ThreadType.LEAD,
+    )
+    lead.set_respond_by()
+    lead.save(update_fields=["respond_by"])
+    if payload.detail:
+        Message.objects.create(lead=lead, sender=anon_user, body=payload.detail)
+    notify.notify_user(pro.user, f"Anonymous quote request: {lead.job_title}")
+    return 201, {"id": lead.id, "status": lead.status}
 
 
 @router.post("/{lead_id}/archive", response=LeadOut)

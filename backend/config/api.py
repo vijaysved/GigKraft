@@ -19,6 +19,7 @@ from common.gk_admin_api import router as gk_admin_router
 from emergencies.api import router as emergencies_router
 from krafts.api import public_router as krafts_public_router
 from krafts.api import router as krafts_router
+from leads.api import public_router as leads_public_router
 from leads.api import router as leads_router
 from nodes.admin_api import router as admin_router
 from recommendations.api import public_router as recommendations_public_router
@@ -39,6 +40,7 @@ api.add_router("/pros", pros_public_router)
 api.add_router("/krafts", krafts_router)
 api.add_router("/krafts", krafts_public_router)
 api.add_router("/leads", leads_router)
+api.add_router("/leads", leads_public_router)
 api.add_router("/emergencies", emergencies_router)
 api.add_router("/recommendations", recommendations_router)
 api.add_router("/recommendations", recommendations_public_router)

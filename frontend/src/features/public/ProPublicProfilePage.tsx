@@ -33,16 +33,13 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
-import { createLead, getKraftsByPro, getProByHandle, trackKraftClick, trackKraftImpression, trackProfileView, trackProPageView, type KraftPublicOut, type ProOut } from "../../api/endpoints";
+import { createAnonymousLead, createLead, getKraftsByPro, getProByHandle, trackKraftClick, trackKraftImpression, trackProfileView, trackProPageView, type KraftPublicOut, type ProOut } from "../../api/endpoints";
 import { useAuth } from "../../auth/AuthContext";
 import { GkLogo } from "../../brand/GkLogo";
 import { GoogleSignInButton } from "../../components/GoogleSignInButton";
 import { KraftCard } from "../../components/KraftCard";
 import { ReviewsSection } from "../../components/ReviewsSection";
 
-const BUDGET_OPTIONS = [
-  "Under $500", "$500 – $1,000", "$1,000 – $3,000", "$3,000 – $10,000", "$10,000+", "Not sure yet",
-];
 const TIMELINE_OPTIONS = ["ASAP", "Within a week", "This month", "Within 3 months", "Just exploring"];
 
 const WALLPAPERS = [
@@ -73,7 +70,6 @@ export function ProPublicProfilePage() {
   const draftRef = useRef("");
   const [draftText, setDraftText] = useState("");
   const [draftTitle, setDraftTitle] = useState("");
-  const [draftBudget, setDraftBudget] = useState<string | null>(null);
   const [draftTimeline, setDraftTimeline] = useState<string | null>(null);
   const [authGateOpen, setAuthGateOpen] = useState(false);
   const [quoteFormOpen, setQuoteFormOpen] = useState(false);
@@ -168,9 +164,16 @@ export function ProPublicProfilePage() {
       .catch(() => { setNotFound(true); setLoading(false); });
   }, [handle]);
 
-  // § 1.2 Preservation Gate — called when unauthenticated user hits Send in the quote modal
+  // § 1.2 Gate — called when user clicks Send in the quote modal
   function handleQuoteClick() {
     if (!isLoggedIn) {
+      // Capture the draft immediately so the PRO / GK admin can see it even if
+      // the visitor abandons signup. Fire-and-forget — don't block the UI.
+      createAnonymousLead({
+        pro_id: pro!.id,
+        job_title: draftTitle || "Quote Request",
+        detail: buildDetail(),
+      }).catch(() => {});
       draftRef.current = draftText;
       setQuoteFormOpen(false);
       setAuthGateOpen(true);
@@ -179,28 +182,28 @@ export function ProPublicProfilePage() {
     void submitQuote();
   }
 
-  // § 1.3 Post-Signup Execution — call after auth completes with preserved draft
+  function buildDetail() {
+    return [
+      draftText || null,
+      draftTimeline ? `Timeline: ${draftTimeline}` : null,
+    ].filter(Boolean).join("\n");
+  }
+
+  // § 1.3 Authenticated submit (runs after signup OR if already logged in)
   async function submitQuote() {
     if (!pro) return;
     setSubmitting(true);
     setSubmitError(null);
     try {
-      const detail = [
-        draftTitle ? `Project: ${draftTitle}` : null,
-        draftText || null,
-        draftBudget ? `Budget: ${draftBudget}` : null,
-        draftTimeline ? `Timeline: ${draftTimeline}` : null,
-      ].filter(Boolean).join("\n");
       await createLead({
         pro_id: pro.id,
         job_title: draftTitle || "Quote Request",
-        detail,
+        detail: buildDetail(),
         thread_type: "lead",
       });
       setSubmitSuccess(true);
       setDraftTitle("");
       setDraftText("");
-      setDraftBudget(null);
       setDraftTimeline(null);
       draftRef.current = "";
       setQuoteFormOpen(false);
@@ -450,7 +453,8 @@ export function ProPublicProfilePage() {
             {/* success banner replaces floating button after send */}
             {submitSuccess && (
               <Alert color="green" variant="light" title="Request sent!">
-                Your quote request was delivered. Check your <Link to="/home/messages">Messages</Link> for the conversation.
+                Your quote request was delivered. Check your{" "}
+                <Link to="/home/messages">Messages</Link> for the conversation.
               </Alert>
             )}
 
@@ -566,26 +570,15 @@ export function ProPublicProfilePage() {
             autosize
             size="sm"
           />
-          <SimpleGrid cols={2} spacing="sm">
-            <Select
-              label="Budget"
-              placeholder="Estimated budget"
-              data={BUDGET_OPTIONS}
-              value={draftBudget}
-              onChange={setDraftBudget}
-              size="sm"
-              clearable
-            />
-            <Select
-              label="Timeline"
-              placeholder="When do you need it?"
-              data={TIMELINE_OPTIONS}
-              value={draftTimeline}
-              onChange={setDraftTimeline}
-              size="sm"
-              clearable
-            />
-          </SimpleGrid>
+          <Select
+            label="Timeline"
+            placeholder="When do you need it?"
+            data={TIMELINE_OPTIONS}
+            value={draftTimeline}
+            onChange={setDraftTimeline}
+            size="sm"
+            clearable
+          />
           {submitError && <Alert color="red" variant="light">{submitError}</Alert>}
           <Button
             fullWidth
@@ -596,26 +589,26 @@ export function ProPublicProfilePage() {
             style={{ background: "var(--gk-brand-gradient)" }}
             mt="xs"
           >
-            {isLoggedIn ? "Send Quote Request" : "Continue — sign up to send"}
+            {isLoggedIn ? "Send Quote Request" : "Continue to send"}
           </Button>
           {!isLoggedIn && (
             <Text size="xs" c="dimmed" ta="center">
-              Free account — your message is saved and delivered instantly after signup.
+              Free account — your request will be saved immediately.
             </Text>
           )}
         </Stack>
       </Modal>
 
-      {/* § 1.2 Preservation Gate — auth modal triggered when anonymous user clicks Send */}
+      {/* Auth gate — data already captured; signup delivers the confirmed lead */}
       <Modal
         opened={authGateOpen}
         onClose={() => setAuthGateOpen(false)}
-        title="Secure your free @handle to send"
+        title="One last step — create your free account"
         size="sm"
       >
         <Stack gap="sm">
           <Alert variant="light" color="blue" icon={<IconLock size={15} />}>
-            Your message is saved. Create your free account and it will be delivered instantly.
+            Your inquiry is saved and the pro can already see it. Sign up to confirm your identity and continue the conversation.
           </Alert>
           <Text size="sm" c="dimmed">
             Quote request: <strong>{draftTitle || "(no title)"}</strong>
