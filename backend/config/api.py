@@ -11,8 +11,8 @@ from accounts.home_api import prefs_router, router as home_router
 from accounts.pros_api import public_router as pros_public_router
 from accounts.pros_api import router as pros_router
 from billing.api import router as billing_router
-from vendors.api import public_router as vendors_public_router
-from vendors.api import router as vendors_router
+from vendors.api import public_router as prospects_public_router
+from vendors.api import router as prospects_router
 from comms.api import router as comms_router
 from common.api import router as common_router
 from common.gk_admin_api import router as gk_admin_router
@@ -48,6 +48,6 @@ api.add_router("/home", home_router)
 api.add_router("/admin", admin_router)
 api.add_router("/billing", billing_router)
 api.add_router("/gk-admin", gk_admin_router)
-api.add_router("/vendors", vendors_router)
-api.add_router("/vendors", vendors_public_router)
+api.add_router("/prospects", prospects_router)
+api.add_router("/prospects", prospects_public_router)
 api.add_router("/comms", comms_router)

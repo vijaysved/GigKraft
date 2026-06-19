@@ -418,75 +418,139 @@ export async function listAnonymousLeads(): Promise<AnonLeadRow[]> {
 
 // ---------- Prospects ----------
 
-export interface VendorContact {
-  id: number;
-  vendor_id: string;
-  business_name: string;
-  contact_person: string;
-  category: string;
-  lead_source: string;
-  phone: string;
-  email: string;
-  nextdoor_profile_url: string;
-  status: string;
-  preferred_channel: string;
-  last_contact_date: string | null;
-  last_seen: string | null;
-  tags: string[];
-  page_view_count: number;
-  notes: string;
-  whatsapp_link: string;
-  email_link: string;
-  created_at: string;
-  updated_at: string;
+export interface StepJourney {
+  step: number;
+  sent_at: string | null;
+  channel: string | null;  // "email" | "whatsapp" | null
+  read_at: string | null;  // non-null = email was opened (pixel fired)
 }
 
-export interface VendorIn {
-  contact_person: string;
-  business_name?: string;
-  category?: string;
-  lead_source?: string;
-  phone?: string;
+export interface Prospect {
+  id: number;
+  prospect_id: string;
+  name: string;
+  email: string;
+  phone: string;
+  role: string;
+  primary_zip: string;
+  neighborhood: string;
+  source: string;
+  status: string;
+  current_sequence_step: number;
+  last_contacted_at: string | null;
+  signup_link_token: string;
+  link_clicked_at: string | null;
+  converted_user_id: number | null;
+  notes: string;
+  whatsapp_link: string;
+  created_at: string;
+  updated_at: string;
+  journey: StepJourney[];
+}
+
+export interface ProspectIn {
+  name: string;
   email?: string;
-  nextdoor_profile_url?: string;
+  phone?: string;
+  role?: string;
+  primary_zip?: string;
+  neighborhood?: string;
+  source?: string;
   status?: string;
-  preferred_channel?: string;
-  last_contact_date?: string | null;
-  tags?: string[];
   notes?: string;
 }
 
-export interface ProspectStats {
+export interface ProspectAnalytics {
   total: number;
   new_7_days: number;
   total_emails_sent: number;
-  total_page_views: number;
+  conversion_rate: number;
+  link_ctr: number;
+  by_status: Record<string, number>;
+  by_source: Record<string, number>;
+  by_sequence_step: Record<string, number>;
+  recent_conversions: Array<{
+    id: number;
+    name: string;
+    source: string;
+    converted_user_id: number | null;
+    updated_at: string;
+  }>;
 }
 
-export interface BulkIntroResult {
-  prospect_id: number;
-  vendor_id: string;
-  email: string;
-  sent: boolean;
-  error: string;
+export async function getProspectAnalytics(): Promise<ProspectAnalytics> {
+  const { data, error, response } = await client.GET("/api/prospects/analytics" as never);
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to load analytics."));
+  return data as ProspectAnalytics;
 }
 
-export async function getProspectStats(): Promise<ProspectStats> {
-  const { data, error, response } = await client.GET("/api/vendors/stats" as never);
-  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to load stats."));
-  return data as ProspectStats;
-}
-
-export async function bulkSendIntroEmails(ids: number[], templateId?: number): Promise<BulkIntroResult[]> {
-  const { data, error, response } = await client.POST("/api/vendors/bulk-intro" as never, {
-    body: { ids, template_id: templateId ?? null },
+export async function listProspects(params?: {
+  status?: string;
+  source?: string;
+  search?: string;
+}): Promise<Prospect[]> {
+  const query: Record<string, string> = {};
+  if (params?.status) query.status = params.status;
+  if (params?.source) query.source = params.source;
+  if (params?.search) query.search = params.search;
+  const { data, error, response } = await client.GET("/api/prospects" as never, {
+    params: { query },
   } as never);
-  if (!data) throw new ApiError(response.status, detailOf(error, "Bulk intro send failed."));
-  return data as BulkIntroResult[];
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to load prospects."));
+  return data as Prospect[];
+}
+
+export async function createProspect(body: ProspectIn): Promise<Prospect> {
+  const { data, error, response } = await client.POST("/api/prospects" as never, {
+    body,
+  } as never);
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to create prospect."));
+  return data as Prospect;
+}
+
+export async function updateProspect(id: number, body: Partial<ProspectIn & { status: string }>): Promise<Prospect> {
+  const { data, error, response } = await client.PATCH(
+    `/api/prospects/${id}` as never,
+    { body } as never,
+  );
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to update prospect."));
+  return data as Prospect;
+}
+
+export async function deleteProspect(id: number): Promise<void> {
+  const { response } = await client.DELETE(`/api/prospects/${id}` as never);
+  if (response.status !== 204) throw new ApiError(response.status, "Failed to delete prospect.");
+}
+
+export async function bulkUpdateProspectStatus(ids: number[], status: string): Promise<Prospect[]> {
+  const { data, error, response } = await client.POST(
+    "/api/prospects/bulk-status" as never,
+    { body: { ids, status } } as never,
+  );
+  if (!data) throw new ApiError(response.status, detailOf(error, "Bulk update failed."));
+  return data as Prospect[];
+}
+
+export async function startProspectSequence(id: number): Promise<Prospect> {
+  const { data, error, response } = await client.POST(
+    `/api/prospects/${id}/start-sequence` as never,
+    {} as never,
+  );
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to start sequence."));
+  return data as Prospect;
+}
+
+export async function advanceProspectStep(id: number): Promise<Prospect> {
+  const { data, error, response } = await client.POST(
+    `/api/prospects/${id}/advance-step` as never,
+    {} as never,
+  );
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to advance step."));
+  return data as Prospect;
 }
 
 export async function trackProPageView(proHandle: string, ref?: string): Promise<void> {
-  await client.POST("/api/vendors/track-view" as never, {
+  await client.POST("/api/prospects/track-view" as never, {
     body: { pro_handle: proHandle, ref: ref ?? null },
   } as never);
 }
@@ -584,54 +648,6 @@ export async function getProMarket(range = "30d"): Promise<MarketData> {
   return data as MarketData;
 }
 
-export async function listVendors(params?: {
-  status?: string;
-  source?: string;
-  search?: string;
-  tag?: string;
-}): Promise<VendorContact[]> {
-  const query: Record<string, string> = {};
-  if (params?.status) query.status = params.status;
-  if (params?.source) query.source = params.source;
-  if (params?.search) query.search = params.search;
-  if (params?.tag) query.tag = params.tag;
-  const { data, error, response } = await client.GET("/api/vendors" as never, {
-    params: { query },
-  } as never);
-  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to load prospects."));
-  return data as VendorContact[];
-}
-
-export async function createVendor(body: VendorIn): Promise<VendorContact> {
-  const { data, error, response } = await client.POST("/api/vendors" as never, {
-    body,
-  } as never);
-  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to create prospect."));
-  return (data as { id: number } & VendorContact) as VendorContact;
-}
-
-export async function updateVendor(id: number, body: Partial<VendorIn>): Promise<VendorContact> {
-  const { data, error, response } = await client.PATCH(
-    `/api/vendors/${id}` as never,
-    { body } as never,
-  );
-  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to update prospect."));
-  return data as VendorContact;
-}
-
-export async function deleteVendor(id: number): Promise<void> {
-  const { response } = await client.DELETE(`/api/vendors/${id}` as never);
-  if (response.status !== 204) throw new ApiError(response.status, "Failed to delete prospect.");
-}
-
-export async function bulkUpdateVendorStatus(ids: number[], status: string): Promise<VendorContact[]> {
-  const { data, error, response } = await client.POST(
-    "/api/vendors/bulk-status" as never,
-    { body: { ids, status } } as never,
-  );
-  if (!data) throw new ApiError(response.status, detailOf(error, "Bulk update failed."));
-  return data as VendorContact[];
-}
 
 // ---------- Comms — Message Templates ----------
 

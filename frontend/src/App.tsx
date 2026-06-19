@@ -21,7 +21,7 @@ import { GkAdminDashboardPage } from "./features/gk-admin/GkAdminDashboardPage";
 import { GkAdminUsersPage } from "./features/gk-admin/GkAdminUsersPage";
 import { GkAdminNodesPage } from "./features/gk-admin/GkAdminNodesPage";
 import { GkAdminSafetyPage } from "./features/gk-admin/GkAdminSafetyPage";
-import { GkAdminVendorsPage } from "./features/gk-admin/GkAdminVendorsPage";
+import { GkAdminProspectsPage } from "./features/gk-admin/GkAdminProspectsPage";
 import { GkAdminStripePage } from "./features/gk-admin/GkAdminStripePage";
 
 // Admin pages
@@ -96,7 +96,7 @@ export default function App() {
         <Route path="users" element={<GkAdminUsersPage />} />
         <Route path="nodes" element={<GkAdminNodesPage />} />
         <Route path="safety" element={<GkAdminSafetyPage />} />
-        <Route path="vendors" element={<GkAdminVendorsPage />} />
+        <Route path="prospects" element={<GkAdminProspectsPage />} />
         <Route path="stripe" element={<GkAdminStripePage />} />
       </Route>
 

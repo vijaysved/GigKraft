@@ -16,6 +16,7 @@ from accounts.auth import jwt_auth
 from common.permissions import require_gk_admin
 from comms.models import MessageTemplate, OutreachLog
 from comms.services import send_email as _send_email
+from vendors.models import Prospect
 
 router = Router(tags=["comms"], auth=jwt_auth)
 
@@ -151,8 +152,7 @@ def send_email_endpoint(request, payload: SendEmailIn):
 
     prospect = None
     if payload.prospect_id:
-        from vendors.models import VendorContact
-        prospect = VendorContact.objects.filter(pk=payload.prospect_id).first()
+        prospect = Prospect.objects.filter(pk=payload.prospect_id).first()
 
     template = None
     if payload.template_id:
@@ -175,10 +175,8 @@ def send_email_endpoint(request, payload: SendEmailIn):
     )
 
     if prospect:
-        prospect.last_contact_date = timezone.now().date()
-        if prospect.status == "new":
-            prospect.status = "contacted"
-        prospect.save(update_fields=["status", "last_contact_date", "updated_at"])
+        prospect.last_contacted_at = timezone.now()
+        prospect.save(update_fields=["last_contacted_at", "updated_at"])
 
     return 200, {"log_id": log.id, "resend_id": resend_id}
 
@@ -228,8 +226,7 @@ def _ser_log(log: OutreachLog) -> dict:
 @router.get("/prospects/{prospect_id}/logs", response={200: list[LogOut], 404: ErrorOut})
 def list_logs(request, prospect_id: int):
     require_gk_admin(request)
-    from vendors.models import VendorContact
-    if not VendorContact.objects.filter(pk=prospect_id).exists():
+    if not Prospect.objects.filter(pk=prospect_id).exists():
         return 404, {"detail": "Prospect not found."}
     logs = OutreachLog.objects.filter(prospect_id=prospect_id).select_related("template")
     return 200, [_ser_log(lg) for lg in logs]
@@ -238,8 +235,7 @@ def list_logs(request, prospect_id: int):
 @router.post("/prospects/{prospect_id}/logs", response={201: LogOut, 404: ErrorOut})
 def add_log(request, prospect_id: int, payload: LogIn):
     require_gk_admin(request)
-    from vendors.models import VendorContact
-    prospect = VendorContact.objects.filter(pk=prospect_id).first()
+    prospect = Prospect.objects.filter(pk=prospect_id).first()
     if prospect is None:
         return 404, {"detail": "Prospect not found."}
 
@@ -257,10 +253,8 @@ def add_log(request, prospect_id: int, payload: LogIn):
         notes=payload.notes,
     )
 
-    prospect.last_contact_date = timezone.now().date()
-    if prospect.status == "new":
-        prospect.status = "contacted"
-    prospect.save(update_fields=["status", "last_contact_date", "updated_at"])
+    prospect.last_contacted_at = timezone.now()
+    prospect.save(update_fields=["last_contacted_at", "updated_at"])
 
     return 201, _ser_log(log)
 

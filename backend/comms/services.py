@@ -26,8 +26,13 @@ def send_email(
     cc: list[str] | None = None,
     bcc: list[str] | None = None,
     from_addr: str = DEFAULT_FROM,
+    track_token: str | None = None,
 ) -> str:
-    """Send an email. Returns the Resend message ID (or a mock/dev ID)."""
+    """Send an email. Returns the Resend message ID (or a mock/dev ID).
+
+    When track_token is provided, an invisible 1×1 pixel is embedded in the HTML
+    version so we can detect when the recipient opens the email.
+    """
     cc_list = list(cc or DEFAULT_CC)
     if DEFAULT_CC[0] not in cc_list:
         cc_list.append(DEFAULT_CC[0])
@@ -36,7 +41,7 @@ def send_email(
     api_key = os.environ.get("RESEND_API_KEY", "")
 
     if mock or not api_key:
-        logger.info("[MOCK EMAIL] to=%s subject=%r cc=%s", to, subject, cc_list)
+        logger.info("[MOCK EMAIL] to=%s subject=%r cc=%s token=%s", to, subject, cc_list, track_token)
         return "mock-resend-id"
 
     # Dev redirect — send to a safe inbox instead of the real recipient
@@ -47,6 +52,20 @@ def send_email(
         actual_to = dev_override
         logger.info("[DEV EMAIL] redirecting %s → %s", to, dev_override)
 
+    # Build HTML version — preserves whitespace formatting and embeds tracking pixel
+    import html as _html
+    body_escaped = _html.escape(body).replace("\n", "<br>")
+    html_parts = [f"<div style='font-family:sans-serif;line-height:1.6'>{body_escaped}</div>"]
+    if track_token:
+        base_url = os.environ.get("BACKEND_URL", "https://gigkraft.com")
+        pixel = (
+            f'<img src="{base_url}/api/prospects/pixel/{track_token}" '
+            f'width="1" height="1" style="display:none;opacity:0;position:absolute" '
+            f'alt="" />'
+        )
+        html_parts.append(pixel)
+    html_body = "\n".join(html_parts)
+
     import resend  # lazy import — optional in mock mode
 
     resend.api_key = api_key
@@ -55,6 +74,7 @@ def send_email(
         "to": [actual_to],
         "subject": subject,
         "text": body,
+        "html": html_body,
     }
     if cc_list:
         params["cc"] = cc_list

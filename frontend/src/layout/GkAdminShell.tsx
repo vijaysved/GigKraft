@@ -9,6 +9,7 @@ import {
   NavLink,
   Stack,
   Text,
+  Tooltip,
   UnstyledButton,
 } from "@mantine/core";
 import {
@@ -18,6 +19,7 @@ import {
   IconLayoutDashboard,
   IconLogout,
   IconMapPin,
+  IconPalette,
   IconShield,
   IconUsers,
 } from "@tabler/icons-react";
@@ -25,13 +27,15 @@ import { NavLink as RouterNavLink, Outlet, useNavigate } from "react-router-dom"
 
 import { useAuth } from "../auth/AuthContext";
 import { GkLogo } from "../brand/GkLogo";
+import { useTheme } from "../theme/ThemeProvider";
+import { THEMES, THEME_IDS } from "../theme/themes";
 
 const NAV_ITEMS = [
   { label: "Dashboard", icon: IconLayoutDashboard, to: "/gk-admin/dashboard" },
   { label: "Users", icon: IconUsers, to: "/gk-admin/users" },
   { label: "Nodes", icon: IconMapPin, to: "/gk-admin/nodes" },
   { label: "Safety", icon: IconShield, to: "/gk-admin/safety" },
-  { label: "Prospects", icon: IconAddressBook, to: "/gk-admin/vendors" },
+  { label: "Prospects", icon: IconAddressBook, to: "/gk-admin/prospects" },
   { label: "Stripe", icon: IconBrandStripe, to: "/gk-admin/stripe" },
 ];
 
@@ -46,6 +50,7 @@ const navLinkStyles = {
 export function GkAdminShell() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { themeId, setThemeId } = useTheme();
 
   const initials = (user?.first_name?.[0] ?? user?.email?.[0] ?? "G").toUpperCase();
   const displayName = [user?.first_name, user?.last_name].filter(Boolean).join(" ") || user?.email || "GK Admin";
@@ -55,8 +60,8 @@ export function GkAdminShell() {
       <AppShell.Navbar
         p="sm"
         style={{
-          background: "#0a1628",
-          borderRight: "1px solid #1a2a44",
+          background: "var(--gk-bg-sidebar)",
+          borderRight: "1px solid var(--gk-border)",
           display: "flex",
           flexDirection: "column",
         }}
@@ -76,7 +81,7 @@ export function GkAdminShell() {
           </Text>
         </Group>
 
-        <Divider style={{ borderColor: "#1a2a44" }} mb="sm" />
+        <Divider style={{ borderColor: "var(--gk-border)" }} mb="sm" />
 
         {/* Nav items */}
         <Stack gap={4} style={{ flex: 1 }}>
@@ -91,7 +96,7 @@ export function GkAdminShell() {
 
         {/* User context */}
         <Stack gap={0} mt="auto">
-          <Divider style={{ borderColor: "#1a2a44" }} mb="xs" />
+          <Divider style={{ borderColor: "var(--gk-border)" }} mb="xs" />
           <Group gap={4} px={4} mb={4}>
             <Badge size="xs" color="violet" variant="dot" style={{ color: "rgba(255,255,255,0.5)" }}>
               gk_admin · platform-wide
@@ -114,6 +119,38 @@ export function GkAdminShell() {
             </Menu.Target>
             <Menu.Dropdown>
               <Menu.Label>{user?.email ?? "admin@gigkraft.com"}</Menu.Label>
+              <Menu.Divider />
+              <Menu.Label>
+                <Group gap={4}>
+                  <IconPalette size={12} />
+                  Theme
+                </Group>
+              </Menu.Label>
+              {THEME_IDS.map((id) => {
+                const def = THEMES[id];
+                return (
+                  <Menu.Item
+                    key={id}
+                    onClick={() => setThemeId(id)}
+                    leftSection={
+                      <Box
+                        w={12}
+                        h={12}
+                        style={{
+                          borderRadius: "50%",
+                          background: def.brand.brandGradient,
+                          border: id === themeId ? "2px solid #fff" : "2px solid transparent",
+                          boxShadow: id === themeId ? "0 0 0 1px #aaa" : "none",
+                          flexShrink: 0,
+                        }}
+                      />
+                    }
+                    style={{ fontWeight: id === themeId ? 700 : 400 }}
+                  >
+                    {def.label}
+                  </Menu.Item>
+                );
+              })}
               <Menu.Divider />
               <Menu.Item
                 color="red"

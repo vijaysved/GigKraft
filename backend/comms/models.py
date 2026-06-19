@@ -1,3 +1,5 @@
+import uuid
+
 from django.db import models
 from django.utils import timezone
 
@@ -18,6 +20,9 @@ class MessageTemplate(models.Model):
         REMINDER = "reminder", "Reminder"
         ONBOARDING = "onboarding", "Onboarding"
         OTHER = "other", "Other"
+        SEQUENCE_1 = "sequence_1", "Sequence Step 1"
+        SEQUENCE_2 = "sequence_2", "Sequence Step 2"
+        SEQUENCE_3 = "sequence_3", "Sequence Step 3"
 
     name = models.CharField(max_length=120)
     channel = models.CharField(max_length=10, choices=Channel.choices, default=Channel.EMAIL)
@@ -54,7 +59,7 @@ class OutreachLog(models.Model):
         OTHER = "other", "Other"
 
     prospect = models.ForeignKey(
-        "vendors.VendorContact",
+        "vendors.Prospect",
         on_delete=models.CASCADE,
         related_name="outreach_logs",
         null=True,
@@ -75,6 +80,9 @@ class OutreachLog(models.Model):
     resend_id = models.CharField(max_length=100, blank=True, default="")
     notes = models.TextField(blank=True, default="")
     sent_at = models.DateTimeField(default=timezone.now)
+    sequence_step = models.PositiveSmallIntegerField(default=0)  # 0=manual, 1/2/3=automated
+    email_track_token = models.UUIDField(default=uuid.uuid4, unique=True, null=True, editable=False)
+    read_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-sent_at"]

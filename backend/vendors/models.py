@@ -1,77 +1,91 @@
+import os
+import uuid
 import urllib.parse
 
 from django.db import models
 
 
-class VendorContact(models.Model):
-    """A prospective pro discovered via Nextdoor or WhatsApp, tracked through
-    the GigKraft outreach pipeline."""
-
+class Prospect(models.Model):
     class Status(models.TextChoices):
-        NEW = "new", "New"
-        CONTACTED = "contacted", "Contacted"
-        IN_CONVERSATION = "in_conversation", "In Conversation"
-        FOLLOW_UP = "follow_up", "Follow-up Needed"
-        ONBOARDED = "onboarded", "Onboarded"
-        NOT_INTERESTED = "not_interested", "Not Interested"
+        PROSPECT = "prospect", "Prospect"
+        IN_PROGRESS = "in_progress", "In Progress"
+        CONVERTED = "converted", "Converted"
+        ON_HOLD = "on_hold", "On Hold"
+        ABANDONED = "abandoned", "Abandoned"
 
     class LeadSource(models.TextChoices):
         NEXTDOOR = "nextdoor", "Nextdoor"
-        WHATSAPP_FRIENDS = "whatsapp_friends", "WhatsApp (Friends)"
-        WHATSAPP_FAMILY = "whatsapp_family", "WhatsApp (Family)"
-        REFERRAL = "referral", "Referral"
-        OTHER = "other", "Other"
-
-    class PreferredChannel(models.TextChoices):
+        CRAIGSLIST = "craigslist", "Craigslist"
         WHATSAPP = "whatsapp", "WhatsApp"
-        SMS = "sms", "SMS"
-        EMAIL = "email", "Email"
-        NEXTDOOR_DM = "nextdoor_dm", "Nextdoor DM"
+        DIRECT = "direct", "Direct"
 
-    vendor_id = models.CharField(max_length=12, unique=True, blank=True)
-    business_name = models.CharField(max_length=200, blank=True, default="")
-    contact_person = models.CharField(max_length=200)
-    category = models.CharField(max_length=80, blank=True, default="")
-    lead_source = models.CharField(max_length=20, choices=LeadSource.choices, default=LeadSource.NEXTDOOR)
-    phone = models.CharField(max_length=30, blank=True, default="")
+    class Role(models.TextChoices):
+        PRO = "pro", "Pro"
+        HOMEOWNER = "homeowner", "Homeowner"
+
+    prospect_id = models.CharField(max_length=12, unique=True, blank=True)
+    name = models.CharField(max_length=200)
     email = models.EmailField(blank=True, default="")
-    nextdoor_profile_url = models.URLField(blank=True, default="")
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.NEW)
-    preferred_channel = models.CharField(
-        max_length=15, choices=PreferredChannel.choices, default=PreferredChannel.WHATSAPP,
+    phone = models.CharField(max_length=30, blank=True, default="")
+    role = models.CharField(max_length=20, choices=Role.choices, default=Role.PRO)
+    primary_zip = models.CharField(max_length=10, blank=True, default="")
+    neighborhood = models.CharField(max_length=200, blank=True, default="")
+    source = models.CharField(max_length=20, choices=LeadSource.choices, default=LeadSource.NEXTDOOR)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PROSPECT)
+    current_sequence_step = models.PositiveSmallIntegerField(default=0)
+    last_contacted_at = models.DateTimeField(null=True, blank=True)
+    signup_link_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    link_clicked_at = models.DateTimeField(null=True, blank=True)
+    converted_user = models.ForeignKey(
+        "accounts.User",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="converted_prospects",
     )
-    last_contact_date = models.DateField(null=True, blank=True)
-    last_seen = models.DateTimeField(null=True, blank=True)
-    tags = models.JSONField(default=list, blank=True)
     notes = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(
+                fields=["status", "current_sequence_step", "last_contacted_at"],
+                name="prospect_seq_idx",
+            )
+        ]
 
     def save(self, *args, **kwargs):
-        if not self.vendor_id:
+        if not self.prospect_id:
             last = (
-                VendorContact.objects.exclude(vendor_id="")
+                Prospect.objects.exclude(prospect_id="")
                 .order_by("-id")
                 .values_list("id", flat=True)
                 .first()
             )
             next_num = (last or 0) + 1
-            self.vendor_id = f"GK-{next_num:03d}"
+            self.prospect_id = f"GK-{next_num:03d}"
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.vendor_id} {self.contact_person}"
+        return f"{self.prospect_id} {self.name}"
 
     @property
     def template_vars(self) -> dict:
+        base_url = os.environ.get("BACKEND_URL", "https://gigkraft.com")
+        signup_link = f"{base_url}/api/prospects/track/{self.signup_link_token}"
         return {
-            "prospect_id": self.vendor_id,
-            "contact_person": self.contact_person,
-            "business_name": self.business_name or self.contact_person,
-            "category": self.category or "professional",
+            "name": self.name,
+            "source": self.get_source_display(),
+            "primaryZip": self.primary_zip,
+            "neighborhood": self.neighborhood or self.primary_zip,
+            "signup_link": signup_link,
+            # legacy keys for existing manual templates
+            "prospect_id": self.prospect_id,
+            "contact_person": self.name,
+            "business_name": self.name,
+            "category": "professional",
         }
 
     @property
@@ -86,25 +100,13 @@ class VendorContact(models.Model):
         )
         return f"https://wa.me/{digits}?text={msg}"
 
-    @property
-    def email_link(self) -> str:
-        if not self.email:
-            return ""
-        subject = urllib.parse.quote("Your work deserves its own space — GigKraft")
-        body = urllib.parse.quote(
-            "Hi,\n\nI'm reaching out from GigKraft — a platform where pros like you "
-            "can store and share their project portfolio without depending on other platforms.\n\n"
-            "Would you be open to a quick chat?\n\nBest,\nVijay / GigKraft"
-        )
-        return f"mailto:{self.email}?subject={subject}&body={body}"
-
 
 class ProPageView(models.Model):
-    """Tracks visits to /pros/{handle}, optionally linked to a prospect via ?ref=GK-XXX."""
+    """Tracks visits to /pros/{handle}, optionally linked to a prospect."""
 
     pro_handle = models.CharField(max_length=30, db_index=True)
     prospect = models.ForeignKey(
-        VendorContact,
+        Prospect,
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
