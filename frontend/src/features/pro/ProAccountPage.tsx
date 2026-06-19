@@ -398,6 +398,11 @@ export function ProAccountPage() {
       const canvas = await toCanvas(el, {
         backgroundColor: "#ffffff",
         pixelRatio: 2,
+        filter: (node) => !(node instanceof HTMLElement && (
+          node.tagName === "BUTTON" ||
+          node.tagName === "A" ||
+          node.getAttribute("role") === "button"
+        )),
       });
 
       const doc = new jsPDF({ unit: "pt", format: "letter" });
