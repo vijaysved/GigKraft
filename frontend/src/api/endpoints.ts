@@ -519,6 +519,7 @@ export interface TimelinePoint {
 
 export interface DashboardData {
   range: string;
+  joined_at: string;
   total_visitors: number;
   visitors_delta_pct: number;
   neighbors: number;
@@ -546,6 +547,7 @@ export interface MarketShareData {
 
 export interface MarketData {
   range: string;
+  joined_at: string;
   zip_breakdown: ZipBreakdownRow[];
   market_share: MarketShareData;
 }

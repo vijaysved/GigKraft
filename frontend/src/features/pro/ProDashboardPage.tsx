@@ -12,7 +12,9 @@ import {
   Tabs,
   Text,
   Title,
+  ThemeIcon,
 } from "@mantine/core";
+import { IconChartBar } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 
 import { getProDashboard, getProMarket, type DashboardData, type MarketData } from "../../api/endpoints";
@@ -50,6 +52,30 @@ function GkCard({ children }: { children: React.ReactNode }) {
     >
       {children}
     </Card>
+  );
+}
+
+// ── Empty state ─────────────────────────────────────────────────────────────
+
+function EmptyState({ joinedAt }: { joinedAt: string }) {
+  return (
+    <Center py="xl">
+      <Stack align="center" gap="md" maw={400}>
+        <ThemeIcon size={64} radius="xl" variant="light" color="blue" style={{ background: "color-mix(in srgb, var(--gk-accent-primary) 12%, transparent)" }}>
+          <IconChartBar size={32} style={{ color: "var(--gk-accent-primary)" }} />
+        </ThemeIcon>
+        <Stack gap={4} align="center">
+          <Title order={4} ta="center">Time to build your presence</Title>
+          <Text size="sm" c="dimmed" ta="center">
+            Share your profile link to start collecting visitors and project requests.
+            Data will appear here as activity comes in.
+          </Text>
+        </Stack>
+        <Text size="xs" c="dimmed" style={{ color: "var(--gk-accent-primary)", opacity: 0.7 }}>
+          Member since {joinedAt}
+        </Text>
+      </Stack>
+    </Center>
   );
 }
 
@@ -163,9 +189,12 @@ function MyPerformanceTab() {
       </Group>
 
       {loading && <Center py="xl"><Loader /></Center>}
-      {error && <Text c="red" size="sm">{error}</Text>}
 
-      {data && (
+      {data && data.total_visitors === 0 && data.project_requests === 0 && (
+        <EmptyState joinedAt={data.joined_at} />
+      )}
+
+      {data && (data.total_visitors > 0 || data.project_requests > 0) && (
         <Stack gap="lg">
           {/* Funnel cards */}
           <Stack gap="xs">
@@ -279,9 +308,12 @@ function MarketTab() {
       </Group>
 
       {loading && <Center py="xl"><Loader /></Center>}
-      {error && <Text c="red" size="sm">{error}</Text>}
 
-      {data && (
+      {data && data.zip_breakdown.length === 0 && !data.market_share.available && (
+        <EmptyState joinedAt={data.joined_at} />
+      )}
+
+      {data && (data.zip_breakdown.length > 0 || data.market_share.available) && (
         <Stack gap="lg">
           {/* Geographic Breakdown */}
           <GkCard>

@@ -8,6 +8,7 @@ from decimal import Decimal
 from typing import Optional
 
 from django.db.models import Avg, Q
+from django.db.utils import OperationalError
 from django.utils import timezone
 from ninja import Router, Schema
 from ninja.errors import HttpError
@@ -420,6 +421,7 @@ class TimelinePoint(Schema):
 
 class DashboardOut(Schema):
     range: str
+    joined_at: str
     total_visitors: int
     visitors_delta_pct: int
     neighbors: int
@@ -437,62 +439,84 @@ def _delta_pct(current: int, prior: int) -> int:
     return round(100 * (current - prior) / prior)
 
 
+def _empty_dashboard(pro, range: str) -> dict:
+    return {
+        "range": range,
+        "joined_at": pro.created_at.strftime("%B %d, %Y"),
+        "total_visitors": 0,
+        "visitors_delta_pct": 0,
+        "neighbors": 0,
+        "neighbors_delta_pct": 0,
+        "project_requests": 0,
+        "requests_delta_pct": 0,
+        "conversion_pct": 0,
+        "timeline": [],
+        "krafts": [],
+    }
+
+
 @router.get("/me/dashboard", response=DashboardOut)
 def my_dashboard(request, range: str = "30d"):
     if range not in RANGE_DAYS:
         raise HttpError(400, "range must be one of 7d, 30d, 90d.")
     pro = require_pro(request)
+    joined_at = pro.created_at.strftime("%B %d, %Y")
     days = RANGE_DAYS[range]
     now = timezone.now()
     since = now - timedelta(days=days)
     prior_since = since - timedelta(days=days)
 
-    views_qs = ProProfileView.objects.filter(pro=pro)
-    current_views = views_qs.filter(created_at__gte=since).count()
-    prior_views = views_qs.filter(created_at__gte=prior_since, created_at__lt=since).count()
+    try:
+        views_qs = ProProfileView.objects.filter(pro=pro)
+        current_views = views_qs.filter(created_at__gte=since).count()
+        prior_views = views_qs.filter(created_at__gte=prior_since, created_at__lt=since).count()
 
-    current_neighbors = views_qs.filter(
-        created_at__gte=since, viewer__isnull=False,
-        viewer_zip=pro.base_zip,
-    ).count() if pro.base_zip else 0
-    prior_neighbors = views_qs.filter(
-        created_at__gte=prior_since, created_at__lt=since,
-        viewer__isnull=False, viewer_zip=pro.base_zip,
-    ).count() if pro.base_zip else 0
+        current_neighbors = views_qs.filter(
+            created_at__gte=since, viewer__isnull=False,
+            viewer_zip=pro.base_zip,
+        ).count() if pro.base_zip else 0
+        prior_neighbors = views_qs.filter(
+            created_at__gte=prior_since, created_at__lt=since,
+            viewer__isnull=False, viewer_zip=pro.base_zip,
+        ).count() if pro.base_zip else 0
 
-    leads_qs = Lead.objects.filter(pro=pro)
-    current_reqs = leads_qs.filter(created_at__gte=since).count()
-    prior_reqs = leads_qs.filter(created_at__gte=prior_since, created_at__lt=since).count()
+        leads_qs = Lead.objects.filter(pro=pro)
+        current_reqs = leads_qs.filter(created_at__gte=since).count()
+        prior_reqs = leads_qs.filter(created_at__gte=prior_since, created_at__lt=since).count()
 
-    conversion = round(100 * current_reqs / current_views) if current_views else 0
+        conversion = round(100 * current_reqs / current_views) if current_views else 0
 
-    # Weekly timeline buckets (oldest → newest)
-    buckets = max(4, min(12, days // 7))
-    timeline = []
-    for i in builtin_range(buckets):
-        start = now - timedelta(days=(buckets - i) * 7)
-        end = start + timedelta(days=7)
-        timeline.append({
-            "label": f"W{i + 1}",
-            "visitors": views_qs.filter(created_at__gte=start, created_at__lt=end).count(),
-            "requests": leads_qs.filter(created_at__gte=start, created_at__lt=end).count(),
-        })
+        # Weekly timeline buckets (oldest → newest)
+        buckets = max(4, min(12, days // 7))
+        timeline = []
+        for i in builtin_range(buckets):
+            start = now - timedelta(days=(buckets - i) * 7)
+            end = start + timedelta(days=7)
+            timeline.append({
+                "label": f"W{i + 1}",
+                "visitors": views_qs.filter(created_at__gte=start, created_at__lt=end).count(),
+                "requests": leads_qs.filter(created_at__gte=start, created_at__lt=end).count(),
+            })
 
-    # Per-Kraft engagement
-    krafts_data = []
-    for k in Kraft.objects.filter(pro=pro):
-        imp = KraftImpression.objects.filter(kraft=k, created_at__gte=since).count()
-        clk = KraftClick.objects.filter(kraft=k, created_at__gte=since).count()
-        krafts_data.append({
-            "kraft_id": k.id,
-            "title": k.title,
-            "impressions": imp,
-            "clicks": clk,
-            "ctr_pct": round(100 * clk / imp) if imp else 0,
-        })
+        # Per-Kraft engagement
+        krafts_data = []
+        for k in Kraft.objects.filter(pro=pro):
+            imp = KraftImpression.objects.filter(kraft=k, created_at__gte=since).count()
+            clk = KraftClick.objects.filter(kraft=k, created_at__gte=since).count()
+            krafts_data.append({
+                "kraft_id": k.id,
+                "title": k.title,
+                "impressions": imp,
+                "clicks": clk,
+                "ctr_pct": round(100 * clk / imp) if imp else 0,
+            })
+
+    except OperationalError:
+        return _empty_dashboard(pro, range)
 
     return {
         "range": range,
+        "joined_at": joined_at,
         "total_visitors": current_views,
         "visitors_delta_pct": _delta_pct(current_views, prior_views),
         "neighbors": current_neighbors,
@@ -523,8 +547,18 @@ class MarketShareOut(Schema):
 
 class MarketOut(Schema):
     range: str
+    joined_at: str
     zip_breakdown: list[ZipBreakdownRow]
     market_share: MarketShareOut
+
+
+def _empty_market(pro, range: str) -> dict:
+    return {
+        "range": range,
+        "joined_at": pro.created_at.strftime("%B %d, %Y"),
+        "zip_breakdown": [],
+        "market_share": {"available": False, "pro_count": 0, "required_count": 5, "my_lead_pct": 0.0, "avg_lead_pct": 0.0},
+    }
 
 
 @router.get("/me/market", response=MarketOut)
@@ -532,62 +566,67 @@ def my_market(request, range: str = "30d"):
     if range not in RANGE_DAYS:
         raise HttpError(400, "range must be one of 7d, 30d, 90d.")
     pro = require_pro(request)
+    joined_at = pro.created_at.strftime("%B %d, %Y")
     days = RANGE_DAYS[range]
     since = timezone.now() - timedelta(days=days)
 
-    # Zip breakdown of visitors
-    from django.db.models import Count
-    zip_rows = (
-        ProProfileView.objects
-        .filter(pro=pro, created_at__gte=since)
-        .exclude(viewer_zip="")
-        .values("viewer_zip")
-        .annotate(visitors=Count("id"))
-        .order_by("-visitors")[:10]
-    )
-    zips_seen = {r["viewer_zip"] for r in zip_rows}
-    req_by_zip: dict[str, int] = {}
-    if zips_seen:
-        from leads.models import Lead as LeadModel
-        for lead in LeadModel.objects.filter(pro=pro, created_at__gte=since).select_related("homeowner__homeowner_profile"):
-            hp = getattr(getattr(lead, "homeowner", None), "homeowner_profile", None)
-            if hp and hp.default_zip in zips_seen:
-                req_by_zip[hp.default_zip] = req_by_zip.get(hp.default_zip, 0) + 1
+    try:
+        # Zip breakdown of visitors
+        from django.db.models import Count
+        zip_rows = (
+            ProProfileView.objects
+            .filter(pro=pro, created_at__gte=since)
+            .exclude(viewer_zip="")
+            .values("viewer_zip")
+            .annotate(visitors=Count("id"))
+            .order_by("-visitors")[:10]
+        )
+        zips_seen = {r["viewer_zip"] for r in zip_rows}
+        req_by_zip: dict[str, int] = {}
+        if zips_seen:
+            from leads.models import Lead as LeadModel
+            for lead in LeadModel.objects.filter(pro=pro, created_at__gte=since).select_related("homeowner__homeowner_profile"):
+                hp = getattr(getattr(lead, "homeowner", None), "homeowner_profile", None)
+                if hp and hp.default_zip in zips_seen:
+                    req_by_zip[hp.default_zip] = req_by_zip.get(hp.default_zip, 0) + 1
 
-    zip_breakdown = [
-        {"zip": r["viewer_zip"], "visitors": r["visitors"], "requests": req_by_zip.get(r["viewer_zip"], 0)}
-        for r in zip_rows
-    ]
-
-    # Market share
-    REQUIRED = 5
-    trade = pro.primary_trade
-    base_zip = pro.base_zip
-    peers = (
-        ProProfile.objects
-        .filter(primary_trade=trade)
-        .filter(Q(base_zip=base_zip) | Q(service_zips__icontains=base_zip))
-        .exclude(pk=pro.pk)
-        if trade and base_zip else ProProfile.objects.none()
-    )
-    peer_count = peers.count()
-
-    if peer_count >= REQUIRED:
-        my_leads = Lead.objects.filter(pro=pro, created_at__gte=since).count()
-        peer_lead_counts = [
-            Lead.objects.filter(pro=p, created_at__gte=since).count()
-            for p in peers[:20]
+        zip_breakdown = [
+            {"zip": r["viewer_zip"], "visitors": r["visitors"], "requests": req_by_zip.get(r["viewer_zip"], 0)}
+            for r in zip_rows
         ]
-        total_peer_leads = sum(peer_lead_counts)
-        avg_peer = total_peer_leads / len(peer_lead_counts) if peer_lead_counts else 0
-        all_leads = my_leads + total_peer_leads
-        my_pct = round(100 * my_leads / all_leads, 1) if all_leads else 0.0
-        avg_pct = round(100 * avg_peer / (all_leads / (len(peer_lead_counts) + 1)), 1) if all_leads else 0.0
-        market_share = {"available": True, "pro_count": peer_count, "required_count": REQUIRED, "my_lead_pct": my_pct, "avg_lead_pct": avg_pct}
-    else:
-        market_share = {"available": False, "pro_count": peer_count, "required_count": REQUIRED, "my_lead_pct": 0.0, "avg_lead_pct": 0.0}
 
-    return {"range": range, "zip_breakdown": zip_breakdown, "market_share": market_share}
+        # Market share
+        REQUIRED = 5
+        trade = pro.primary_trade
+        base_zip = pro.base_zip
+        peers = (
+            ProProfile.objects
+            .filter(primary_trade=trade)
+            .filter(Q(base_zip=base_zip) | Q(service_zips__icontains=base_zip))
+            .exclude(pk=pro.pk)
+            if trade and base_zip else ProProfile.objects.none()
+        )
+        peer_count = peers.count()
+
+        if peer_count >= REQUIRED:
+            my_leads = Lead.objects.filter(pro=pro, created_at__gte=since).count()
+            peer_lead_counts = [
+                Lead.objects.filter(pro=p, created_at__gte=since).count()
+                for p in peers[:20]
+            ]
+            total_peer_leads = sum(peer_lead_counts)
+            avg_peer = total_peer_leads / len(peer_lead_counts) if peer_lead_counts else 0
+            all_leads = my_leads + total_peer_leads
+            my_pct = round(100 * my_leads / all_leads, 1) if all_leads else 0.0
+            avg_pct = round(100 * avg_peer / (all_leads / (len(peer_lead_counts) + 1)), 1) if all_leads else 0.0
+            market_share = {"available": True, "pro_count": peer_count, "required_count": REQUIRED, "my_lead_pct": my_pct, "avg_lead_pct": avg_pct}
+        else:
+            market_share = {"available": False, "pro_count": peer_count, "required_count": REQUIRED, "my_lead_pct": 0.0, "avg_lead_pct": 0.0}
+
+    except OperationalError:
+        return _empty_market(pro, range)
+
+    return {"range": range, "joined_at": joined_at, "zip_breakdown": zip_breakdown, "market_share": market_share}
 
 
 # --- Public endpoints (no auth required) ---
