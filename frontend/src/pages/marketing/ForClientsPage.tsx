@@ -3,8 +3,6 @@ import { IconMessageCircle, IconSearch, IconShieldCheck } from "@tabler/icons-re
 import { Link } from "react-router-dom";
 import { useWaitlist } from "../../components/marketing/WaitlistModal";
 
-const MK_ICON = { color: "var(--gk-accent-primary)", background: "rgba(255,107,26,0.1)", border: "1px solid rgba(255,107,26,0.15)", flexShrink: 0 as const };
-
 const STEPS = [
   { num: "01", icon: <IconSearch size={16} />, title: "Browse the feed", body: "Scroll real before/after Krafts from pros in your zipcode. Filter by job type and distance." },
   { num: "02", icon: <IconShieldCheck size={16} />, title: "See the endorsement", body: "Every Kraft is endorsed by the homeowner who hired the pro. Invoice-verified pricing is coming soon." },
@@ -56,7 +54,7 @@ export function ForClientsPage() {
           <Grid.Col span={{ base: 12, md: 6 }}>
             <Card withBorder shadow="lg" radius="xl" p="lg">
               <Group gap="sm" mb="md">
-                <ThemeIcon size={42} radius="xl" style={MK_ICON}><IconShieldCheck size={20} /></ThemeIcon>
+                <ThemeIcon size={42} radius="xl" color="orange" variant="light"><IconShieldCheck size={20} /></ThemeIcon>
                 <Box>
                   <Text fw={700} size="md">Marcus T.</Text>
                   <Text size="xs" c="dimmed" fw={600}>Licensed plumber · zip 85032</Text>
@@ -103,7 +101,7 @@ export function ForClientsPage() {
                 <Card withBorder shadow="xs" radius="lg" p="md" h="100%">
                   <Text size="xs" fw={700} c="var(--gk-accent-primary)" style={{ letterSpacing: 1 }}>STEP {s.num}</Text>
                   <Group gap="xs" mt={6} mb={8} align="center">
-                    <ThemeIcon size={28} radius="sm" style={MK_ICON}>{s.icon}</ThemeIcon>
+                    <ThemeIcon size={28} radius="sm" color="orange" variant="light">{s.icon}</ThemeIcon>
                     <Title order={3}>{s.title}</Title>
                   </Group>
                   <Text size="sm" c="dimmed" lh={1.55}>{s.body}</Text>

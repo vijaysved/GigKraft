@@ -5,8 +5,6 @@ import { useState } from "react";
 import { GoogleSignInButton } from "../../components/GoogleSignInButton";
 import { decodeGoogleJwt, joinWaitlist } from "../../api/waitlist";
 
-const MK_ICON = { color: "var(--gk-accent-primary)", background: "rgba(255,107,26,0.1)", border: "1px solid rgba(255,107,26,0.15)", flexShrink: 0 as const };
-
 const ROADMAP = [
   { icon: <IconBuildingFactory size={20} />, title: "General contractors", body: "Staff sites fast with subs proven on the exact trade." },
   { icon: <IconBuilding size={20} />, title: "Property management", body: "Route turnover & maintenance to vetted local pros." },
@@ -78,7 +76,7 @@ export function EnterprisePage() {
                 <Stack gap="md">
                   {ROADMAP.map((r) => (
                     <Group key={r.title} gap="md" align="flex-start">
-                      <ThemeIcon size={40} radius={11} style={MK_ICON}>{r.icon}</ThemeIcon>
+                      <ThemeIcon size={40} radius={11} color="orange" variant="light">{r.icon}</ThemeIcon>
                       <Box>
                         <Text fw={700} size="md">{r.title}</Text>
                         <Text size="sm" c="dimmed" lh={1.5}>{r.body}</Text>

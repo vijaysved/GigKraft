@@ -2,8 +2,6 @@ import { Box, Button, Card, Container, Grid, Group, Select, Stack, Text, Textare
 import { IconBrandWhatsapp, IconBuilding, IconCheck, IconCircleFilled, IconDeviceMobile, IconHardHat, IconHome, IconNews } from "@tabler/icons-react";
 import { useState } from "react";
 
-const MK_ICON = { color: "var(--gk-accent-primary)", background: "rgba(255,107,26,0.1)", border: "1px solid rgba(255,107,26,0.15)", flexShrink: 0 as const };
-
 const DESKS = [
   { icon: <IconBuilding size={20} />, title: "Sales & Enterprise", desc: "Node coverage, demos, contracts.", email: "sales@gigkraft.com" },
   { icon: <IconHardHat size={20} />, title: "Pro Support", desc: "Krafts, billing, the vault.", email: "pros@gigkraft.com" },
@@ -49,7 +47,7 @@ export function ContactPage() {
             <Grid.Col key={d.title} span={{ base: 12, sm: 6, md: 3 }}>
               <Card withBorder shadow="xs" radius="lg" p="md" h="100%">
                 <Stack gap={8}>
-                  <ThemeIcon size={44} radius={12} style={MK_ICON}>{d.icon}</ThemeIcon>
+                  <ThemeIcon size={44} radius={12} color="orange" variant="light">{d.icon}</ThemeIcon>
                   <Title order={4} mt={4}>{d.title}</Title>
                   <Text size="sm" c="dimmed" lh={1.5}>{d.desc}</Text>
                   <Text size="sm" fw={600} ff="monospace" c="var(--gk-accent-primary)" mt={4}>{d.email}</Text>
@@ -127,7 +125,7 @@ export function ContactPage() {
                     { icon: <IconCircleFilled size={10} style={{ color: "#6EF0A0" }} />, label: "System status: operational" },
                   ].map((c) => (
                     <Group key={c.label} gap="sm">
-                      <ThemeIcon size={30} radius={8} style={MK_ICON}>{c.icon}</ThemeIcon>
+                      <ThemeIcon size={30} radius={8} color="orange" variant="light">{c.icon}</ThemeIcon>
                       <Text size="sm" fw={600}>{c.label}</Text>
                     </Group>
                   ))}

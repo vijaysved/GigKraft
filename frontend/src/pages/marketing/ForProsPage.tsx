@@ -3,8 +3,6 @@ import { IconCamera, IconCameraCheck, IconFileExport, IconHandshake, IconId, Ico
 import { Link } from "react-router-dom";
 import { useWaitlist } from "../../components/marketing/WaitlistModal";
 
-const MK_ICON = { color: "var(--gk-accent-primary)", background: "rgba(255,107,26,0.1)", border: "1px solid rgba(255,107,26,0.15)", flexShrink: 0 as const };
-
 const SHIFT_BAD = [
   "Pay $30–80 per shared lead, bid against 5 others",
   "Reviews locked to the platform — leave and lose them",
@@ -109,7 +107,7 @@ export function ForProsPage() {
                 >
                   <Text size="xs" fw={700} c="var(--gk-accent-primary)">{h.num}</Text>
                   <Group gap="xs" mt={6} mb={8} align="center">
-                    <ThemeIcon size={28} radius="sm" style={MK_ICON}>{h.icon}</ThemeIcon>
+                    <ThemeIcon size={28} radius="sm" color="orange" variant="light">{h.icon}</ThemeIcon>
                     <Title order={4}>{h.title}</Title>
                   </Group>
                   <Text size="sm" c="dimmed" lh={1.5}>{h.body}</Text>
@@ -132,7 +130,7 @@ export function ForProsPage() {
           {OWNERSHIP.map((o) => (
             <Grid.Col key={o.title} span={{ base: 12, md: 4 }}>
               <Card withBorder shadow="xs" radius="lg" p="md" h="100%">
-                <ThemeIcon size={44} radius={12} mb="sm" style={MK_ICON}>{o.icon}</ThemeIcon>
+                <ThemeIcon size={44} radius={12} mb="sm" color="orange" variant="light">{o.icon}</ThemeIcon>
                 <Title order={3} mb={8}>{o.title}</Title>
                 <Text size="sm" c="dimmed" lh={1.55}>{o.body}</Text>
               </Card>

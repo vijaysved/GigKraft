@@ -2,8 +2,6 @@ import { Badge, Box, Button, Card, Container, Grid, Stack, Text, ThemeIcon, Titl
 import { IconBolt, IconHandshake, IconMapPin, IconTool } from "@tabler/icons-react";
 import { Link } from "react-router-dom";
 
-const MK_ICON = { color: "var(--gk-accent-primary)", background: "rgba(255,107,26,0.1)", border: "1px solid rgba(255,107,26,0.15)", flexShrink: 0 as const };
-
 const VALUES = [
   { icon: <IconTool size={22} />, title: "Proof over polish", body: "We judge work by what it does in the field, not how it pitches." },
   { icon: <IconMapPin size={22} />, title: "Local by default", body: "Decisions live close to the nodes and the pros they affect." },
@@ -35,7 +33,7 @@ export function CareersPage() {
           {VALUES.map((v) => (
             <Grid.Col key={v.title} span={{ base: 12, sm: 6, md: 3 }}>
               <Card withBorder shadow="xs" radius="lg" p="md" h="100%">
-                <ThemeIcon size={44} radius={12} mb="sm" style={MK_ICON}>{v.icon}</ThemeIcon>
+                <ThemeIcon size={44} radius={12} mb="sm" color="orange" variant="light">{v.icon}</ThemeIcon>
                 <Title order={4} mb={6}>{v.title}</Title>
                 <Text size="sm" c="dimmed" lh={1.55}>{v.body}</Text>
               </Card>

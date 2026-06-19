@@ -5,8 +5,6 @@ import { Link } from "react-router-dom";
 import { HeroSlider } from "../../components/marketing/HeroSlider";
 import { useWaitlist } from "../../components/marketing/WaitlistModal";
 
-const MK_ICON = { color: "var(--gk-accent-primary)", background: "rgba(255,107,26,0.1)", border: "1px solid rgba(255,107,26,0.15)", flexShrink: 0 as const };
-
 const VALUE_PROPS = [
   { icon: <IconBriefcase size={22} />, title: "Portfolio you own", body: "Your Krafts and client data are yours. Export them, point a custom domain at them, take them anywhere." },
   { icon: <IconShieldCheck size={22} />, title: "Proof, not prose", body: "A mandatory \"after\" image plus a real endorsement from the homeowner who hired you. Invoice verification coming soon." },
@@ -81,7 +79,7 @@ export function HomePage() {
                 <HeroSlider />
                 <Group justify="space-between" pt="sm" px={6}>
                   <Group gap="xs">
-                    <ThemeIcon size={30} radius="xl" style={{ color: "var(--gk-accent-primary)", background: "rgba(255,107,26,0.1)", border: "1px solid rgba(255,107,26,0.15)", flexShrink: 0 }}><IconUserCircle size={16} /></ThemeIcon>
+                    <ThemeIcon size={30} radius="xl" color="orange" variant="light"><IconUserCircle size={16} /></ThemeIcon>
                     <Box>
                       <Text size="sm" fw={700} lh={1.1}>Marcus T.</Text>
                       <Text size="xs" c="dimmed" fw={600}>Licensed plumber · 1.4 mi away</Text>
@@ -123,7 +121,7 @@ export function HomePage() {
               <Grid.Col key={p.title} span={{ base: 12, sm: 6, md: 3 }}>
                 <Card withBorder shadow="xs" radius="lg" h="100%" p="md">
                   <Stack gap="sm">
-                    <ThemeIcon size={44} radius={12} style={MK_ICON}>{p.icon}</ThemeIcon>
+                    <ThemeIcon size={44} radius={12} color="orange" variant="light">{p.icon}</ThemeIcon>
                     <Text fw={700} size="md">{p.title}</Text>
                     <Text size="sm" c="dimmed" lh={1.55}>{p.body}</Text>
                   </Stack>
@@ -152,7 +150,7 @@ export function HomePage() {
                 <Card withBorder shadow="xs" radius="lg" p="md">
                   <Text size="xs" fw={700} c="var(--gk-accent-primary)" style={{ letterSpacing: 1 }}>STEP {s.num}</Text>
                   <Group gap="xs" mt={6} mb={8} align="center">
-                    <ThemeIcon size={28} radius="sm" style={MK_ICON}>{s.icon}</ThemeIcon>
+                    <ThemeIcon size={28} radius="sm" color="orange" variant="light">{s.icon}</ThemeIcon>
                     <Title order={3}>{s.title}</Title>
                   </Group>
                   <Text size="sm" c="dimmed" lh={1.55}>{s.body}</Text>

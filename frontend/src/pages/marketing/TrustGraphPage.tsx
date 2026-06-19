@@ -2,8 +2,6 @@ import { Box, Button, Card, Container, Grid, Stack, Text, ThemeIcon, Title } fro
 import { IconCircleCheck, IconNetwork, IconReceipt2 } from "@tabler/icons-react";
 import { Link } from "react-router-dom";
 
-const MK_ICON = { color: "var(--gk-accent-primary)", background: "rgba(255,107,26,0.1)", border: "1px solid rgba(255,107,26,0.15)", flexShrink: 0 as const };
-
 const FAILURES = [
   { num: "FAILURE 01", title: "Unverifiable", body: "No proof a review came from a real, paying customer — or that the job ever happened at all." },
   { num: "FAILURE 02", title: "Pay-to-rank", body: "Placement is auctioned. The pro at the top paid the most for the slot — not earned it on merit." },
@@ -76,7 +74,7 @@ export function TrustGraphPage() {
             {ANSWERS.map((a) => (
               <Grid.Col key={a.title} span={{ base: 12, md: 4 }}>
                 <Card withBorder shadow="xs" radius="lg" p="md" h="100%">
-                  <ThemeIcon size={44} radius={12} mb="sm" style={MK_ICON}>{a.icon}</ThemeIcon>
+                  <ThemeIcon size={44} radius={12} mb="sm" color="orange" variant="light">{a.icon}</ThemeIcon>
                   <Title order={4} mb={8}>{a.title}</Title>
                   <Text size="sm" c="dimmed" lh={1.55}>{a.body}</Text>
                 </Card>
