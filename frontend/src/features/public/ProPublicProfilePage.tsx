@@ -430,7 +430,6 @@ export function ProPublicProfilePage() {
                 <Title order={4} style={{ color: "var(--gk-accent-primary)" }}>Krafts</Title>
                 <Stack gap="md">
                   {krafts.map((k) => (
-                    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
                     <div key={k.id} onClick={() => handle && trackKraftClick(k.id, handle)}>
                       <KraftCard
                         title={k.title}
