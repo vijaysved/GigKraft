@@ -3,12 +3,12 @@ import os
 from typing import List, Optional
 
 import stripe
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Sum
 from ninja import Router, Schema
 
 from accounts.auth import jwt_auth
 from accounts.models import ProProfile, User
-from billing.models import Subscription, StripeSettings
+from billing.models import BillingInvoice, Subscription, StripeSettings
 from common.permissions import require_gk_admin
 from krafts.models import Kraft
 from leads.models import Lead
@@ -367,6 +367,114 @@ def test_stripe_connection(request):
         return StripeConnectionOut(ok=False, mode=cfg.mode, account_id=None, account_name=None, error="Invalid API key.")
     except Exception as exc:
         return StripeConnectionOut(ok=False, mode=cfg.mode, account_id=None, account_name=None, error=str(exc))
+
+
+# ── Billing: Subscribers & Transactions (gk_admin only) ───────────────────────
+
+class SubscriberRow(Schema):
+    id: int
+    pro_name: str
+    email: str
+    plan: str
+    plan_label: str
+    status: str
+    renews_at: Optional[str]
+    monthly_value: float
+    date_joined: str
+
+
+class SubscribersOut(Schema):
+    total_active: int
+    total_mrr: float
+    items: List[SubscriberRow]
+
+
+@router.get("/billing/subscribers", response=SubscribersOut)
+def billing_subscribers(request):
+    require_gk_admin(request)
+    subs = (
+        Subscription.objects.all()
+        .select_related("pro__user")
+        .order_by("-created_at")
+    )
+    items = []
+    total_active = 0
+    total_mrr = 0.0
+    for sub in subs:
+        user = sub.pro.user
+        name = f"{user.first_name} {user.last_name}".strip() or user.email or str(user.pk)
+        mv = float(sub.monthly_value)
+        if sub.status == Subscription.Status.ACTIVE:
+            total_active += 1
+            total_mrr += mv
+        items.append(SubscriberRow(
+            id=sub.pk,
+            pro_name=name,
+            email=user.email or "",
+            plan=sub.plan,
+            plan_label=sub.get_plan_display(),
+            status=sub.status,
+            renews_at=sub.renews_at.isoformat() if sub.renews_at else None,
+            monthly_value=mv,
+            date_joined=user.date_joined.strftime("%Y-%m-%d"),
+        ))
+    return SubscribersOut(
+        total_active=total_active,
+        total_mrr=round(total_mrr, 2),
+        items=items,
+    )
+
+
+class TransactionRow(Schema):
+    id: int
+    issued_at: str
+    pro_name: str
+    pro_email: str
+    plan: str
+    plan_label: str
+    amount: float
+    status: str
+    period_label: str
+
+
+class TransactionsOut(Schema):
+    total_count: int
+    total_amount: float
+    items: List[TransactionRow]
+
+
+@router.get("/billing/transactions", response=TransactionsOut)
+def billing_transactions(request, page: int = 1, page_size: int = 25):
+    require_gk_admin(request)
+    qs = (
+        BillingInvoice.objects.all()
+        .select_related("subscription__pro__user")
+        .order_by("-issued_at")
+    )
+    total_count = qs.count()
+    agg = qs.aggregate(total_amount=Sum("amount"))
+    total_amount = float(agg["total_amount"] or 0)
+    offset = (page - 1) * page_size
+    items = []
+    for inv in qs[offset : offset + page_size]:
+        user = inv.subscription.pro.user
+        name = f"{user.first_name} {user.last_name}".strip() or user.email or str(user.pk)
+        items.append(TransactionRow(
+            id=inv.pk,
+            issued_at=inv.issued_at.isoformat(),
+            pro_name=name,
+            pro_email=user.email or "",
+            plan=inv.subscription.plan,
+            plan_label=inv.subscription.get_plan_display(),
+            amount=float(inv.amount),
+            status=inv.status,
+            period_label=inv.period_label,
+        ))
+    return TransactionsOut(
+        total_count=total_count,
+        total_amount=round(total_amount, 2),
+        items=items,
+    )
 
 
 # ── Anonymous leads (captured inquiries) ──────────────────────────────────────

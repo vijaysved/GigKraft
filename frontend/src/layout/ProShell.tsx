@@ -13,7 +13,6 @@ import {
 import {
   IconChartBar,
   IconChevronUp,
-  IconCreditCard,
   IconInbox,
   IconLogout,
   IconNetwork,
@@ -29,13 +28,12 @@ import { GkLogo } from "../brand/GkLogo";
 import { useProAvatar } from "../hooks/useProAvatar";
 
 const NAV_ITEMS = [
-  { label: "Dashboard", icon: IconChartBar,  to: "/pro/dashboard" },
-  { label: "Inbox",     icon: IconInbox,     to: "/pro/inbox" },
-  { label: "Reviews",   icon: IconStar,      to: "/pro/reviews" },
-  { label: "Krafts",    icon: IconPhoto,     to: "/pro/krafts" },
-  { label: "Network",   icon: IconNetwork,   to: "/pro/network" },
-  { label: "Billing",   icon: IconCreditCard, to: "/pro/billing" },
-  { label: "Profile",   icon: IconUser,      to: "/pro/account" },
+  { label: "Dashboard", icon: IconChartBar, to: "/pro/dashboard" },
+  { label: "Inbox",     icon: IconInbox,    to: "/pro/inbox" },
+  { label: "Reviews",   icon: IconStar,     to: "/pro/reviews" },
+  { label: "Krafts",    icon: IconPhoto,    to: "/pro/krafts" },
+  { label: "Network",   icon: IconNetwork,  to: "/pro/network" },
+  { label: "Profile",   icon: IconUser,     to: "/pro/account" },
 ];
 
 const navLinkStyles = (_theme: unknown, { active }: { active?: boolean }) => ({

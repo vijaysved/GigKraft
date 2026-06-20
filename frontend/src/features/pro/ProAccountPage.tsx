@@ -11,7 +11,6 @@ import {
   CopyButton,
   Divider,
   FileButton,
-  Grid,
   Group,
   Modal,
   Select,
@@ -45,6 +44,8 @@ import {
   IconUpload,
   IconX,
 } from "@tabler/icons-react";
+
+import { BillingTab } from "./BillingTab";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
@@ -94,9 +95,6 @@ const WALLPAPERS: { id: number; label: string; gradient: string }[] = [
 
 const PHOTO_MAX_MB = 5;
 
-const ACCOUNT_LINKS = [
-  { label: "Billing", description: "Vault plan and payment", icon: IconCreditCard, to: "/pro/billing" },
-];
 
 type ModalType = "handle" | "photo" | "wallpaper" | "rec-request" | null;
 type EditSection = "name" | "trade" | "credentials" | "bio" | "contact" | "service" | null;
@@ -489,6 +487,11 @@ export function ProAccountPage() {
           <Tabs.Tab value="settings"
             style={{ color: activeTab === "settings" ? "var(--gk-accent-primary)" : "var(--gk-accent-secondary)" }}>
             Settings
+          </Tabs.Tab>
+          <Tabs.Tab value="billing"
+            leftSection={<IconCreditCard size={15} />}
+            style={{ color: activeTab === "billing" ? "var(--gk-accent-primary)" : "var(--gk-accent-secondary)" }}>
+            Billing
           </Tabs.Tab>
         </Tabs.List>
 
@@ -885,27 +888,15 @@ export function ProAccountPage() {
           </Stack>
         </Tabs.Panel>
 
+        {/* ══════════════════════════ BILLING TAB ══════════════════════════ */}
+        <Tabs.Panel value="billing" pt="md">
+          <BillingTab />
+        </Tabs.Panel>
+
         {/* ══════════════════════════ SETTINGS TAB ══════════════════════════ */}
         <Tabs.Panel value="settings" pt="md">
           <Stack>
             {ProfileHero}
-            <Grid>
-              {ACCOUNT_LINKS.map(({ label, description, icon: Icon, to }) => (
-                <Grid.Col key={to} span={{ base: 12, sm: 6, md: 4 }}>
-                  <UnstyledButton w="100%" onClick={() => navigate(to)}>
-                    <Card withBorder radius="md" padding="md" style={{ cursor: "pointer" }}>
-                      <Group gap="sm">
-                        <Avatar radius="md" color="blue" size="md"><Icon size={20} /></Avatar>
-                        <Stack gap={2}>
-                          <Text fw={600} size="sm">{label}</Text>
-                          <Text size="xs" c="dimmed">{description}</Text>
-                        </Stack>
-                      </Group>
-                    </Card>
-                  </UnstyledButton>
-                </Grid.Col>
-              ))}
-            </Grid>
             <ThemeSettingsCard />
             <Card withBorder radius="md" padding="lg">
               <Stack>

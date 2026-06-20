@@ -52,6 +52,9 @@ import { ProNetworkPage } from "./features/pro/ProNetworkPage";
 import { ProBillingPage } from "./features/pro/ProBillingPage";
 import { ProAccountPage } from "./features/pro/ProAccountPage";
 import { ProInboxPage } from "./features/pro/ProInboxPage";
+import { ProCheckoutPage } from "./features/pro/ProCheckoutPage";
+import { ProPaymentSuccessPage } from "./features/pro/ProPaymentSuccessPage";
+import { ProBillingTestPage } from "./features/pro/ProBillingTestPage";
 
 import { ProServiceAreaPage } from "./features/pro/ProServiceAreaPage";
 import { ProProfilePage } from "./features/pro/ProProfilePage";
@@ -150,7 +153,8 @@ export default function App() {
         <Route path="krafts/:id/preview" element={<KraftPublicPreviewPage />} />
         <Route path="stats" element={<Navigate to="/pro/dashboard" replace />} />
         <Route path="network" element={<ProNetworkPage />} />
-        <Route path="billing" element={<ProBillingPage />} />
+        <Route path="billing" element={<Navigate to="/pro/account?tab=billing" replace />} />
+        <Route path="billing-test" element={<ProBillingTestPage />} />
         <Route path="profile" element={<Navigate to="/pro/account?tab=public" replace />} />
         <Route path="account" element={<ProAccountPage />} />
         <Route path="account/service-area" element={<ProServiceAreaPage />} />
@@ -160,10 +164,18 @@ export default function App() {
         <Route path="leads/:id" element={<Navigate to="/pro/inbox" replace />} />
       </Route>
 
-      {/* Pro onboarding — outside ProShell (full-bleed wallpaper) */}
+      {/* Pro full-screen pages — outside ProShell (WallpaperBackground layout) */}
       <Route
         path="/pro/onboarding"
         element={<RequireAuth><RequireRole role="pro"><ProOnboardingPage /></RequireRole></RequireAuth>}
+      />
+      <Route
+        path="/pro/checkout"
+        element={<RequireAuth><RequireRole role="pro"><ProCheckoutPage /></RequireRole></RequireAuth>}
+      />
+      <Route
+        path="/pro/billing/success"
+        element={<RequireAuth><RequireRole role="pro"><ProPaymentSuccessPage /></RequireRole></RequireAuth>}
       />
 
       {/* Homeowner onboarding — outside HomeShell (full-bleed wallpaper) */}

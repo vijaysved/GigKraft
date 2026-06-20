@@ -193,11 +193,49 @@ def create_checkout_session(request, payload: CheckoutIn):
         session = stripe.checkout.Session.create(
             mode="subscription",
             line_items=[{"price": price_id, "quantity": 1}],
-            success_url=f"{app_url}/pro/billing?session_id={{CHECKOUT_SESSION_ID}}",
-            cancel_url=f"{app_url}/pro/billing?cancelled=1",
-            metadata={"user_id": str(user.id), "pro_id": str(pro.id)},
+            success_url=f"{app_url}/pro/billing/success?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{app_url}/pro/account?tab=billing&cancelled=1",
+            metadata={"user_id": str(user.id), "pro_id": str(pro.id), "plan": payload.plan},
         )
     except stripe.StripeError as e:
         return 400, {"detail": str(e.user_message or e)}
 
     return 200, {"url": session.url}
+
+
+# ---------------------------------------------------------------------------
+# Billing config (used by ProBillingTestPage)
+# ---------------------------------------------------------------------------
+
+class BillingConfigOut(Schema):
+    stripe_mode: str
+    webhook_secret_set: bool
+    resend_mock: bool
+
+
+@router.get("/config", response=BillingConfigOut)
+def billing_config(request):
+    require_pro(request)
+    from django.conf import settings
+    cfg = StripeSettings.get()
+    return {
+        "stripe_mode": cfg.effective_mode,
+        "webhook_secret_set": bool(os.environ.get("STRIPE_WEBHOOK_SECRET")),
+        "resend_mock": getattr(settings, "MOCK_RESEND", True),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Subscription reset (test mode only — for ProBillingTestPage E2E re-testing)
+# ---------------------------------------------------------------------------
+
+@router.delete("/subscription/reset", response={200: dict, 403: ErrorOut})
+def reset_subscription(request):
+    """Delete the pro's subscription row so the checkout flow can be re-tested.
+    Only available when Stripe is in test mode."""
+    cfg = StripeSettings.get()
+    if cfg.effective_mode != "test":
+        return 403, {"detail": "Subscription reset is only available in test mode."}
+    pro = require_pro(request)
+    deleted, _ = Subscription.objects.filter(pro=pro).delete()
+    return 200, {"deleted": deleted}
