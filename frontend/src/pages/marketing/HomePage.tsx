@@ -1,9 +1,11 @@
 import { Badge, Box, Button, Card, Container, Divider, Grid, Group, Stack, Text, ThemeIcon, Title } from "@mantine/core";
 import { IconBolt, IconBriefcase, IconCamera, IconCoin, IconMapPin, IconShieldCheck, IconThumbUp, IconUserCircle } from "@tabler/icons-react";
-import { Link } from "react-router-dom";
-
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { ApiError } from "../../api/endpoints";
+import { useAuth } from "../../auth/AuthContext";
+import { GoogleSignInButton } from "../../components/GoogleSignInButton";
 import { HeroSlider } from "../../components/marketing/HeroSlider";
-import { useWaitlist } from "../../components/marketing/WaitlistModal";
 
 const VALUE_PROPS = [
   { icon: <IconBriefcase size={22} />, title: "Portfolio you own", body: "Your Krafts and client data are yours. Export them, point a custom domain at them, take them anywhere." },
@@ -30,8 +32,18 @@ const MACRO = [
   { val: "$680B", body: "in smart-infrastructure and certified retrofits flowing into homes through 2030." },
 ];
 
+const ROLE_HOME: Record<string, string> = {
+  member: "/member/welcome",
+  pro: "/pro/dashboard",
+  homeowner: "/home/discover",
+  node_manager: "/admin/dashboard",
+  gk_admin: "/gk-admin/dashboard",
+};
+
 export function HomePage() {
-  const { openWaitlist } = useWaitlist();
+  const { status, user, loginWithGoogle } = useAuth();
+  const navigate = useNavigate();
+  const [ctaError, setCtaError] = useState<string | null>(null);
 
   return (
     <Box>
@@ -52,12 +64,31 @@ export function HomePage() {
                   gigKraft.com turns every finished job into a <Text span fw={700} style={{ color: "white" }}>verified before/after Kraft</Text> — endorsed by the real people who had the work done. Own a portable reputation and see exactly how you stack up in your zipcode. Publish your portfolio for <Text span fw={700} style={{ color: "white" }}>$24.99/mo</Text>.
                 </Text>
                 <Group gap="sm" mt={4} wrap="wrap">
-                  <Button component={Link} to="/pricing" size="md" radius="md" style={{ background: "rgba(0,0,0,0.75)", color: "white", border: "2px solid rgba(255,255,255,0.3)" }}>
-                    Build Your Profile
-                  </Button>
-                  <Button component={Link} to="/for-pros" size="md" radius="md" style={{ background: "rgba(255,255,255,0.15)", color: "white", border: "2px solid rgba(255,255,255,0.5)", backdropFilter: "blur(4px)" }}>
-                    See how it works →
-                  </Button>
+                  {status === "authenticated" && user ? (
+                    user.role === "member" ? (
+                      <>
+                        <Button onClick={() => navigate("/pro/checkout")} size="md" radius="md" style={{ background: "rgba(0,0,0,0.75)", color: "white", border: "2px solid rgba(255,255,255,0.3)" }}>
+                          Subscribe to Pro
+                        </Button>
+                        <Button onClick={() => navigate("/member/welcome")} size="md" radius="md" style={{ background: "rgba(255,255,255,0.15)", color: "white", border: "2px solid rgba(255,255,255,0.5)", backdropFilter: "blur(4px)" }}>
+                          View my profile →
+                        </Button>
+                      </>
+                    ) : (
+                      <Button onClick={() => navigate(ROLE_HOME[user.role] ?? "/")} size="md" radius="md" style={{ background: "rgba(0,0,0,0.75)", color: "white", border: "2px solid rgba(255,255,255,0.3)" }}>
+                        Go to Dashboard →
+                      </Button>
+                    )
+                  ) : (
+                    <>
+                      <Button component={Link} to="/register" size="md" radius="md" style={{ background: "rgba(0,0,0,0.75)", color: "white", border: "2px solid rgba(255,255,255,0.3)" }}>
+                        Build Your Profile
+                      </Button>
+                      <Button component={Link} to="/for-pros" size="md" radius="md" style={{ background: "rgba(255,255,255,0.15)", color: "white", border: "2px solid rgba(255,255,255,0.5)", backdropFilter: "blur(4px)" }}>
+                        See how it works →
+                      </Button>
+                    </>
+                  )}
                 </Group>
                 <Group gap={28} mt={8} wrap="wrap">
                   {STATS.map((s, i) => (
@@ -184,13 +215,13 @@ export function HomePage() {
             <Stack gap="md" h="100%">
               <Card withBorder radius="lg" p="md" style={{ opacity: 0.75 }}>
                 <Text size="xs" fw={700} tt="uppercase" c="dimmed" mb={8}>The old way</Text>
-                <Text size="xl" style={{ letterSpacing: 3, color: "#C77800" }}>★★★★<span style={{ opacity: 0.3 }}>★</span></Text>
+                <Text size="xl" style={{ letterSpacing: 3, color: "var(--gk-accent-primary)" }}>★★★★<span style={{ opacity: 0.3 }}>★</span></Text>
                 <Text size="sm" c="dimmed" fw={600} mt={6}>"Great guy, highly recommend!!" — anonymous, 3 years ago, unverified.</Text>
               </Card>
               <Card withBorder shadow="md" radius="lg" p="md" style={{ flex: 1 }}>
                 <Text size="xs" fw={700} tt="uppercase" c="var(--gk-accent-primary)" mb={10}>The gigKraft.com way</Text>
                 <Group gap="sm" mb={8}>
-                  <Box style={{ width: 28, height: 28, borderRadius: 8, background: "#CCFF00", border: "1px solid var(--gk-border)", display: "grid", placeItems: "center", fontWeight: 800, color: "#0A2540" }}>✓</Box>
+                  <Box style={{ width: 28, height: 28, borderRadius: 8, background: "#84CC16", border: "1px solid var(--gk-border)", display: "grid", placeItems: "center", fontWeight: 800, color: "#0A2540" }}>✓</Box>
                   <Text fw={700} size="md">Would hire again for water-heater work</Text>
                 </Group>
                 <Text size="sm" c="dimmed" fw={600}>Verified Kraft · endorsed by homeowner · 1.4 mi · zip 85032 · 11 days ago</Text>
@@ -231,11 +262,24 @@ export function HomePage() {
                 Build your profile. Publish your first Kraft.
               </Title>
               <Text size="lg" maw={520} lh={1.55} style={{ color: "rgba(255,255,255,0.85)" }}>
-                Join the early-access list for your area. We're onboarding proven local pros zipcode by zipcode.
+                Build your profile in minutes and start publishing verified Krafts in your zipcode.
               </Text>
-              <Button size="lg" radius="xl" onClick={() => openWaitlist("pro")} mt={6} style={{ background: "rgba(0,0,0,0.75)", color: "white", border: "2px solid rgba(255,255,255,0.35)", paddingLeft: 40, paddingRight: 40 }}>
-                Join the Waitlist
-              </Button>
+              <Stack gap={6} align="center" mt={6}>
+                <GoogleSignInButton
+                  label="signup_with"
+                  onSuccess={async (idToken) => {
+                    setCtaError(null);
+                    try {
+                      const { created } = await loginWithGoogle(idToken, "pro");
+                      navigate(created ? "/pro/onboarding" : "/pro/leads");
+                    } catch (err) {
+                      setCtaError(err instanceof ApiError ? err.message : "Sign-in failed. Please try again.");
+                    }
+                  }}
+                  onError={setCtaError}
+                />
+                {ctaError && <Text size="xs" style={{ color: "rgba(255,255,255,0.9)" }}>{ctaError}</Text>}
+              </Stack>
               <Text size="xs" fw={600} style={{ color: "rgba(255,255,255,0.6)" }}>$24.99/mo or $249.99/yr · cancel anytime · no per-lead fees.</Text>
             </Stack>
           </Box>

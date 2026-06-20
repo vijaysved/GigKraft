@@ -59,13 +59,13 @@ class OTPVerifyIn(Schema):
 
 class GoogleAuthIn(Schema):
     id_token: str
-    role: str = User.Role.HOMEOWNER
+    role: str = User.Role.MEMBER
 
     @field_validator("role")
     @classmethod
     def validate_role(cls, value):
-        if value not in (User.Role.PRO, User.Role.HOMEOWNER):
-            raise ValueError("Google sign-in is only for pro or homeowner roles")
+        if value not in (User.Role.MEMBER, User.Role.PRO, User.Role.HOMEOWNER):
+            raise ValueError("Google sign-in role must be member, pro, or homeowner")
         return value
 
 

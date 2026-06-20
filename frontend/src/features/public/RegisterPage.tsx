@@ -132,14 +132,16 @@ export function RegisterPage() {
                 fullWidth
                 onSuccess={async (idToken) => {
                   try {
-                    const effectiveRole = role ?? "homeowner";
-                    await loginWithGoogle(idToken, effectiveRole);
-                    if (isSubscribeIntent && effectiveRole === "pro") {
+                    if (isSubscribeIntent) {
+                      await loginWithGoogle(idToken, "member");
                       navigate(`/pro/checkout?plan=${plan}`, { replace: true });
-                    } else if (effectiveRole === "pro") {
-                      navigate("/pro/onboarding", { replace: true });
-                    } else {
+                    } else if (role === "homeowner") {
+                      await loginWithGoogle(idToken, "homeowner");
                       navigate("/home/discover", { replace: true });
+                    } else {
+                      // Pro picker selection → becomes member first, upgrades on subscribe
+                      await loginWithGoogle(idToken, "member");
+                      navigate("/member/welcome", { replace: true });
                     }
                   } catch {
                     setError("Google sign-up failed. Please try again.");

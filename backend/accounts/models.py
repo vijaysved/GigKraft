@@ -18,6 +18,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     """
 
     class Role(models.TextChoices):
+        MEMBER = "member", "Member"
         PRO = "pro", "Pro"
         HOMEOWNER = "homeowner", "Homeowner"
         NODE_MANAGER = "node_manager", "Node Manager"

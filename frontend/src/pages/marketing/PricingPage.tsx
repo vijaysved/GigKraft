@@ -54,6 +54,7 @@ export function PricingPage() {
   function handleBuyPlan() {
     const plan = annual ? "annual" : "monthly";
     if (status === "authenticated") {
+      // Members and pros both go to checkout; checkout handles already-subscribed guard
       navigate(`/pro/checkout?plan=${plan}`);
     } else {
       navigate(`/register?intent=subscribe&plan=${plan}`);

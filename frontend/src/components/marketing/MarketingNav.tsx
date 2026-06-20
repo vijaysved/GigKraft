@@ -2,9 +2,9 @@ import { Box, Button, Container, Group, Text } from "@mantine/core";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../../auth/AuthContext";
-import { useWaitlist } from "./WaitlistModal";
 
 const ROLE_HOME: Record<string, string> = {
+  member: "/member/welcome",
   pro: "/pro/reviews",
   homeowner: "/home/discover",
   node_manager: "/admin/dashboard",
@@ -22,7 +22,6 @@ const NAV_LINKS = [
 
 export function MarketingNav() {
   const { status, user } = useAuth();
-  const { openWaitlist } = useWaitlist();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -45,7 +44,7 @@ export function MarketingNav() {
               fw={900}
               size="sm"
               style={{
-                background: "var(--mk-gradient, linear-gradient(135deg,#C42200,#FF6600,#FFBA00))",
+                background: "var(--mk-gradient, linear-gradient(135deg,#C42200,#FF6600,#7AE600))",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
                 backgroundClip: "text",
@@ -70,10 +69,10 @@ export function MarketingNav() {
                     borderRadius: 6,
                     fontWeight: 700,
                     fontSize: 13,
-                    color: active ? "#C42200" : "var(--gk-text-muted)",
+                    color: active ? "var(--gk-accent-primary)" : "var(--gk-text-muted)",
                     textDecoration: "none",
                     whiteSpace: "nowrap",
-                    borderBottom: active ? "2px solid #FF6600" : "2px solid transparent",
+                    borderBottom: active ? "2px solid var(--gk-accent-primary)" : "2px solid transparent",
                     transition: "color .15s",
                   }}
                 >
@@ -85,22 +84,33 @@ export function MarketingNav() {
 
           {/* CTA */}
           {status === "authenticated" && user ? (
-            <Button
-              size="xs"
-              radius="md"
-              onClick={() => navigate(ROLE_HOME[user.role] ?? "/admin/dashboard")}
-              style={{ flexShrink: 0, background: "var(--mk-gradient, linear-gradient(135deg,#C42200,#FF6600,#FFBA00))", border: "none" }}
-            >
-              Dashboard
-            </Button>
+            user.role === "member" ? (
+              <Button
+                size="xs"
+                radius="md"
+                onClick={() => navigate("/pro/checkout")}
+                style={{ flexShrink: 0, background: "var(--gk-accent-primary)", border: "none" }}
+              >
+                Upgrade to Pro
+              </Button>
+            ) : (
+              <Button
+                size="xs"
+                radius="md"
+                onClick={() => navigate(ROLE_HOME[user.role] ?? "/admin/dashboard")}
+                style={{ flexShrink: 0, background: "var(--mk-gradient, linear-gradient(135deg,#C42200,#FF6600,#7AE600))", border: "none" }}
+              >
+                Dashboard
+              </Button>
+            )
           ) : (
             <Button
               size="xs"
               radius="md"
-              onClick={() => openWaitlist("general")}
-              style={{ flexShrink: 0, background: "var(--mk-gradient, linear-gradient(135deg,#C42200,#FF6600,#FFBA00))", border: "none" }}
+              onClick={() => navigate("/register")}
+              style={{ flexShrink: 0, background: "var(--mk-gradient, linear-gradient(135deg,#C42200,#FF6600,#7AE600))", border: "none" }}
             >
-              Join Waitlist
+              Join free
             </Button>
           )}
         </Group>

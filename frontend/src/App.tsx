@@ -27,6 +27,10 @@ import { RegisterPage } from "./features/public/RegisterPage";
 import { ReviewPage } from "./features/public/ReviewPage";
 import { ProPublicProfilePage } from "./features/public/ProPublicProfilePage";
 
+// Member pages
+import { MemberWelcomePage } from "./features/member/MemberWelcomePage";
+import { MemberComparePage } from "./features/member/MemberComparePage";
+
 // GK Admin pages (super-admin, cross-node)
 import { GkAdminDashboardPage } from "./features/gk-admin/GkAdminDashboardPage";
 import { GkAdminUsersPage } from "./features/gk-admin/GkAdminUsersPage";
@@ -90,6 +94,10 @@ export default function App() {
       <Route path="/review/:handle/:token" element={<ReviewPage />} />
       <Route path="/pros/:id" element={<ProPublicProfilePage />} />
 
+      {/* Member pages — authenticated, any role (page handles non-member redirects) */}
+      <Route path="/member/welcome" element={<RequireAuth><MemberWelcomePage /></RequireAuth>} />
+      <Route path="/member/compare" element={<MemberComparePage />} />
+
       {/* GK Admin (super-admin, cross-node) */}
       <Route
         path="/gk-admin"
@@ -130,12 +138,12 @@ export default function App() {
         <Route path="settings" element={<AdminSettingsPage />} />
       </Route>
 
-      {/* Pro */}
+      {/* Pro (members can enter — upgrade banner shown inside ProShell) */}
       <Route
         path="/pro"
         element={
           <RequireAuth>
-            <RequireRole role="pro">
+            <RequireRole role={["pro", "member"]}>
               <ProShell />
             </RequireRole>
           </RequireAuth>
@@ -171,11 +179,11 @@ export default function App() {
       />
       <Route
         path="/pro/checkout"
-        element={<RequireAuth><RequireRole role="pro"><ProCheckoutPage /></RequireRole></RequireAuth>}
+        element={<RequireAuth><RequireRole role={["pro", "member"]}><ProCheckoutPage /></RequireRole></RequireAuth>}
       />
       <Route
         path="/pro/billing/success"
-        element={<RequireAuth><RequireRole role="pro"><ProPaymentSuccessPage /></RequireRole></RequireAuth>}
+        element={<RequireAuth><RequireRole role={["pro", "member"]}><ProPaymentSuccessPage /></RequireRole></RequireAuth>}
       />
 
       {/* Homeowner onboarding — outside HomeShell (full-bleed wallpaper) */}

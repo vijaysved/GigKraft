@@ -19,6 +19,7 @@ def _handle_checkout_completed(session: dict) -> None:
     from billing.emails import send_invoice_email, send_welcome_email
     from billing.models import BillingInvoice, PLAN_PRICES, Subscription
     from accounts.models import User
+    from accounts.services import ensure_role_profile
 
     metadata = session.get("metadata", {})
     user_id = metadata.get("user_id", "")
@@ -103,6 +104,16 @@ def _handle_checkout_completed(session: dict) -> None:
             period_label=period_label,
             issued_at=today,
         )
+
+    # Upgrade user role to pro when they subscribe (member → pro)
+    try:
+        paying_user = User.objects.get(pk=int(user_id))
+        if paying_user.role == User.Role.MEMBER:
+            paying_user.role = User.Role.PRO
+            paying_user.save(update_fields=["role"])
+            ensure_role_profile(paying_user)
+    except Exception:
+        logger.exception("Role upgrade failed for user_id=%s", user_id)
 
     # Send emails — failures must not break the 200 response to Stripe
     try:

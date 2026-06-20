@@ -1,7 +1,9 @@
 import {
+  Alert,
   AppShell,
   Avatar,
   Box,
+  Button,
   Divider,
   Group,
   Menu,
@@ -17,6 +19,7 @@ import {
   IconLogout,
   IconNetwork,
   IconPhoto,
+  IconRocket,
   IconStar,
   IconUser,
 } from "@tabler/icons-react";
@@ -126,6 +129,28 @@ export function ProShell() {
       </AppShell.Navbar>
 
       <AppShell.Main style={{ background: "var(--gk-bg-canvas)" }}>
+        {user?.role === "member" && (
+          <Alert
+            icon={<IconRocket size={16} />}
+            color="orange"
+            variant="light"
+            mb="md"
+            styles={{ root: { borderRadius: 0, border: "none", borderBottom: "1px solid var(--gk-border)" } }}
+          >
+            <Group justify="space-between" wrap="nowrap">
+              <Text size="sm" fw={600}>
+                You're on the free plan — publish Krafts and get found by upgrading to Pro.
+              </Text>
+              <Button
+                size="xs"
+                onClick={() => navigate("/pro/checkout")}
+                style={{ background: "var(--gk-accent-primary)", color: "#fff", flexShrink: 0 }}
+              >
+                Upgrade to Pro →
+              </Button>
+            </Group>
+          </Alert>
+        )}
         <Outlet />
       </AppShell.Main>
     </AppShell>

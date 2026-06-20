@@ -2,21 +2,24 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 
 interface RequireRoleProps {
-  role: string;
+  role: string | string[];
   children: React.ReactNode;
 }
+
+const ROLE_HOME: Record<string, string> = {
+  member: "/member/welcome",
+  pro: "/pro/leads",
+  homeowner: "/home/discover",
+  node_manager: "/admin/dashboard",
+  gk_admin: "/gk-admin/dashboard",
+};
 
 export function RequireRole({ role, children }: RequireRoleProps) {
   const { user } = useAuth();
   if (!user) return null;
-  if (user.role !== role) {
-    const redirects: Record<string, string> = {
-      pro: "/pro/leads",
-      homeowner: "/home/discover",
-      node_manager: "/admin/dashboard",
-      gk_admin: "/gk-admin/dashboard",
-    };
-    return <Navigate to={redirects[user.role] ?? "/login"} replace />;
+  const allowed = Array.isArray(role) ? role : [role];
+  if (!allowed.includes(user.role)) {
+    return <Navigate to={ROLE_HOME[user.role] ?? "/login"} replace />;
   }
   return <>{children}</>;
 }

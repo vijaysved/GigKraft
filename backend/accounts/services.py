@@ -74,7 +74,7 @@ def get_or_create_phone_user(phone, role):
 
 
 @transaction.atomic
-def get_or_create_google_user(email, role=User.Role.HOMEOWNER, first_name="", last_name=""):
+def get_or_create_google_user(email, role=User.Role.MEMBER, first_name="", last_name=""):
     user, created = User.objects.get_or_create(
         email=email, defaults={"role": role, "first_name": first_name, "last_name": last_name}
     )
