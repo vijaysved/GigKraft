@@ -53,7 +53,6 @@ import { ProKraftListPage } from "./features/pro/ProKraftListPage";
 import { ProReviewsPage } from "./features/pro/ProReviewsPage";
 import { ProDashboardPage } from "./features/pro/ProDashboardPage";
 import { ProNetworkPage } from "./features/pro/ProNetworkPage";
-import { ProBillingPage } from "./features/pro/ProBillingPage";
 import { ProAccountPage } from "./features/pro/ProAccountPage";
 import { ProInboxPage } from "./features/pro/ProInboxPage";
 import { ProCheckoutPage } from "./features/pro/ProCheckoutPage";

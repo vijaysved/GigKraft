@@ -58,7 +58,7 @@ function FeureCell({ value }: { value: boolean | "partial" }) {
 }
 
 export function MemberComparePage() {
-  const { status, user } = useAuth();
+  const { status } = useAuth();
   const navigate = useNavigate();
 
   return (

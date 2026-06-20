@@ -18,7 +18,6 @@ import {
   IconCheck,
   IconLock,
   IconRocket,
-  IconX,
 } from "@tabler/icons-react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 

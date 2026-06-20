@@ -13,7 +13,7 @@ import {
   TextInput,
   Title,
 } from "@mantine/core";
-import { IconAlertCircle, IconCreditCard, IconX } from "@tabler/icons-react";
+import { IconAlertCircle, IconCreditCard } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 

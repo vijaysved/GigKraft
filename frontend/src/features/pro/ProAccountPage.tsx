@@ -24,7 +24,6 @@ import {
   TextInput,
   Title,
   Tooltip,
-  UnstyledButton,
 } from "@mantine/core";
 import {
   IconAt,
@@ -47,7 +46,7 @@ import {
 
 import { BillingTab } from "./BillingTab";
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
 import jsPDF from "jspdf";
 import { toCanvas } from "html-to-image";
@@ -129,7 +128,6 @@ function SectionHeader({
 // ── Main component ────────────────────────────────────────────────────────────
 export function ProAccountPage() {
   const { user, updateUser } = useAuth();
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get("tab") ?? "public";
 
