@@ -1,10 +1,10 @@
 import { Box, Button, Card, Container, Grid, Group, Select, Stack, Text, Textarea, TextInput, ThemeIcon, Title } from "@mantine/core";
-import { IconBrandWhatsapp, IconBuilding, IconCheck, IconCircleFilled, IconDeviceMobile, IconHardHat, IconHome, IconNews } from "@tabler/icons-react";
+import { IconBrandWhatsapp, IconBuilding, IconCheck, IconCircleFilled, IconDeviceMobile, IconHelmet, IconHome, IconNews } from "@tabler/icons-react";
 import { useState } from "react";
 
 const DESKS = [
   { icon: <IconBuilding size={20} />, title: "Sales & Enterprise", desc: "Node coverage, demos, contracts.", email: "sales@gigkraft.com" },
-  { icon: <IconHardHat size={20} />, title: "Pro Support", desc: "Krafts, billing, the vault.", email: "pros@gigkraft.com" },
+  { icon: <IconHelmet size={20} />, title: "Pro Support", desc: "Krafts, billing, the vault.", email: "pros@gigkraft.com" },
   { icon: <IconHome size={20} />, title: "Client Support", desc: "Hiring, broadcasts, disputes.", email: "help@gigkraft.com" },
   { icon: <IconNews size={20} />, title: "Press & General", desc: "Media, partnerships, other.", email: "hello@gigkraft.com" },
 ];

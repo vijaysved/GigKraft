@@ -15,7 +15,7 @@ from ninja import Router, Schema
 
 from accounts.auth import jwt_auth
 from billing.models import BillingInvoice, Coupon, PLAN_PRICES, Subscription, StripeSettings
-from common.permissions import require_pro
+from common.permissions import require_member_or_pro, require_pro
 
 router = Router(tags=["billing"], auth=jwt_auth)
 
@@ -91,7 +91,7 @@ def serialize_subscription(sub: Subscription) -> dict:
 
 @router.get("/subscription", response=SubscriptionStatusOut)
 def my_subscription(request):
-    pro = require_pro(request)
+    pro = require_member_or_pro(request)
     sub = Subscription.objects.filter(pro=pro).first()
     stripe_mode = StripeSettings.get().effective_mode
     if sub is None or not _is_real_subscription(sub):
@@ -171,8 +171,8 @@ class CheckoutError(Schema):
 
 @router.post("/checkout", response={200: CheckoutOut, 400: CheckoutError})
 def create_checkout_session(request, payload: CheckoutIn):
-    """Start a Stripe Checkout session for the authenticated pro."""
-    pro = require_pro(request)
+    """Start a Stripe Checkout session for a member upgrading or a pro re-subscribing."""
+    pro = require_member_or_pro(request)
     user = request.auth
 
     if payload.plan not in ("monthly", "annual"):

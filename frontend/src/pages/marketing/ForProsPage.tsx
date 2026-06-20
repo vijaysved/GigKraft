@@ -1,7 +1,10 @@
 import { Badge, Box, Button, Card, Container, Grid, Group, Stack, Text, ThemeIcon, Title } from "@mantine/core";
-import { IconCamera, IconCameraCheck, IconFileExport, IconHandshake, IconId, IconMapPin, IconReceipt } from "@tabler/icons-react";
-import { Link } from "react-router-dom";
-import { useWaitlist } from "../../components/marketing/WaitlistModal";
+import { IconCamera, IconCameraCheck, IconFileExport, IconHeartHandshake, IconId, IconMapPin, IconReceipt } from "@tabler/icons-react";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { ApiError } from "../../api/endpoints";
+import { useAuth } from "../../auth/AuthContext";
+import { GoogleSignInButton } from "../../components/GoogleSignInButton";
 
 const SHIFT_BAD = [
   "Pay $30–80 per shared lead, bid against 5 others",
@@ -26,11 +29,21 @@ const HOW = [
 const OWNERSHIP = [
   { icon: <IconId size={22} />, title: "Your pro profile", body: "A clean profile page that collects your verified Krafts and homeowner endorsements in one place." },
   { icon: <IconFileExport size={22} />, title: "Full export", body: "Download every Kraft, photo and invoice record as portable files — no lock-in, ever." },
-  { icon: <IconHandshake size={22} />, title: "Own the client", body: "Repeat customers contact you directly. We route the first job; the relationship is yours." },
+  { icon: <IconHeartHandshake size={22} />, title: "Own the client", body: "Repeat customers contact you directly. We route the first job; the relationship is yours." },
 ];
 
+const ROLE_HOME: Record<string, string> = {
+  pro: "/pro/leads",
+  homeowner: "/home/discover",
+  node_manager: "/admin/dashboard",
+  gk_admin: "/gk-admin/dashboard",
+};
+
 export function ForProsPage() {
-  const { openWaitlist } = useWaitlist();
+  const { loginWithGoogle, user } = useAuth();
+  const navigate = useNavigate();
+  const [ctaError, setCtaError] = useState<string | null>(null);
+
   return (
     <Box>
       {/* Hero */}
@@ -146,15 +159,40 @@ export function ForProsPage() {
             <Group justify="space-between" align="center" wrap="wrap" gap="xl">
               <Box maw={560}>
                 <Title order={2} style={{ fontSize: "clamp(26px,3.2vw,38px)", lineHeight: 1.06, letterSpacing: -0.5, color: "white" }}>
-                  $24.99/mo. Unlimited Krafts. Real endorsements.
+                  Build your profile. Own your reputation.
                 </Title>
                 <Text mt={14} size="md" style={{ color: "rgba(255,255,255,0.82)" }}>No bidding, no per-lead fees, no rake. See exactly what's included.</Text>
               </Box>
-              <Group gap="sm" wrap="wrap">
+              <Group gap="sm" wrap="wrap" align="flex-start">
                 <Button component={Link} to="/pricing" size="md" radius="xl" style={{ background: "rgba(0,0,0,0.7)", color: "white", border: "2px solid rgba(255,255,255,0.3)" }}>View pricing</Button>
-                <Button size="md" radius="xl" onClick={() => openWaitlist("pro")} style={{ background: "rgba(255,255,255,0.15)", color: "white", border: "2px solid rgba(255,255,255,0.5)" }}>
-                  Join Waitlist
-                </Button>
+                {user ? (
+                  <Button
+                    component={Link}
+                    to={ROLE_HOME[user.role] ?? "/pro/leads"}
+                    size="md"
+                    radius="xl"
+                    style={{ background: "rgba(255,255,255,0.15)", color: "white", border: "2px solid rgba(255,255,255,0.5)" }}
+                  >
+                    Go to dashboard
+                  </Button>
+                ) : (
+                  <Stack gap={6} align="flex-start">
+                    <GoogleSignInButton
+                      label="signup_with"
+                      onSuccess={async (idToken) => {
+                        setCtaError(null);
+                        try {
+                          const { created } = await loginWithGoogle(idToken, "pro");
+                          navigate(created ? "/pro/onboarding" : "/pro/leads");
+                        } catch (err) {
+                          setCtaError(err instanceof ApiError ? err.message : "Sign-in failed. Please try again.");
+                        }
+                      }}
+                      onError={setCtaError}
+                    />
+                    {ctaError && <Text size="xs" style={{ color: "rgba(255,255,255,0.9)" }}>{ctaError}</Text>}
+                  </Stack>
+                )}
               </Group>
             </Group>
           </Box>

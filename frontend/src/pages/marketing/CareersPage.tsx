@@ -1,12 +1,12 @@
 import { Badge, Box, Button, Card, Container, Grid, Stack, Text, ThemeIcon, Title } from "@mantine/core";
-import { IconBolt, IconHandshake, IconMapPin, IconTool } from "@tabler/icons-react";
+import { IconBolt, IconHeartHandshake, IconMapPin, IconTool } from "@tabler/icons-react";
 import { Link } from "react-router-dom";
 
 const VALUES = [
   { icon: <IconTool size={22} />, title: "Proof over polish", body: "We judge work by what it does in the field, not how it pitches." },
   { icon: <IconMapPin size={22} />, title: "Local by default", body: "Decisions live close to the nodes and the pros they affect." },
   { icon: <IconBolt size={22} />, title: "Bias to dispatch", body: "Speed is a feature. We move, measure, and adjust." },
-  { icon: <IconHandshake size={22} />, title: "Pros come first", body: "If it doesn't help a tradesperson earn, we don't ship it." },
+  { icon: <IconHeartHandshake size={22} />, title: "Pros come first", body: "If it doesn't help a tradesperson earn, we don't ship it." },
 ];
 
 export function CareersPage() {

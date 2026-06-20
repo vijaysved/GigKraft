@@ -1,6 +1,6 @@
 import { Box, Button, Card, Container, Group, Stack, Text, Title } from "@mantine/core";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import { useWaitlist } from "../../components/marketing/WaitlistModal";
 

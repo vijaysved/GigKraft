@@ -12,6 +12,18 @@ def require_pro(request) -> ProProfile:
     return profile
 
 
+def require_member_or_pro(request) -> ProProfile:
+    """Allow member (pre-checkout) and pro (already subscribed) roles.
+
+    Creates a ProProfile stub for members so the pro_id can be embedded in
+    Stripe session metadata before the webhook fires the role upgrade."""
+    user = request.auth
+    if user.role not in (User.Role.MEMBER, User.Role.PRO):
+        raise HttpError(403, "This endpoint requires a member or pro account.")
+    profile, _ = ProProfile.objects.get_or_create(user=user)
+    return profile
+
+
 def require_homeowner(request) -> HomeownerProfile:
     user = request.auth
     if user.role != User.Role.HOMEOWNER:

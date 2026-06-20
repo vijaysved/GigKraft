@@ -1,7 +1,10 @@
 import { Badge, Box, Button, Card, Container, Grid, Group, Stack, Text, ThemeIcon, Title } from "@mantine/core";
 import { IconMessageCircle, IconSearch, IconShieldCheck } from "@tabler/icons-react";
-import { Link } from "react-router-dom";
-import { useWaitlist } from "../../components/marketing/WaitlistModal";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { ApiError } from "../../api/endpoints";
+import { useAuth } from "../../auth/AuthContext";
+import { GoogleSignInButton } from "../../components/GoogleSignInButton";
 
 const STEPS = [
   { num: "01", icon: <IconSearch size={16} />, title: "Browse the feed", body: "Scroll real before/after Krafts from pros in your zipcode. Filter by job type and distance." },
@@ -16,7 +19,9 @@ const RECS = [
 ];
 
 export function ForClientsPage() {
-  const { openWaitlist } = useWaitlist();
+  const { loginWithGoogle } = useAuth();
+  const navigate = useNavigate();
+  const [ctaError, setCtaError] = useState<string | null>(null);
   return (
     <Box>
       {/* Hero */}
@@ -73,7 +78,7 @@ export function ForClientsPage() {
                       opacity: r.empty ? 0.5 : 1,
                     }}
                   >
-                    <Box style={{ width: 26, height: 26, borderRadius: 7, background: r.empty ? "transparent" : "#CCFF00", border: "1px solid var(--gk-border)", display: "grid", placeItems: "center", fontWeight: 800, fontSize: 13, color: "#0A2540" }}>
+                    <Box style={{ width: 26, height: 26, borderRadius: 7, background: r.empty ? "transparent" : "#84CC16", border: "1px solid var(--gk-border)", display: "grid", placeItems: "center", fontWeight: 800, fontSize: 13, color: "#0A2540" }}>
                       {r.empty ? "—" : "✓"}
                     </Box>
                     <Text fw={700} size="sm">{r.label}</Text>
@@ -126,9 +131,22 @@ export function ForClientsPage() {
                   Soon, unrouted emergencies will go out over SMS &amp; WhatsApp to verified local pros — first to claim wins the job. We're building it now.
                 </Text>
               </Box>
-              <Button size="md" radius="xl" onClick={() => openWaitlist("general")} style={{ background: "rgba(0,0,0,0.7)", color: "white", border: "2px solid rgba(255,255,255,0.3)" }}>
-                Join Waitlist
-              </Button>
+              <Stack gap={6} align="flex-start">
+                <GoogleSignInButton
+                  label="signup_with"
+                  onSuccess={async (idToken) => {
+                    setCtaError(null);
+                    try {
+                      const { created } = await loginWithGoogle(idToken, "homeowner");
+                      navigate(created ? "/home/onboarding" : "/home/discover");
+                    } catch (err) {
+                      setCtaError(err instanceof ApiError ? err.message : "Sign-in failed. Please try again.");
+                    }
+                  }}
+                  onError={setCtaError}
+                />
+                {ctaError && <Text size="xs" style={{ color: "rgba(255,255,255,0.9)" }}>{ctaError}</Text>}
+              </Stack>
             </Group>
           </Box>
         </Container>

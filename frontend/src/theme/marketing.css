@@ -1,23 +1,23 @@
 /* ── GigKraft Marketing Theme ── */
-/* Orange-to-yellow gradient theme for all public marketing pages */
+/* Orange-to-lime-green gradient theme for all public marketing pages */
 
 .mk-page {
   /* Override brand tokens inside marketing pages */
   --gk-accent-primary: #FF6B1A;
-  --gk-accent-secondary: #FFBA00;
+  --gk-accent-secondary: #84CC16;
   --gk-bg-canvas: #FFFAF5;
-  --gk-bg-sidebar: #1A0600;
-  --gk-text-sidebar: #fff8f2;
+  --gk-bg-sidebar: #0B1700;
+  --gk-text-sidebar: #efffdb;
   --gk-border: #F0E0D0;
 
   /* Marketing-specific tokens */
-  --mk-gradient: linear-gradient(135deg, #C42200 0%, #E84500 18%, #FF6600 42%, #FF9100 68%, #FFBA00 88%, #FFD200 100%);
-  --mk-gradient-dark: linear-gradient(135deg, #150200 0%, #4A1200 40%, #7A2800 100%);
+  --mk-gradient: linear-gradient(135deg, #C42200 0%, #E84500 18%, #FF6600 40%, #A8CC00 68%, #7AE600 88%, #5AA800 100%);
+  --mk-gradient-dark: linear-gradient(135deg, #0A1500 0%, #1B3200 40%, #2C5200 100%);
   --mk-hero-text: #ffffff;
   --mk-hero-muted: rgba(255, 255, 255, 0.82);
   --mk-hero-badge-border: rgba(255, 255, 255, 0.5);
-  --mk-nav-border: rgba(255, 100, 0, 0.18);
-  --mk-blob-a: rgba(255, 210, 0, 0.32);
+  --mk-nav-border: rgba(100, 180, 0, 0.18);
+  --mk-blob-a: rgba(122, 230, 0, 0.28);
   --mk-blob-b: rgba(160, 10, 0, 0.28);
 }
 
@@ -93,7 +93,7 @@
 /* ── Footer ── */
 .mk-footer {
   background: var(--mk-gradient-dark) !important;
-  border-top: 1px solid rgba(255, 80, 0, 0.25) !important;
+  border-top: 1px solid rgba(80, 180, 0, 0.25) !important;
   color: rgba(255, 255, 255, 0.88) !important;
 }
 
@@ -142,7 +142,7 @@
   border-color: var(--gk-border);
 }
 
-/* Filled buttons in marketing content sections use the orange gradient.
+/* Filled buttons in marketing content sections use the orange-to-lime gradient.
    Inline style overrides on hero/CTA buttons take natural precedence. */
 .mk-page .mantine-Button-root[data-variant="filled"] {
   background: var(--mk-gradient);
