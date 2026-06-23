@@ -663,6 +663,61 @@ def my_market(request, range: str = "30d"):
 
 # --- Public endpoints (no auth required) ---
 
+@public_router.get("/og/{handle}", auth=None)
+def og_preview(request, handle: str):
+    """Return OG-tagged HTML for social crawlers; instantly redirects browsers to the SPA."""
+    import html as _html
+    import json
+    from django.http import HttpResponse
+
+    pro = (
+        ProProfile.objects.filter(handle=handle.lower())
+        .select_related("user")
+        .first()
+    )
+    if pro is None:
+        return HttpResponse("<h1>Not Found</h1>", status=404, content_type="text/html")
+
+    name     = _html.escape(pro.user.get_full_name() or handle)
+    trade    = _html.escape(pro.primary_trade or "Pro on gigKraft.com")
+    bio_raw  = (pro.bio or "").strip()
+    bio_line = _html.escape(bio_raw[:120] + ("…" if len(bio_raw) > 120 else ""))
+    desc     = f"{trade} · {bio_line}" if bio_line else trade
+    avatar   = _html.escape(pro.avatar_url or "")
+    profile_url = f"https://gigkraft.com/pros/{handle}"
+    redirect_js = json.dumps(profile_url)
+
+    og_image_tags = (
+        f'  <meta property="og:image" content="{avatar}">\n'
+        f'  <meta name="twitter:image" content="{avatar}">\n'
+    ) if avatar else ""
+
+    body = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{name} · gigKraft.com</title>
+  <meta property="og:type" content="profile">
+  <meta property="og:site_name" content="gigKraft.com">
+  <meta property="og:title" content="{name} on gigKraft.com">
+  <meta property="og:description" content="{desc}">
+  <meta property="og:url" content="{profile_url}">
+{og_image_tags}  <meta property="og:image:width" content="400">
+  <meta property="og:image:height" content="400">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="{name} on gigKraft.com">
+  <meta name="twitter:description" content="{desc}">
+  <meta http-equiv="refresh" content="0; url={profile_url}">
+  <link rel="canonical" href="{profile_url}">
+</head>
+<body>
+  <script>window.location.replace({redirect_js})</script>
+  <a href="{profile_url}">View {name}'s profile on gigKraft.com</a>
+</body>
+</html>"""
+    return HttpResponse(body, content_type="text/html; charset=utf-8")
+
+
 @public_router.get("/by-handle/{handle}", response={200: ProOut, 404: ErrorOut}, auth=None)
 def pro_by_handle(request, handle: str):
     pro = (
