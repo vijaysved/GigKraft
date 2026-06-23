@@ -532,6 +532,36 @@ function ChatStepModal({
       size="lg"
     >
       <Stack>
+        {prospect.phone && (
+          <Group
+            justify="space-between"
+            align="center"
+            p="sm"
+            style={{
+              background: "color-mix(in srgb, var(--mantine-color-teal-5) 10%, var(--gk-bg-surface))",
+              borderRadius: 8,
+              border: "1px solid color-mix(in srgb, var(--mantine-color-teal-5) 30%, transparent)",
+            }}
+          >
+            <Group gap="xs">
+              <IconBrandWhatsapp size={15} color="var(--mantine-color-teal-6)" />
+              <Text size="sm" fw={600}>{prospect.phone}</Text>
+            </Group>
+            <CopyButton value={prospect.phone} timeout={2000}>
+              {({ copied, copy }) => (
+                <Button
+                  size="xs"
+                  variant="light"
+                  color={copied ? "green" : "teal"}
+                  leftSection={copied ? <IconCheck size={12} /> : <IconCopy size={12} />}
+                  onClick={copy}
+                >
+                  {copied ? "Copied!" : "Copy Number"}
+                </Button>
+              )}
+            </CopyButton>
+          </Group>
+        )}
         <Text size="sm" c="dimmed">
           Copy this to WhatsApp or Nextdoor DM, then click <strong>Confirm Sent</strong>.
         </Text>
@@ -544,7 +574,7 @@ function ChatStepModal({
                 onClick={copy}
                 style={copied ? {} : { background: "var(--gk-accent-primary)", color: "#000" }}
               >
-                {copied ? "Copied!" : "Copy to Clipboard"}
+                {copied ? "Copied!" : "Copy Message"}
               </Button>
             )}
           </CopyButton>
