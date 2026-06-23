@@ -512,6 +512,7 @@ export function SearchPage() {
 
   const [pros, setPros] = useState<ProOut[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasLoaded, setHasLoaded] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -543,7 +544,7 @@ export function SearchPage() {
       })
         .then(setPros)
         .catch(() => setPros([]))
-        .finally(() => setLoading(false));
+        .finally(() => { setLoading(false); setHasLoaded(true); });
     }, 350);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [
@@ -592,7 +593,7 @@ export function SearchPage() {
           <Tabs.Panel value="search" pt="lg">
             <Stack gap="md">
               {/* Coverage area ZIPs — top of panel, acts as quick zip filters */}
-              {!loading && (
+              {pros.length > 0 && (
                 <ServiceAreaBar
                   pros={pros}
                   activeZip={zipFilter}
@@ -798,15 +799,18 @@ export function SearchPage() {
               )}
 
               {/* Results */}
-              {loading ? (
+              {!hasLoaded && loading ? (
                 <Group justify="center" py="xl"><Loader size="md" /></Group>
-              ) : pros.length === 0 ? (
+              ) : pros.length === 0 && !loading ? (
                 <Text size="sm" c="dimmed" ta="center" py="xl">
                   No pros found. Try a different search or category.
                 </Text>
               ) : (
-                <Stack gap="xs">
-                  <Text size="xs" c="dimmed">{pros.length} pro{pros.length !== 1 ? "s" : ""} found</Text>
+                <Stack gap="xs" style={{ opacity: loading ? 0.55 : 1, transition: "opacity 0.18s" }}>
+                  <Group gap="xs" align="center">
+                    <Text size="xs" c="dimmed">{pros.length} pro{pros.length !== 1 ? "s" : ""} found</Text>
+                    {loading && <Loader size="xs" />}
+                  </Group>
                   <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }}>
                     {pros.map((pro) => (
                       <ProCard
