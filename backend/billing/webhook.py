@@ -18,21 +18,33 @@ logger = logging.getLogger(__name__)
 def _handle_checkout_completed(session: dict) -> None:
     from billing.emails import send_invoice_email, send_welcome_email
     from billing.models import BillingInvoice, PLAN_PRICES, Subscription
-    from accounts.models import User
+    from accounts.models import ProProfile, User
     from accounts.services import ensure_role_profile
 
     metadata = session.get("metadata", {})
-    user_id = metadata.get("user_id", "")
+    # Support both custom checkout (metadata) and Stripe Pricing Table (client_reference_id)
+    user_id = metadata.get("user_id", "") or str(session.get("client_reference_id") or "")
     pro_id = metadata.get("pro_id", "")
-    plan = metadata.get("plan", "monthly")
+    plan = metadata.get("plan", "")
     stripe_subscription_id = session.get("subscription", "")
     stripe_customer_id = session.get("customer", "")
 
-    if not (user_id and pro_id and stripe_subscription_id):
+    if not (user_id and stripe_subscription_id):
         logger.warning(
-            "Webhook checkout.session.completed: missing required fields metadata=%s", metadata
+            "Webhook checkout.session.completed: missing user_id or subscription_id session=%s",
+            session.get("id"),
         )
         return
+
+    # Resolve pro_id when coming from Pricing Table (not in metadata)
+    if not pro_id:
+        try:
+            paying_user = User.objects.get(pk=int(user_id))
+            profile, _ = ProProfile.objects.get_or_create(user=paying_user)
+            pro_id = str(profile.id)
+        except Exception:
+            logger.exception("Webhook: could not resolve pro_id for user_id=%s", user_id)
+            return
 
     # Idempotency: skip if this exact Stripe subscription is already recorded
     if Subscription.objects.filter(
@@ -44,13 +56,13 @@ def _handle_checkout_completed(session: dict) -> None:
         )
         return
 
-    # Retrieve Stripe subscription for renewal date and card last4
+    # Retrieve Stripe subscription for renewal date, card last4, and plan (if not in metadata)
     renews_at = None
     card_last4 = ""
     try:
         stripe_sub = stripe.Subscription.retrieve(
             stripe_subscription_id,
-            expand=["default_payment_method"],
+            expand=["default_payment_method", "items.data.price"],
         )
         ts = stripe_sub.get("current_period_end")
         if ts:
@@ -58,6 +70,13 @@ def _handle_checkout_completed(session: dict) -> None:
         pm = stripe_sub.get("default_payment_method")
         if isinstance(pm, dict):
             card_last4 = pm.get("card", {}).get("last4", "")
+        # Determine plan from subscription interval when not supplied via metadata
+        if not plan:
+            try:
+                interval = stripe_sub["items"]["data"][0]["price"]["recurring"]["interval"]
+                plan = "annual" if interval == "year" else "monthly"
+            except Exception:
+                plan = "monthly"
     except Exception:
         logger.exception("Could not retrieve Stripe subscription %s", stripe_subscription_id)
 

@@ -33,7 +33,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
-import { createAnonymousLead, createLead, getKraftsByPro, getProByHandle, trackKraftClick, trackKraftImpression, trackProfileView, trackProPageView, type KraftPublicOut, type ProOut } from "../../api/endpoints";
+import { claimAnonymousLead, createAnonymousLead, createLead, getKraftsByPro, getProByHandle, trackKraftClick, trackKraftImpression, trackProfileView, trackProPageView, type KraftPublicOut, type ProOut } from "../../api/endpoints";
 import { useAuth } from "../../auth/AuthContext";
 import { GkLogo } from "../../brand/GkLogo";
 import { GoogleSignInButton } from "../../components/GoogleSignInButton";
@@ -77,6 +77,10 @@ export function ProPublicProfilePage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [googleError, setGoogleError] = useState<string | null>(null);
+  // Anonymous lead tracking: id set on success, error surfaced in auth gate
+  const [anonLeadId, setAnonLeadId] = useState<number | null>(null);
+  const [anonLeadLoading, setAnonLeadLoading] = useState(false);
+  const [anonLeadError, setAnonLeadError] = useState<string | null>(null);
   // Inject OG meta tags so sharing picks up name / avatar / description
   useEffect(() => {
     if (!pro) return;
@@ -165,21 +169,40 @@ export function ProPublicProfilePage() {
   }, [handle]);
 
   // § 1.2 Gate — called when user clicks Send in the quote modal
-  function handleQuoteClick() {
+  async function handleQuoteClick() {
     if (!isLoggedIn) {
-      // Capture the draft immediately so the PRO / GK admin can see it even if
-      // the visitor abandons signup. Fire-and-forget — don't block the UI.
-      createAnonymousLead({
-        pro_id: pro!.id,
-        job_title: draftTitle || "Quote Request",
-        detail: buildDetail(),
-      }).catch(() => {});
       draftRef.current = draftText;
       setQuoteFormOpen(false);
       setAuthGateOpen(true);
+      setAnonLeadId(null);
+      setAnonLeadError(null);
+      setAnonLeadLoading(true);
+      try {
+        const result = await createAnonymousLead({
+          pro_id: pro!.id,
+          job_title: draftTitle || "Quote Request",
+          detail: buildDetail(),
+        });
+        setAnonLeadId(result.id);
+      } catch (e) {
+        setAnonLeadError(e instanceof Error ? e.message : "Could not reach server.");
+      } finally {
+        setAnonLeadLoading(false);
+      }
       return;
     }
     void submitQuote();
+  }
+
+  // Store pending lead in sessionStorage so the RegisterPage can claim it after email signup.
+  function persistPendingLead(overrideAnonId?: number | null) {
+    const id = overrideAnonId !== undefined ? overrideAnonId : anonLeadId;
+    sessionStorage.setItem("gk_pending_lead", JSON.stringify({
+      anon_lead_id: id,
+      pro_id: pro!.id,
+      job_title: draftTitle || "Quote Request",
+      detail: buildDetail(),
+    }));
   }
 
   function buildDetail() {
@@ -189,7 +212,7 @@ export function ProPublicProfilePage() {
     ].filter(Boolean).join("\n");
   }
 
-  // § 1.3 Authenticated submit (runs after signup OR if already logged in)
+  // § 1.3 Authenticated submit — fallback when anonymous lead creation failed or user was already logged in.
   async function submitQuote() {
     if (!pro) return;
     setSubmitting(true);
@@ -201,18 +224,40 @@ export function ProPublicProfilePage() {
         detail: buildDetail(),
         thread_type: "lead",
       });
+      sessionStorage.removeItem("gk_pending_lead");
       setSubmitSuccess(true);
       setDraftTitle("");
       setDraftText("");
       setDraftTimeline(null);
       draftRef.current = "";
       setQuoteFormOpen(false);
-      navigate("/home/messages");
+      navigate("/home/messages?tab=sent");
     } catch (e) {
       setSubmitError(e instanceof Error ? e.message : "Failed to send request.");
     } finally {
       setSubmitting(false);
     }
+  }
+
+  // § 1.4 Claim the anonymous lead after authentication (Google or email path).
+  // Falls back to submitQuote() if the anon lead never made it to the server.
+  async function claimOrSubmit() {
+    if (anonLeadId) {
+      try {
+        await claimAnonymousLead(anonLeadId);
+        sessionStorage.removeItem("gk_pending_lead");
+        setSubmitSuccess(true);
+        setDraftTitle("");
+        setDraftText("");
+        setDraftTimeline(null);
+        draftRef.current = "";
+        navigate("/home/messages?tab=sent");
+        return;
+      } catch {
+        // anon lead gone or already claimed — fall through
+      }
+    }
+    await submitQuote();
   }
 
   async function handleShare() {
@@ -584,7 +629,7 @@ export function ProPublicProfilePage() {
             fullWidth
             leftSection={isLoggedIn ? <IconSend size={15} /> : <IconLock size={15} />}
             loading={submitting}
-            onClick={handleQuoteClick}
+            onClick={() => void handleQuoteClick()}
             disabled={!draftTitle.trim()}
             style={{ background: "var(--gk-brand-gradient)" }}
             mt="xs"
@@ -599,7 +644,7 @@ export function ProPublicProfilePage() {
         </Stack>
       </Modal>
 
-      {/* Auth gate — data already captured; signup delivers the confirmed lead */}
+      {/* Auth gate — data already captured; signup claims the lead */}
       <Modal
         opened={authGateOpen}
         onClose={() => setAuthGateOpen(false)}
@@ -607,9 +652,19 @@ export function ProPublicProfilePage() {
         size="sm"
       >
         <Stack gap="sm">
-          <Alert variant="light" color="blue" icon={<IconLock size={15} />}>
-            Your inquiry is saved and the pro can already see it. Sign up to confirm your identity and continue the conversation.
-          </Alert>
+          {anonLeadLoading ? (
+            <Alert variant="light" color="blue" icon={<IconLock size={15} />}>
+              Saving your inquiry…
+            </Alert>
+          ) : anonLeadError ? (
+            <Alert variant="light" color="orange" icon={<IconLock size={15} />}>
+              We couldn't reach the server to save your inquiry. Don't worry — it will be delivered once you sign up.
+            </Alert>
+          ) : (
+            <Alert variant="light" color="blue" icon={<IconLock size={15} />}>
+              Your inquiry is saved and the pro can already see it. Sign up to confirm your identity and continue the conversation.
+            </Alert>
+          )}
           <Text size="sm" c="dimmed">
             Quote request: <strong>{draftTitle || "(no title)"}</strong>
           </Text>
@@ -620,8 +675,8 @@ export function ProPublicProfilePage() {
             onSuccess={async (idToken) => {
               await loginWithGoogle(idToken, "homeowner");
               setAuthGateOpen(false);
-              // § 1.3 Post-Signup Execution — deliver the cached draft
-              await submitQuote();
+              // § 1.4 Claim the anon lead (or create a new one if anon creation failed)
+              await claimOrSubmit();
             }}
             onError={setGoogleError}
           />
@@ -629,8 +684,10 @@ export function ProPublicProfilePage() {
           <Button
             variant="light"
             fullWidth
-            component={Link}
-            to={`/register?next=${encodeURIComponent(window.location.pathname)}`}
+            onClick={() => {
+              persistPendingLead();
+              navigate(`/register?next=${encodeURIComponent(window.location.pathname)}`);
+            }}
           >
             Create account with email
           </Button>

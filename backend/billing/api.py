@@ -40,6 +40,7 @@ class SubscriptionStatusOut(Schema):
     has_active_subscription: bool
     subscription: Optional[SubscriptionOut]
     stripe_mode: str  # "test" | "live"
+    user_id: int
 
 
 class CouponIn(Schema):
@@ -91,15 +92,17 @@ def serialize_subscription(sub: Subscription) -> dict:
 
 @router.get("/subscription", response=SubscriptionStatusOut)
 def my_subscription(request):
+    user = request.auth
     pro = require_member_or_pro(request)
     sub = Subscription.objects.filter(pro=pro).first()
     stripe_mode = StripeSettings.get().effective_mode
     if sub is None or not _is_real_subscription(sub):
-        return {"has_active_subscription": False, "subscription": None, "stripe_mode": stripe_mode}
+        return {"has_active_subscription": False, "subscription": None, "stripe_mode": stripe_mode, "user_id": user.id}
     return {
         "has_active_subscription": sub.status == Subscription.Status.ACTIVE,
         "subscription": serialize_subscription(sub),
         "stripe_mode": stripe_mode,
+        "user_id": user.id,
     }
 
 

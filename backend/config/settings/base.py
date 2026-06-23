@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     "billing",
     "vendors",
     "comms",
+    "feedback",
 ]
 
 MIDDLEWARE = [

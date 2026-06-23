@@ -53,6 +53,7 @@ import {
 } from "../../api/endpoints";
 import { useAuth } from "../../auth/AuthContext";
 import { GkEmptyState } from "../../components/GkEmptyState";
+import { MyFeedbackList, MyFeedbackDetail, useMyFeedback } from "../../components/MyFeedbackPanel";
 
 // ── Role badge ────────────────────────────────────────────────────────────────
 function RoleBadge({ role }: { role: string }) {
@@ -70,12 +71,13 @@ function RoleBadge({ role }: { role: string }) {
 }
 
 // ── Thread tab labels ─────────────────────────────────────────────────────────
-type TabKey = "lead" | "chat" | "request" | "sent";
+type TabKey = "lead" | "chat" | "request" | "sent" | "feedback";
 const TABS: { key: TabKey; label: string }[] = [
-  { key: "lead",    label: "Leads / Quotes" },
-  { key: "chat",    label: "Chats" },
-  { key: "request", label: "Requests" },
-  { key: "sent",    label: "Sent" },
+  { key: "lead",     label: "Leads / Quotes" },
+  { key: "chat",     label: "Chats" },
+  { key: "request",  label: "Requests" },
+  { key: "sent",     label: "Sent" },
+  { key: "feedback", label: "Feedback" },
 ];
 
 // ── Relative time ─────────────────────────────────────────────────────────────
@@ -686,7 +688,10 @@ export function ProInboxPage() {
   const [, setMobileShowChat] = useState(Boolean(leadId));
   const [composeOpen, setComposeOpen] = useState(false);
 
+  const fb = useMyFeedback(activeTab === "feedback");
+
   useEffect(() => {
+    if (activeTab === "feedback") return;
     void (async () => {
       setLoading(true);
       try {
@@ -720,7 +725,7 @@ export function ProInboxPage() {
     navigate(`/pro/inbox/${lead.id}`, { replace: true });
   }
 
-  const tabCounts: Record<TabKey, number> = { lead: 0, chat: 0, request: 0, sent: 0 };
+  const tabCounts: Record<TabKey, number> = { lead: 0, chat: 0, request: 0, sent: 0, feedback: 0 };
   for (const t of threads) {
     if (t.unread_hint > 0 && t.thread_type in tabCounts) {
       tabCounts[t.thread_type as TabKey]++;
@@ -798,7 +803,14 @@ export function ProInboxPage() {
 
           {/* Thread list */}
           <ScrollArea style={{ flex: 1 }} p="xs">
-            {loading ? (
+            {activeTab === "feedback" ? (
+              <MyFeedbackList
+                items={fb.items}
+                loading={fb.loading}
+                selectedId={fb.selectedId}
+                onSelect={fb.setSelectedId}
+              />
+            ) : loading ? (
               <Stack align="center" pt="xl"><Loader size="sm" /></Stack>
             ) : threads.length === 0 ? (
               <GkEmptyState
@@ -831,9 +843,17 @@ export function ProInboxPage() {
           </ScrollArea>
         </Box>
 
-        {/* Right pane — chat */}
+        {/* Right pane — chat or feedback detail */}
         <Box style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
-          {selected ? (
+          {activeTab === "feedback" ? (
+            fb.selected ? (
+              <MyFeedbackDetail item={fb.selected} onUpdated={fb.handleUpdated} />
+            ) : (
+              <Stack align="center" justify="center" h="100%" gap="sm">
+                <Text size="sm" c="dimmed">Select a feedback item to view details.</Text>
+              </Stack>
+            )
+          ) : selected ? (
             <ChatPane lead={selected} onUpdate={handleUpdate} currentUserId={currentUserId} />
           ) : (
             <Stack align="center" justify="center" h="100%" gap="sm">

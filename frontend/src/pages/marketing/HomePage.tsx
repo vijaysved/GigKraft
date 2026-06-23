@@ -67,7 +67,7 @@ export function HomePage() {
                   {status === "authenticated" && user ? (
                     user.role === "member" ? (
                       <>
-                        <Button onClick={() => navigate("/pro/checkout")} size="md" radius="md" style={{ background: "rgba(0,0,0,0.75)", color: "white", border: "2px solid rgba(255,255,255,0.3)" }}>
+                        <Button onClick={() => navigate("/pro/account?tab=billing")} size="md" radius="md" style={{ background: "rgba(0,0,0,0.75)", color: "white", border: "2px solid rgba(255,255,255,0.3)" }}>
                           Subscribe to Pro
                         </Button>
                         <Button onClick={() => navigate("/member/welcome")} size="md" radius="md" style={{ background: "rgba(255,255,255,0.15)", color: "white", border: "2px solid rgba(255,255,255,0.5)", backdropFilter: "blur(4px)" }}>

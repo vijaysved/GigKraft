@@ -22,6 +22,8 @@ from krafts.api import router as krafts_router
 from leads.api import public_router as leads_public_router
 from leads.api import router as leads_router
 from nodes.admin_api import router as admin_router
+from feedback.api import public_router as feedback_public_router
+from feedback.api import router as feedback_router
 from recommendations.api import public_router as recommendations_public_router
 from recommendations.api import router as recommendations_router
 
@@ -35,20 +37,25 @@ api.add_router("", common_router)
 api.add_router("/auth", auth_router)
 api.add_router("", me_router)
 api.add_router("/me", prefs_router)
-api.add_router("/pros", pros_router)
+# Public routers must be registered before their authenticated counterparts so
+# that specific paths (e.g. /anonymous, /track-view) are matched before the
+# wildcard /<id> patterns on the authenticated routers.
 api.add_router("/pros", pros_public_router)
-api.add_router("/krafts", krafts_router)
+api.add_router("/pros", pros_router)
 api.add_router("/krafts", krafts_public_router)
-api.add_router("/leads", leads_router)
+api.add_router("/krafts", krafts_router)
 api.add_router("/leads", leads_public_router)
+api.add_router("/leads", leads_router)
 api.add_router("/emergencies", emergencies_router)
-api.add_router("/recommendations", recommendations_router)
 api.add_router("/recommendations", recommendations_public_router)
+api.add_router("/recommendations", recommendations_router)
 api.add_router("/home", home_router)
 api.add_router("/waitlist", waitlist_router)
 api.add_router("/admin", admin_router)
 api.add_router("/billing", billing_router)
 api.add_router("/gk-admin", gk_admin_router)
-api.add_router("/prospects", prospects_router)
 api.add_router("/prospects", prospects_public_router)
+api.add_router("/prospects", prospects_router)
 api.add_router("/comms", comms_router)
+api.add_router("/feedback", feedback_public_router)
+api.add_router("/feedback", feedback_router)

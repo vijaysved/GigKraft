@@ -394,6 +394,12 @@ export async function setGkUserAdmin(userId: number): Promise<GkUserRow> {
   return data as GkUserRow;
 }
 
+export async function setGkUserVisitor(userId: number): Promise<GkUserRow> {
+  const { data, error, response } = await client.PATCH(`/api/gk-admin/users/${userId}/set-visitor` as never);
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to set visitor."));
+  return data as GkUserRow;
+}
+
 export async function getGkNodes(): Promise<GkNodeSummary[]> {
   const { data, error, response } = await client.GET("/api/gk-admin/nodes" as never);
   if (!data) throw new ApiError(response.status, detailOf(error, "Failed to load nodes."));
@@ -951,5 +957,11 @@ export async function createAnonymousLead(payload: {
   const { data, error, response } = await _post(`${LEADS_BASE}/anonymous`, { body: payload });
   if (!data) throw new ApiError(response.status, detailOf(error, "Failed to submit request."));
   return data as { id: number; status: string };
+}
+
+export async function claimAnonymousLead(leadId: number): Promise<InboxLead> {
+  const { data, error, response } = await _post(`${LEADS_BASE}/${leadId}/claim`);
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to claim lead."));
+  return data as InboxLead;
 }
 

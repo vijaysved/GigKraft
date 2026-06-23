@@ -13,9 +13,45 @@ import { IconCheck, IconHammer, IconHome } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 
+import { claimAnonymousLead, createLead } from "../../api/endpoints";
 import { GkLogo } from "../../brand/GkLogo";
 import { useAuth } from "../../auth/AuthContext";
 import { GoogleSignInButton } from "../../components/GoogleSignInButton";
+
+interface PendingLead {
+  anon_lead_id: number | null;
+  pro_id: number;
+  job_title: string;
+  detail: string;
+}
+
+function popPendingLead(): PendingLead | null {
+  try {
+    const raw = sessionStorage.getItem("gk_pending_lead");
+    if (!raw) return null;
+    sessionStorage.removeItem("gk_pending_lead");
+    return JSON.parse(raw) as PendingLead;
+  } catch {
+    return null;
+  }
+}
+
+async function processPendingLead(pending: PendingLead): Promise<void> {
+  if (pending.anon_lead_id) {
+    try {
+      await claimAnonymousLead(pending.anon_lead_id);
+      return;
+    } catch {
+      // anon lead gone — fall through to create a fresh one
+    }
+  }
+  await createLead({
+    pro_id: pending.pro_id,
+    job_title: pending.job_title,
+    detail: pending.detail,
+    thread_type: "lead",
+  });
+}
 
 type Role = "pro" | "homeowner";
 
@@ -26,7 +62,7 @@ const HERO_BULLETS = [
 ];
 
 export function RegisterPage() {
-  const { status, loginWithGoogle } = useAuth();
+  const { status, user, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -43,9 +79,12 @@ export function RegisterPage() {
 
   if (status === "authenticated") {
     if (isSubscribeIntent) {
-      return <Navigate to={`/pro/checkout?plan=${plan}`} replace />;
+      return <Navigate to={`/pro/account?tab=billing`} replace />;
     }
-    return <Navigate to="/" replace />;
+    if (user?.role === "homeowner") {
+      return <Navigate to="/home/discover" replace />;
+    }
+    return <Navigate to="/member/welcome" replace />;
   }
 
   return (
@@ -239,10 +278,16 @@ export function RegisterPage() {
                     try {
                       if (isSubscribeIntent) {
                         await loginWithGoogle(idToken, "member");
-                        navigate(`/pro/checkout?plan=${plan}`, { replace: true });
+                        navigate(`/pro/account?tab=billing`, { replace: true });
                       } else if (role === "homeowner") {
                         await loginWithGoogle(idToken, "homeowner");
-                        navigate("/home/discover", { replace: true });
+                        const pending = popPendingLead();
+                        if (pending) {
+                          try { await processPendingLead(pending); } catch { /* best-effort */ }
+                          navigate("/home/messages", { replace: true });
+                        } else {
+                          navigate("/home/discover", { replace: true });
+                        }
                       } else {
                         await loginWithGoogle(idToken, "member");
                         navigate("/member/welcome", { replace: true });

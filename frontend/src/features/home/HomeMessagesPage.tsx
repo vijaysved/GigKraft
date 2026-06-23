@@ -27,7 +27,7 @@ import {
   IconSend,
 } from "@tabler/icons-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import {
   type InboxLead,
@@ -43,6 +43,7 @@ import {
   sendLeadMessage,
 } from "../../api/endpoints";
 import { GkEmptyState } from "../../components/GkEmptyState";
+import { MyFeedbackList, MyFeedbackDetail, useMyFeedback } from "../../components/MyFeedbackPanel";
 
 // ── Role badge ────────────────────────────────────────────────────────────────
 function RoleBadge({ role }: { role: string }) {
@@ -59,12 +60,13 @@ function RoleBadge({ role }: { role: string }) {
   );
 }
 
-type TabKey = "lead" | "chat" | "request" | "sent";
+type TabKey = "lead" | "chat" | "request" | "sent" | "feedback";
 const TABS: { key: TabKey; label: string }[] = [
-  { key: "lead",    label: "Leads / Quotes" },
-  { key: "chat",    label: "Chats" },
-  { key: "request", label: "Requests" },
-  { key: "sent",    label: "Sent" },
+  { key: "lead",     label: "Leads / Quotes" },
+  { key: "chat",     label: "Chats" },
+  { key: "request",  label: "Requests" },
+  { key: "sent",     label: "Sent" },
+  { key: "feedback", label: "Feedback" },
 ];
 
 function relTime(iso: string): string {
@@ -526,14 +528,21 @@ function ChatPane({
 export function HomeMessagesPage() {
   const { leadId } = useParams<{ leadId?: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
-  const [activeTab, setActiveTab] = useState<TabKey>("lead");
+  const initialTab = (searchParams.get("tab") as TabKey | null) ?? "lead";
+  const [activeTab, setActiveTab] = useState<TabKey>(
+    ["lead", "chat", "request", "sent", "feedback"].includes(initialTab) ? initialTab : "lead"
+  );
   const [threads, setThreads] = useState<InboxLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<number | null>(leadId ? Number(leadId) : null);
   const [composeOpen, setComposeOpen] = useState(false);
 
+  const fb = useMyFeedback(activeTab === "feedback");
+
   useEffect(() => {
+    if (activeTab === "feedback") return;
     void (async () => {
       setLoading(true);
       try {
@@ -565,7 +574,7 @@ export function HomeMessagesPage() {
     navigate(`/home/messages/${lead.id}`, { replace: true });
   }
 
-  const tabCounts: Record<TabKey, number> = { lead: 0, chat: 0, request: 0, sent: 0 };
+  const tabCounts: Record<TabKey, number> = { lead: 0, chat: 0, request: 0, sent: 0, feedback: 0 };
   for (const t of threads) {
     if (t.unread_hint > 0 && t.thread_type in tabCounts) {
       tabCounts[t.thread_type as TabKey]++;
@@ -640,7 +649,14 @@ export function HomeMessagesPage() {
           </Tabs>
 
           <ScrollArea style={{ flex: 1 }} p="xs">
-            {loading ? (
+            {activeTab === "feedback" ? (
+              <MyFeedbackList
+                items={fb.items}
+                loading={fb.loading}
+                selectedId={fb.selectedId}
+                onSelect={fb.setSelectedId}
+              />
+            ) : loading ? (
               <Stack align="center" pt="xl"><Loader size="sm" /></Stack>
             ) : threads.length === 0 ? (
               <GkEmptyState
@@ -674,7 +690,15 @@ export function HomeMessagesPage() {
 
         {/* Right pane */}
         <Box style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
-          {selected ? (
+          {activeTab === "feedback" ? (
+            fb.selected ? (
+              <MyFeedbackDetail item={fb.selected} onUpdated={fb.handleUpdated} />
+            ) : (
+              <Stack align="center" justify="center" h="100%" gap="sm">
+                <Text size="sm" c="dimmed">Select a feedback item to view details.</Text>
+              </Stack>
+            )
+          ) : selected ? (
             <ChatPane lead={selected} onUpdate={handleUpdate} />
           ) : (
             <Stack align="center" justify="center" h="100%" gap="sm">

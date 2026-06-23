@@ -1,7 +1,9 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import { RequireAuth } from "./auth/RequireAuth";
+import { FeedbackWidget } from "./components/FeedbackWidget";
 import { RequireRole } from "./auth/RequireRole";
+import { useAuth } from "./auth/AuthContext";
 
 // Layouts
 import { AdminShell } from "./layout/AdminShell";
@@ -33,11 +35,13 @@ import { MemberComparePage } from "./features/member/MemberComparePage";
 
 // GK Admin pages (super-admin, cross-node)
 import { GkAdminDashboardPage } from "./features/gk-admin/GkAdminDashboardPage";
+import { GkAdminFeedbackPage } from "./features/gk-admin/GkAdminFeedbackPage";
 import { GkAdminUsersPage } from "./features/gk-admin/GkAdminUsersPage";
 import { GkAdminNodesPage } from "./features/gk-admin/GkAdminNodesPage";
 import { GkAdminSafetyPage } from "./features/gk-admin/GkAdminSafetyPage";
 import { GkAdminProspectsPage } from "./features/gk-admin/GkAdminProspectsPage";
 import { GkAdminStripePage } from "./features/gk-admin/GkAdminStripePage";
+import { GkAdminSiteConfigPage } from "./features/gk-admin/GkAdminSiteConfigPage";
 
 // Admin pages
 import { AdminDashboardPage } from "./features/admin/AdminDashboardPage";
@@ -46,6 +50,7 @@ import { AdminSafetyPage } from "./features/admin/AdminSafetyPage";
 import { AdminProsPage } from "./features/admin/AdminProsPage";
 import { AdminKraftsPage } from "./features/admin/AdminKraftsPage";
 import { AdminSettingsPage } from "./features/admin/AdminSettingsPage";
+import { AdminInboxPage } from "./features/admin/AdminInboxPage";
 
 // Pro pages
 import { ProKraftEditorPage, KraftPublicPreviewPage } from "./features/pro/ProKraftEditorPage";
@@ -55,7 +60,6 @@ import { ProDashboardPage } from "./features/pro/ProDashboardPage";
 import { ProNetworkPage } from "./features/pro/ProNetworkPage";
 import { ProAccountPage } from "./features/pro/ProAccountPage";
 import { ProInboxPage } from "./features/pro/ProInboxPage";
-import { ProCheckoutPage } from "./features/pro/ProCheckoutPage";
 import { ProPaymentSuccessPage } from "./features/pro/ProPaymentSuccessPage";
 import { ProBillingTestPage } from "./features/pro/ProBillingTestPage";
 
@@ -73,11 +77,30 @@ import { HomeAccountPage } from "./features/home/HomeAccountPage";
 import { HomeRecommendPage } from "./features/home/HomeRecommendPage";
 
 
+const ROLE_HOME: Record<string, string> = {
+  member: "/member/welcome",
+  pro: "/pro/dashboard",
+  homeowner: "/home/discover",
+  node_manager: "/admin/dashboard",
+  gk_admin: "/gk-admin/dashboard",
+};
+
+function RootPage() {
+  const { status, user } = useAuth();
+  if (status === "loading") return null;
+  if (status === "authenticated" && user) {
+    return <Navigate to={ROLE_HOME[user.role] ?? "/member/welcome"} replace />;
+  }
+  return <MarketingLayout><HomePage /></MarketingLayout>;
+}
+
 export default function App() {
   return (
+    <>
+    <FeedbackWidget />
     <Routes>
-      {/* Marketing site (public) */}
-      <Route path="/" element={<MarketingLayout><HomePage /></MarketingLayout>} />
+      {/* Marketing site (public) — authenticated users redirected to their role home */}
+      <Route path="/" element={<RootPage />} />
       <Route path="/for-pros" element={<MarketingLayout><ForProsPage /></MarketingLayout>} />
       <Route path="/for-homeowners" element={<MarketingLayout><ForClientsPage /></MarketingLayout>} />
       <Route path="/trust-graph" element={<MarketingLayout><TrustGraphPage /></MarketingLayout>} />
@@ -110,11 +133,15 @@ export default function App() {
       >
         <Route index element={<Navigate to="/gk-admin/dashboard" replace />} />
         <Route path="dashboard" element={<GkAdminDashboardPage />} />
+        <Route path="inbox" element={<AdminInboxPage />} />
+        <Route path="inbox/:leadId" element={<AdminInboxPage />} />
+        <Route path="feedback" element={<GkAdminFeedbackPage />} />
         <Route path="users" element={<GkAdminUsersPage />} />
         <Route path="nodes" element={<GkAdminNodesPage />} />
         <Route path="safety" element={<GkAdminSafetyPage />} />
         <Route path="prospects" element={<GkAdminProspectsPage />} />
         <Route path="stripe" element={<GkAdminStripePage />} />
+        <Route path="site-config" element={<GkAdminSiteConfigPage />} />
       </Route>
 
       {/* Admin (node_manager) */}
@@ -130,6 +157,8 @@ export default function App() {
       >
         <Route index element={<Navigate to="/admin/dashboard" replace />} />
         <Route path="dashboard" element={<AdminDashboardPage />} />
+        <Route path="inbox" element={<AdminInboxPage />} />
+        <Route path="inbox/:leadId" element={<AdminInboxPage />} />
         <Route path="triage" element={<AdminTriagePage />} />
         <Route path="safety" element={<AdminSafetyPage />} />
         <Route path="pros" element={<AdminProsPage />} />
@@ -176,10 +205,7 @@ export default function App() {
         path="/pro/onboarding"
         element={<RequireAuth><RequireRole role="pro"><ProOnboardingPage /></RequireRole></RequireAuth>}
       />
-      <Route
-        path="/pro/checkout"
-        element={<RequireAuth><RequireRole role={["pro", "member"]}><ProCheckoutPage /></RequireRole></RequireAuth>}
-      />
+      <Route path="/pro/checkout" element={<Navigate to="/pro/account?tab=billing" replace />} />
       <Route
         path="/pro/billing/success"
         element={<RequireAuth><RequireRole role={["pro", "member"]}><ProPaymentSuccessPage /></RequireRole></RequireAuth>}
@@ -216,5 +242,6 @@ export default function App() {
       <Route path="/dashboard" element={<Navigate to="/admin/dashboard" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </>
   );
 }

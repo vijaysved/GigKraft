@@ -1,7 +1,6 @@
 import {
   Alert,
   Badge,
-  Box,
   Button,
   Card,
   Divider,
@@ -13,12 +12,52 @@ import {
   TextInput,
   Title,
 } from "@mantine/core";
-import { IconAlertCircle, IconCreditCard } from "@tabler/icons-react";
+import { IconAlertCircle, IconCheck } from "@tabler/icons-react";
+
+const PRO_FEATURES = [
+  "Unlimited verified Krafts",
+  "Homeowner endorsements on every job",
+  "Zipcode standing & performance insights",
+  "Full data export — your work is yours",
+  "Invoice verification & emergency dispatch (soon)",
+];
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 
 import { API_BASE_URL } from "../../config";
 import { getAccessToken } from "../../api/tokens";
+
+const STRIPE_CONFIG = {
+  test: {
+    tableId: import.meta.env.VITE_STRIPE_TEST_PRICING_TABLE_ID as string,
+    publishableKey: import.meta.env.VITE_STRIPE_TEST_PUBLISHABLE_KEY as string,
+  },
+  live: {
+    tableId: import.meta.env.VITE_STRIPE_LIVE_PRICING_TABLE_ID as string,
+    publishableKey: import.meta.env.VITE_STRIPE_LIVE_PUBLISHABLE_KEY as string,
+  },
+};
+
+function StripePricingTable({ mode, userId }: { mode: string; userId?: number }) {
+  const cfg = STRIPE_CONFIG[mode as "test" | "live"] ?? STRIPE_CONFIG.test;
+  if (!cfg.tableId || !cfg.publishableKey) {
+    return (
+      <Alert color="yellow" variant="light">
+        Stripe pricing table not configured for <strong>{mode}</strong> mode.
+        {mode === "live"
+          ? " Add VITE_STRIPE_LIVE_PRICING_TABLE_ID and VITE_STRIPE_LIVE_PUBLISHABLE_KEY to your Vercel environment variables."
+          : " Add VITE_STRIPE_TEST_PRICING_TABLE_ID and VITE_STRIPE_TEST_PUBLISHABLE_KEY to your .env file."}
+      </Alert>
+    );
+  }
+  return (
+    <stripe-pricing-table
+      pricing-table-id={cfg.tableId}
+      publishable-key={cfg.publishableKey}
+      client-reference-id={userId ? String(userId) : undefined}
+    />
+  );
+}
 
 interface Subscription {
   plan: string;
@@ -36,6 +75,7 @@ interface SubscriptionStatus {
   has_active_subscription: boolean;
   subscription: Subscription | null;
   stripe_mode: string;
+  user_id: number;
 }
 
 interface Invoice {
@@ -67,7 +107,6 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 export function BillingTab() {
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const cancelled = searchParams.get("cancelled") === "1";
 
@@ -149,24 +188,32 @@ export function BillingTab() {
       )}
 
       {!subStatus?.has_active_subscription ? (
-        /* ── No subscription ── */
-        <Card withBorder radius="md" padding="xl" ta="center">
-          <Stack align="center" gap="md">
-            <IconCreditCard size={48} color="var(--gk-accent-primary)" />
-            <Stack gap={4}>
-              <Title order={4}>Upgrade to Pro</Title>
-              <Text size="sm" c="dimmed">
-                Publish unlimited Krafts, earn endorsements, and get found by homeowners in your area.
-              </Text>
+        /* ── No subscription — branded header + Stripe Pricing Table ── */
+        <Stack gap="xl">
+          <Card
+            radius="xl"
+            padding="xl"
+            style={{ background: "var(--gk-brand-gradient)", color: "#fff" }}
+          >
+            <Stack gap="md">
+              <Stack gap={4}>
+                <Title order={2} style={{ color: "#fff" }}>Upgrade to GigKraft Pro</Title>
+                <Text size="sm" style={{ opacity: 0.85 }}>
+                  One flat rate. No per-lead fees. Cancel anytime.
+                </Text>
+              </Stack>
+              <Group gap="lg" wrap="wrap">
+                {PRO_FEATURES.map((f) => (
+                  <Group key={f} gap={6} align="center" wrap="nowrap">
+                    <IconCheck size={14} color="#fff" style={{ flexShrink: 0 }} />
+                    <Text size="sm" style={{ color: "#fff", opacity: 0.9 }}>{f}</Text>
+                  </Group>
+                ))}
+              </Group>
             </Stack>
-            <Button
-              onClick={() => navigate("/pro/checkout?plan=monthly")}
-              style={{ background: "var(--gk-accent-primary)", color: "#fff" }}
-            >
-              Upgrade to Pro →
-            </Button>
-          </Stack>
-        </Card>
+          </Card>
+          <StripePricingTable mode={subStatus?.stripe_mode ?? "test"} userId={subStatus?.user_id} />
+        </Stack>
       ) : (
         /* ── Active subscription ── */
         <>
@@ -213,16 +260,6 @@ export function BillingTab() {
                 </Stack>
               </Group>
 
-              <Box>
-                <Button
-                  size="sm"
-                  variant="white"
-                  onClick={() => navigate("/pro/checkout?plan=monthly")}
-                  style={{ color: "var(--gk-accent-primary)" }}
-                >
-                  Change Plan →
-                </Button>
-              </Box>
             </Stack>
           </Card>
 

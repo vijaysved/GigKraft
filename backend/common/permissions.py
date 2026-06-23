@@ -25,8 +25,9 @@ def require_member_or_pro(request) -> ProProfile:
 
 
 def require_homeowner(request) -> HomeownerProfile:
+    """Ensure the user has homeowner capability (primary role or extra_roles)."""
     user = request.auth
-    if user.role != User.Role.HOMEOWNER:
+    if user.role != User.Role.HOMEOWNER and User.Role.HOMEOWNER not in (user.extra_roles or []):
         raise HttpError(403, "This endpoint requires the homeowner role.")
     profile, _ = HomeownerProfile.objects.get_or_create(user=user)
     return profile

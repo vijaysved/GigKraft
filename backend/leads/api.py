@@ -22,7 +22,7 @@ from ninja import Router, Schema
 from ninja.errors import HttpError
 
 from accounts.auth import jwt_auth
-from accounts.models import ProProfile, User
+from accounts.models import HomeownerProfile, ProProfile, User
 from common import notify
 from common.permissions import require_homeowner, require_pro
 from leads.models import Lead, Message, Quote
@@ -191,7 +191,8 @@ def _lead_for_viewer(request, lead_id: int) -> Lead:
         raise HttpError(404, "Lead not found.")
     is_homeowner = lead.homeowner_id == user.id
     is_pro = lead.pro is not None and lead.pro.user_id == user.id
-    if not (is_homeowner or is_pro):
+    is_admin = user.role in (User.Role.NODE_MANAGER, User.Role.GK_ADMIN)
+    if not (is_homeowner or is_pro or is_admin):
         raise HttpError(403, "You are not a participant of this lead.")
     return lead
 
@@ -203,7 +204,11 @@ def list_leads(request, status: Optional[str] = None, thread_type: Optional[str]
     Pass ?sent=true to see threads initiated by the current user (homeowner slot),
     regardless of role — powers the Sent tab in both inboxes."""
     user = request.auth
-    if sent:
+    if user.role == User.Role.GK_ADMIN:
+        leads = Lead.objects.all()
+    elif user.role == User.Role.NODE_MANAGER:
+        leads = Lead.objects.filter(pro__user__node=user.node)
+    elif sent:
         leads = Lead.objects.filter(homeowner=user)
     elif user.role == User.Role.PRO:
         pro = require_pro(request)
@@ -222,11 +227,18 @@ def list_leads(request, status: Optional[str] = None, thread_type: Optional[str]
 
 @router.post("", response={201: LeadOut, 400: ErrorOut})
 def create_lead(request, payload: LeadCreateIn):
-    """Homeowner requests a quote from a pro.
+    """Any authenticated user can request a quote.
 
-    Enforces § global lead cap: HO may not have more than ACTIVE_LEAD_CAP
-    active unaccepted `lead`-type threads simultaneously."""
-    homeowner_profile = require_homeowner(request)
+    If the user lacks the homeowner role, it is added to their extra_roles
+    so they can track their own requests. Enforces § global lead cap.
+    """
+    user = request.auth
+    if user.role != User.Role.HOMEOWNER and User.Role.HOMEOWNER not in (user.extra_roles or []):
+        roles = list(user.extra_roles or [])
+        roles.append(User.Role.HOMEOWNER)
+        user.extra_roles = roles
+        user.save(update_fields=["extra_roles"])
+    homeowner_profile, _ = HomeownerProfile.objects.get_or_create(user=user)
 
     if payload.thread_type not in ("lead", "chat", "request"):
         return 400, {"detail": "Invalid thread_type."}
@@ -482,3 +494,24 @@ def archive_lead(request, lead_id: int):
     lead.status = Lead.Status.ARCHIVED
     lead.save(update_fields=["status"])
     return serialize_lead(lead, request.auth)
+
+
+@router.post("/{lead_id}/claim", response={200: LeadOut, 400: ErrorOut, 403: ErrorOut})
+def claim_anonymous_lead(request, lead_id: int):
+    """Reassign an anonymous lead to the authenticated user who just signed up.
+
+    Only works when the lead's homeowner is anonymous@gigkraft.internal.
+    Called after a visitor completes signup following an anonymous quote submission."""
+    lead = (
+        Lead.objects.filter(pk=lead_id)
+        .select_related("homeowner", "pro", "pro__user")
+        .first()
+    )
+    if lead is None:
+        return 400, {"detail": "Lead not found."}
+    if lead.homeowner.email != "anonymous@gigkraft.internal":
+        return 403, {"detail": "This lead has already been claimed or cannot be claimed."}
+    lead.homeowner = request.auth
+    lead.save(update_fields=["homeowner"])
+    notify.notify_user(lead.pro.user, f"Quote request confirmed: {lead.job_title}") if lead.pro else None
+    return 200, serialize_lead(lead, request.auth)

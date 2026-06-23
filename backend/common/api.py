@@ -1,6 +1,8 @@
 from django.conf import settings
 from ninja import Router, Schema
 
+from common.models import SiteSettings
+
 router = Router(tags=["system"])
 
 
@@ -26,3 +28,22 @@ def health(request):
         },
         "google_client_id_set": bool(settings.GOOGLE_CLIENT_ID),
     }
+
+
+class PublicSiteInfoOut(Schema):
+    template_pro_url_local: str
+    template_pro_url_prod: str
+    template_member_url_local: str
+    template_member_url_prod: str
+
+
+@router.get("/public/site-info", response=PublicSiteInfoOut, auth=None)
+def public_site_info(request):
+    """Public — returns template profile URLs for both environments."""
+    cfg = SiteSettings.get()
+    return PublicSiteInfoOut(
+        template_pro_url_local=cfg.template_pro_url_local,
+        template_pro_url_prod=cfg.template_pro_url_prod,
+        template_member_url_local=cfg.template_member_url_local,
+        template_member_url_prod=cfg.template_member_url_prod,
+    )

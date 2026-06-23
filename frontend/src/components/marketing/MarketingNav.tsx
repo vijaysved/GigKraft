@@ -88,7 +88,7 @@ export function MarketingNav() {
               <Button
                 size="xs"
                 radius="md"
-                onClick={() => navigate("/pro/checkout")}
+                onClick={() => navigate("/pro/account?tab=billing")}
                 style={{ flexShrink: 0, background: "var(--gk-accent-primary)", border: "none" }}
               >
                 Upgrade to Pro

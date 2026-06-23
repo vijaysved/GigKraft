@@ -17,6 +17,7 @@ import { useNavigate } from "react-router-dom";
 import { GkLogo } from "../../brand/GkLogo";
 import { WallpaperBackground } from "../../brand/WallpaperBackground";
 import { useAuth } from "../../auth/AuthContext";
+import { getMe } from "../../api/endpoints";
 import { API_BASE_URL } from "../../config";
 import { getAccessToken } from "../../api/tokens";
 
@@ -37,7 +38,7 @@ async function checkSubscription(): Promise<boolean> {
 
 export function ProPaymentSuccessPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [state, setState] = useState<PageState>("polling");
   const pollCount = useRef(0);
   const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -48,6 +49,8 @@ export function ProPaymentSuccessPage() {
         .then((active) => {
           if (active) {
             setState("confirmed");
+            // Refresh auth context so role flips from "member" → "pro" immediately
+            getMe().then(updateUser).catch(() => {});
             // Smart redirect: if onboarding hasn't been done (no first_name), go to onboarding
             const dest = user?.first_name ? "/pro/dashboard" : "/pro/onboarding";
             pollTimer.current = setTimeout(() => navigate(dest, { replace: true }), REDIRECT_DELAY_MS);

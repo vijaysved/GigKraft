@@ -14,6 +14,7 @@ import {
 import {
   IconAlertTriangle,
   IconChevronUp,
+  IconInbox,
   IconLayoutDashboard,
   IconLogout,
   IconPhotoCheck,
@@ -21,6 +22,7 @@ import {
   IconShield,
   IconUsers,
 } from "@tabler/icons-react";
+import React from "react";
 import { NavLink as RouterNavLink, Outlet, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../auth/AuthContext";
@@ -28,6 +30,7 @@ import { GkLogo } from "../brand/GkLogo";
 
 const NAV_ITEMS = [
   { label: "Dashboard", icon: IconLayoutDashboard, to: "/admin/dashboard" },
+  { label: "Inbox", icon: IconInbox, to: "/admin/inbox" },
   { label: "Triage", icon: IconAlertTriangle, to: "/admin/triage" },
   { label: "Safety", icon: IconShield, to: "/admin/safety" },
   { label: "Pros", icon: IconUsers, to: "/admin/pros" },
@@ -35,13 +38,13 @@ const NAV_ITEMS = [
   { label: "Settings", icon: IconSettings, to: "/admin/settings" },
 ];
 
-const navLinkStyles = {
-  root: {
+function navStyle(isActive: boolean): React.CSSProperties {
+  return {
     borderRadius: 8,
-    color: "var(--gk-text-sidebar)",
-    "&[data-active]": { background: "var(--gk-bg-sidebar-active)", color: "#fff" },
-  },
-};
+    color: isActive ? "#fff" : "var(--gk-text-sidebar)",
+    background: isActive ? "var(--gk-bg-sidebar-active)" : "transparent",
+  };
+}
 
 export function AdminShell() {
   const { user, logout } = useAuth();
@@ -72,7 +75,13 @@ export function AdminShell() {
           {NAV_ITEMS.map(({ label, icon: Icon, to }) => (
             <RouterNavLink key={to} to={to} style={{ textDecoration: "none" }}>
               {({ isActive }) => (
-                <NavLink label={label} leftSection={<Icon size={18} />} active={isActive} styles={navLinkStyles} />
+                <NavLink
+                  component="div"
+                  label={label}
+                  leftSection={<Icon size={18} />}
+                  active={isActive}
+                  style={navStyle(isActive)}
+                />
               )}
             </RouterNavLink>
           ))}

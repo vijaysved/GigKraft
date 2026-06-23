@@ -18,6 +18,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     """
 
     class Role(models.TextChoices):
+        VISITOR = "visitor", "Visitor"
         MEMBER = "member", "Member"
         PRO = "pro", "Pro"
         HOMEOWNER = "homeowner", "Homeowner"
@@ -27,6 +28,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True, null=True, blank=True)
     phone = models.CharField(max_length=20, unique=True, null=True, blank=True)
     role = models.CharField(max_length=20, choices=Role.choices)
+    # Additional roles beyond the primary role (e.g. a pro who is also a homeowner).
+    extra_roles = models.JSONField(default=list, blank=True)
     node = models.ForeignKey(
         "nodes.Node",
         null=True,

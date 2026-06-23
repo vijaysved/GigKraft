@@ -15,13 +15,17 @@ import {
   IconAddressBook,
   IconBrandStripe,
   IconChevronUp,
+  IconInbox,
   IconLayoutDashboard,
   IconLogout,
   IconMapPin,
+  IconMessage2,
   IconPalette,
+  IconSettings,
   IconShield,
   IconUsers,
 } from "@tabler/icons-react";
+import React from "react";
 import { NavLink as RouterNavLink, Outlet, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../auth/AuthContext";
@@ -31,20 +35,23 @@ import { THEMES, THEME_IDS } from "../theme/themes";
 
 const NAV_ITEMS = [
   { label: "Dashboard", icon: IconLayoutDashboard, to: "/gk-admin/dashboard" },
+  { label: "Inbox", icon: IconInbox, to: "/gk-admin/inbox" },
+  { label: "Feedback", icon: IconMessage2, to: "/gk-admin/feedback" },
   { label: "Users", icon: IconUsers, to: "/gk-admin/users" },
   { label: "Nodes", icon: IconMapPin, to: "/gk-admin/nodes" },
   { label: "Safety", icon: IconShield, to: "/gk-admin/safety" },
   { label: "Prospects", icon: IconAddressBook, to: "/gk-admin/prospects" },
   { label: "Stripe", icon: IconBrandStripe, to: "/gk-admin/stripe" },
+  { label: "Site Config", icon: IconSettings, to: "/gk-admin/site-config" },
 ];
 
-const navLinkStyles = {
-  root: {
+function navStyle(isActive: boolean): React.CSSProperties {
+  return {
     borderRadius: 8,
-    color: "var(--gk-text-sidebar)",
-    "&[data-active]": { background: "var(--gk-bg-sidebar-active)", color: "#fff" },
-  },
-};
+    color: isActive ? "#fff" : "var(--gk-text-sidebar)",
+    background: isActive ? "var(--gk-bg-sidebar-active)" : "transparent",
+  };
+}
 
 export function GkAdminShell() {
   const { user, logout } = useAuth();
@@ -87,7 +94,13 @@ export function GkAdminShell() {
           {NAV_ITEMS.map(({ label, icon: Icon, to }) => (
             <RouterNavLink key={to} to={to} style={{ textDecoration: "none" }}>
               {({ isActive }) => (
-                <NavLink label={label} leftSection={<Icon size={18} />} active={isActive} styles={navLinkStyles} />
+                <NavLink
+                  component="div"
+                  label={label}
+                  leftSection={<Icon size={18} />}
+                  active={isActive}
+                  style={navStyle(isActive)}
+                />
               )}
             </RouterNavLink>
           ))}

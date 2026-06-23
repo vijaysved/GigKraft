@@ -1,8 +1,23 @@
 import { Box, Button, Card, Container, Group, Stack, Text, Title } from "@mantine/core";
-import { useState } from "react";
+import { IconExternalLink } from "@tabler/icons-react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import { useWaitlist } from "../../components/marketing/WaitlistModal";
+import { API_BASE_URL } from "../../config";
+
+interface SiteInfo {
+  template_pro_url_local: string;
+  template_pro_url_prod: string;
+  template_member_url_local: string;
+  template_member_url_prod: string;
+}
+
+async function fetchSiteInfo(): Promise<SiteInfo> {
+  const res = await fetch(`${API_BASE_URL}/api/public/site-info`);
+  if (!res.ok) throw new Error("failed");
+  return res.json() as Promise<SiteInfo>;
+}
 
 const FREE_FEATURES = [
   "Build Profile",
@@ -50,12 +65,24 @@ export function PricingPage() {
   const { openWaitlist } = useWaitlist();
   const { status, user } = useAuth();
   const navigate = useNavigate();
+  const [proProfileUrl, setProProfileUrl] = useState<string | null>(null);
+  const [memberProfileUrl, setMemberProfileUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchSiteInfo()
+      .then((info) => {
+        const isProd = import.meta.env.PROD;
+        setProProfileUrl(isProd ? info.template_pro_url_prod : info.template_pro_url_local);
+        setMemberProfileUrl(isProd ? info.template_member_url_prod : info.template_member_url_local);
+      })
+      .catch(() => { /* silently fail */ });
+  }, []);
 
   function handleBuyPlan() {
     const plan = annual ? "annual" : "monthly";
     if (status === "authenticated") {
       // Members and pros both go to checkout; checkout handles already-subscribed guard
-      navigate(`/pro/checkout?plan=${plan}`);
+      navigate("/pro/account?tab=billing");
     } else {
       navigate(`/register?intent=subscribe&plan=${plan}`);
     }
@@ -119,6 +146,22 @@ export function PricingPage() {
                 <Text size="sm" c="dimmed" fw={600} pb={8}>/mo</Text>
               </Group>
               <Text size="xs" c="dimmed" fw={600} mt={-12}>free forever</Text>
+              {memberProfileUrl && (
+                <Button
+                  component="a"
+                  href={memberProfileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  variant="outline"
+                  size="md"
+                  radius="md"
+                  fullWidth
+                  rightSection={<IconExternalLink size={15} />}
+                  style={{ borderColor: "var(--gk-accent-primary)", color: "var(--gk-accent-primary)" }}
+                >
+                  Checkout free profile
+                </Button>
+              )}
               <Button component={Link} to="/login" size="md" radius="md" fullWidth style={{ background: "var(--gk-accent-primary)", color: "#fff", border: "none" }}>
                 Get Started
               </Button>
@@ -155,6 +198,21 @@ export function PricingPage() {
                 <Text size="sm" fw={600} pb={8} style={{ color: "rgba(255,255,255,0.8)" }}>{unit}</Text>
               </Group>
               <Text size="xs" fw={600} mt={-12} style={{ color: "rgba(255,255,255,0.8)" }}>{note}</Text>
+              {proProfileUrl && (
+                <Button
+                  component="a"
+                  href={proProfileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  size="md"
+                  radius="md"
+                  fullWidth
+                  rightSection={<IconExternalLink size={15} />}
+                  style={{ background: "rgba(0,0,0,0.15)", color: "#0B1700", border: "2px solid rgba(255,255,255,0.6)", fontWeight: 700 }}
+                >
+                  Checkout pro profile
+                </Button>
+              )}
               <Button
                 size="md"
                 radius="md"

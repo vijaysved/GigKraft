@@ -1373,6 +1373,8 @@ export interface components {
             phone: string | null;
             /** Role */
             role: string;
+            /** Extra Roles */
+            extra_roles?: string[];
             /** First Name */
             first_name: string;
             /** Last Name */

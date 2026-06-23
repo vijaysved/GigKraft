@@ -15,7 +15,7 @@ import {
   Tooltip,
 } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
-import { IconExternalLink, IconSearch, IconShieldFilled, IconTrash } from "@tabler/icons-react";
+import { IconExternalLink, IconSearch, IconShieldFilled, IconTrash, IconUserOff } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuth } from "../../auth/AuthContext";
@@ -26,10 +26,12 @@ import {
   getGkUserZipcodes,
   getGkUsers,
   setGkUserAdmin,
+  setGkUserVisitor,
   type GkUserRow,
 } from "../../api/endpoints";
 
 const ROLE_COLORS: Record<string, string> = {
+  visitor: "gray",
   pro: "blue",
   homeowner: "green",
   node_manager: "orange",
@@ -39,7 +41,7 @@ const ROLE_COLORS: Record<string, string> = {
 const PAGE_SIZE = 25;
 
 const DELETABLE_EMAILS = new Set(["karrys@gmail.com", "satyamanidhruva@gmail.com"]);
-const PROMOTE_TO_ADMIN_EMAILS = new Set(["oddlynicellc@gmail.com", "vijaysarkarvedula@gmail.com"]);
+const PROMOTE_TO_ADMIN_EMAILS = new Set(["karrys@gmail.com", "oddlynicellc@gmail.com", "vijaysarkarvedula@gmail.com"]);
 
 export function GkAdminUsersPage() {
   const { user: currentUser, logout } = useAuth();
@@ -119,6 +121,16 @@ export function GkAdminUsersPage() {
     }
   }
 
+  async function handleSetVisitor(u: GkUserRow) {
+    if (!confirm(`Set ${u.email ?? u.phone} as visitor? This removes their member, pro, and homeowner roles.`)) return;
+    try {
+      const updated = await setGkUserVisitor(u.id);
+      setUsers((prev) => prev?.map((x) => (x.id === updated.id ? updated : x)) ?? null);
+    } catch {
+      setError("Failed to set visitor role.");
+    }
+  }
+
   return (
     <Stack>
       <Group justify="space-between">
@@ -146,6 +158,7 @@ export function GkAdminUsersPage() {
           placeholder="All roles"
           clearable
           data={[
+            { value: "visitor", label: "Visitor" },
             { value: "pro", label: "Pro" },
             { value: "homeowner", label: "Homeowner" },
             { value: "node_manager", label: "Node Manager" },
@@ -303,6 +316,18 @@ export function GkAdminUsersPage() {
                               onClick={() => void handleSetAdmin(u)}
                             >
                               <IconShieldFilled size={13} />
+                            </ActionIcon>
+                          </Tooltip>
+                        )}
+                        {u.role !== "gk_admin" && u.role !== "node_manager" && u.role !== "visitor" && (
+                          <Tooltip label="Set as visitor" withArrow>
+                            <ActionIcon
+                              size="sm"
+                              variant="light"
+                              color="gray"
+                              onClick={() => void handleSetVisitor(u)}
+                            >
+                              <IconUserOff size={13} />
                             </ActionIcon>
                           </Tooltip>
                         )}

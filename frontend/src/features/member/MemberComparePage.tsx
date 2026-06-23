@@ -162,7 +162,7 @@ export function MemberComparePage() {
               </Group>
               <Button
                 size="lg"
-                onClick={() => navigate("/pro/checkout?plan=monthly")}
+                onClick={() => navigate("/pro/account?tab=billing")}
                 style={{ background: "#fff", color: "var(--gk-accent-primary)", fontWeight: 700, paddingLeft: 32, paddingRight: 32 }}
               >
                 Upgrade to Pro →

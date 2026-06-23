@@ -18,7 +18,10 @@ export function RequireRole({ role, children }: RequireRoleProps) {
   const { user } = useAuth();
   if (!user) return null;
   const allowed = Array.isArray(role) ? role : [role];
-  if (!allowed.includes(user.role)) {
+  const hasRole =
+    allowed.includes(user.role) ||
+    (user.extra_roles ?? []).some((r) => allowed.includes(r));
+  if (!hasRole) {
     return <Navigate to={ROLE_HOME[user.role] ?? "/login"} replace />;
   }
   return <>{children}</>;

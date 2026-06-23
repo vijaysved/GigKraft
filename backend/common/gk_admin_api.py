@@ -9,6 +9,7 @@ from ninja import Router, Schema
 from accounts.auth import jwt_auth
 from accounts.models import ProProfile, User
 from billing.models import BillingInvoice, Subscription, StripeSettings
+from common.models import SiteSettings
 from common.permissions import require_gk_admin
 from krafts.models import Kraft
 from leads.models import Lead
@@ -237,6 +238,18 @@ def set_user_admin(request, user_id: int):
     return 200, user
 
 
+@router.patch("/users/{user_id}/set-visitor", response={200: UserRow, 404: dict})
+def set_user_visitor(request, user_id: int):
+    require_gk_admin(request)
+    user = User.objects.select_related("node", "pro_profile", "homeowner_profile").filter(pk=user_id).first()
+    if user is None:
+        return 404, {"detail": "User not found."}
+    user.role = User.Role.VISITOR
+    user.extra_roles = []
+    user.save(update_fields=["role", "extra_roles"])
+    return 200, user
+
+
 @router.get("/nodes", response=List[NodeSummary])
 def list_nodes(request):
     require_gk_admin(request)
@@ -367,6 +380,38 @@ def test_stripe_connection(request):
         return StripeConnectionOut(ok=False, mode=cfg.mode, account_id=None, account_name=None, error="Invalid API key.")
     except Exception as exc:
         return StripeConnectionOut(ok=False, mode=cfg.mode, account_id=None, account_name=None, error=str(exc))
+
+
+
+# ── Stripe CLI listener (dev / test mode only) ────────────────────────────────
+
+class StripeCLIStatusOut(Schema):
+    running: bool
+    secret: Optional[str]
+
+
+class StripeCLIStartIn(Schema):
+    forward_to: str = "http://localhost:8000/api/stripe/webhook"
+
+
+class StripeCLIStartOut(Schema):
+    running: bool
+    secret: Optional[str]
+    error: Optional[str]
+
+
+@router.get("/stripe-cli/status", response=StripeCLIStatusOut)
+def stripe_cli_status(request):
+    require_gk_admin(request)
+    from billing.stripe_cli import stripe_cli
+    return stripe_cli.status()
+
+
+@router.post("/stripe-cli/start", response=StripeCLIStartOut)
+def stripe_cli_start(request, payload: StripeCLIStartIn):
+    require_gk_admin(request)
+    from billing.stripe_cli import stripe_cli
+    return stripe_cli.start(payload.forward_to)
 
 
 # ── Billing: Subscribers & Transactions (gk_admin only) ───────────────────────
@@ -519,3 +564,66 @@ def list_anonymous_leads(request):
             "created_at": lead.created_at.isoformat(),
         })
     return rows
+
+
+# ── Site configuration (template URLs, marketing references) ──────────────────
+
+
+class ExtraTemplateUrl(Schema):
+    label: str
+    url: str
+
+
+class SiteConfigOut(Schema):
+    template_pro_url_local: str
+    template_pro_url_prod: str
+    template_member_url_local: str
+    template_member_url_prod: str
+    extra_template_urls: List[ExtraTemplateUrl]
+    updated_at: Optional[str]
+
+
+class SiteConfigIn(Schema):
+    template_pro_url_local: str
+    template_pro_url_prod: str
+    template_member_url_local: str
+    template_member_url_prod: str
+    extra_template_urls: List[ExtraTemplateUrl]
+
+
+def _site_cfg_out(cfg: SiteSettings) -> SiteConfigOut:
+    extras = [ExtraTemplateUrl(**item) for item in (cfg.extra_template_urls or [])]
+    return SiteConfigOut(
+        template_pro_url_local=cfg.template_pro_url_local,
+        template_pro_url_prod=cfg.template_pro_url_prod,
+        template_member_url_local=cfg.template_member_url_local,
+        template_member_url_prod=cfg.template_member_url_prod,
+        extra_template_urls=extras,
+        updated_at=cfg.updated_at.isoformat() if cfg.updated_at else None,
+    )
+
+
+@router.get("/site-config", response=SiteConfigOut)
+def get_site_config(request):
+    require_gk_admin(request)
+    return _site_cfg_out(SiteSettings.get())
+
+
+@router.put("/site-config", response={200: SiteConfigOut, 400: dict})
+def update_site_config(request, payload: SiteConfigIn):
+    require_gk_admin(request)
+    local_url = payload.template_pro_url_local.strip()
+    prod_url = payload.template_pro_url_prod.strip()
+    member_local = payload.template_member_url_local.strip()
+    member_prod = payload.template_member_url_prod.strip()
+    if not local_url or not prod_url or not member_local or not member_prod:
+        return 400, {"detail": "All template URLs are required."}
+    cfg = SiteSettings.get()
+    cfg.template_pro_url_local = local_url
+    cfg.template_pro_url_prod = prod_url
+    cfg.template_member_url_local = member_local
+    cfg.template_member_url_prod = member_prod
+    cfg.extra_template_urls = [item.dict() for item in payload.extra_template_urls]
+    cfg.updated_by = request.auth
+    cfg.save()
+    return 200, _site_cfg_out(cfg)
