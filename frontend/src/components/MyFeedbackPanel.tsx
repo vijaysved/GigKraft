@@ -10,7 +10,6 @@ import {
   Divider,
   Group,
   Loader,
-  ScrollArea,
   Stack,
   Text,
   Textarea,
