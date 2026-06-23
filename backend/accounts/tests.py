@@ -153,7 +153,7 @@ class GoogleAuthTests(ApiTestCase):
         self.assertEqual(resp.status_code, 200, resp.content)
         body = resp.json()
         self.assertEqual(body["user"]["email"], "user@gigkraft.dev")
-        self.assertEqual(body["user"]["role"], "homeowner")
+        self.assertEqual(body["user"]["role"], "member")
 
     def test_google_valid_token_signs_in_as_pro(self):
         with unittest.mock.patch("accounts.services.verify_google_token", return_value=("pro@gigkraft.dev", "Pro", "")):

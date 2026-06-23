@@ -265,7 +265,7 @@ export function AdminInboxPage() {
           {leadsLoading ? (
             <Stack align="center" pt="xl"><Loader size="sm" /></Stack>
           ) : leads.length === 0 ? (
-            <GkEmptyState icon={<IconInbox />} message="No threads here." />
+            <GkEmptyState icon={<IconInbox />} title="No threads here." />
           ) : (
             <Stack gap={4}>
               {leads.map((lead) => (
@@ -332,7 +332,7 @@ export function AdminInboxPage() {
             {messagesLoading ? (
               <Stack align="center" pt="xl"><Loader size="sm" /></Stack>
             ) : messages.length === 0 ? (
-              <GkEmptyState icon={<IconInbox />} message="No messages in this thread yet." />
+              <GkEmptyState icon={<IconInbox />} title="No messages in this thread yet." />
             ) : (
               <Stack gap="md" px="md" pt="md">
                 {messages.map((msg) => (
@@ -359,7 +359,7 @@ export function AdminInboxPage() {
         </Box>
       ) : (
         <Box style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <GkEmptyState icon={<IconInbox />} message="Select a thread to view the conversation." />
+          <GkEmptyState icon={<IconInbox />} title="Select a thread to view the conversation." />
         </Box>
       )}
     </Box>
