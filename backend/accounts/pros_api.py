@@ -7,7 +7,7 @@ from datetime import timedelta
 from decimal import Decimal
 from typing import Optional
 
-from django.db.models import Avg, Q
+from django.db.models import Avg, Count, Q
 from django.db.utils import OperationalError
 from django.utils import timezone
 from ninja import Router, Schema
@@ -375,14 +375,34 @@ def search_pros_public(
     zip: Optional[str] = None,
     category: Optional[str] = None,
     subcategory: Optional[str] = None,
+    licensed: Optional[bool] = None,
+    insured: Optional[bool] = None,
+    max_response_hours: Optional[int] = None,
+    min_krafts: Optional[int] = None,
+    min_recs: Optional[int] = None,
 ):
-    """Public pro discovery — no auth required, no node scoping.
+    """Public pro discovery — no auth required, no node scoping."""
+    from krafts.models import Kraft
+    from recommendations.models import Recommendation
 
-    category/subcategory filter against trade_categories JSONField (partial match:
-    primary category first, then secondary). Results are sorted so primary-category
-    matches appear before secondary-category matches.
-    """
-    pros = ProProfile.objects.filter(is_suspended=False).select_related("user", "user__node")
+    pros = (
+        ProProfile.objects
+        .filter(is_suspended=False)
+        .select_related("user", "user__node")
+        .annotate(
+            _krafts_count=Count(
+                "krafts",
+                filter=Q(krafts__status=Kraft.Status.VERIFIED),
+                distinct=True,
+            ),
+            _recs_count=Count(
+                "recommendations",
+                filter=Q(recommendations__status=Recommendation.Status.APPROVED),
+                distinct=True,
+            ),
+        )
+    )
+
     if trade:
         pros = pros.filter(primary_trade__iexact=trade)
     if zip:
@@ -398,21 +418,26 @@ def search_pros_public(
             | Q(skill_tags__icontains=q)
         )
     if category:
-        # trade_categories is a JSON list of {category, subcategories} objects;
-        # filter to pros whose list contains an entry matching the requested category.
         pros = pros.filter(trade_categories__icontains=category)
         if subcategory:
             pros = pros.filter(trade_categories__icontains=subcategory)
+    if licensed is True:
+        pros = pros.filter(licensed=True)
+    if insured is True:
+        pros = pros.filter(insured=True)
+    if max_response_hours is not None:
+        pros = pros.filter(response_hours__lte=max_response_hours)
+    if min_krafts is not None:
+        pros = pros.filter(_krafts_count__gte=min_krafts)
+    if min_recs is not None:
+        pros = pros.filter(_recs_count__gte=min_recs)
 
     result = list(pros[:50])
 
     if category:
-        # Sort: pros whose FIRST entry matches → primary; others → secondary
         def _sort_key(p):
             cats = p.trade_categories or []
-            if cats and cats[0].get("category", "") == category:
-                return 0
-            return 1
+            return 0 if cats and cats[0].get("category", "") == category else 1
         result.sort(key=_sort_key)
 
     return [serialize_pro(p) for p in result]

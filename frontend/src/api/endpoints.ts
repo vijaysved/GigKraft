@@ -1055,6 +1055,11 @@ export async function searchProsPublic(params: {
   zip?: string;
   category?: string;
   subcategory?: string;
+  licensed?: boolean;
+  insured?: boolean;
+  max_response_hours?: number;
+  min_krafts?: number;
+  min_recs?: number;
 }): Promise<ProOut[]> {
   const q: Record<string, string> = {};
   if (params.q) q.q = params.q;
@@ -1062,6 +1067,11 @@ export async function searchProsPublic(params: {
   if (params.zip) q.zip = params.zip;
   if (params.category) q.category = params.category;
   if (params.subcategory) q.subcategory = params.subcategory;
+  if (params.licensed) q.licensed = "true";
+  if (params.insured) q.insured = "true";
+  if (params.max_response_hours != null) q.max_response_hours = String(params.max_response_hours);
+  if (params.min_krafts != null) q.min_krafts = String(params.min_krafts);
+  if (params.min_recs != null) q.min_recs = String(params.min_recs);
   const qs = Object.keys(q).length ? `?${new URLSearchParams(q).toString()}` : "";
   const { data, response } = await client.GET(`/api/pros/search${qs}` as never);
   if (!data) throw new ApiError(response.status, "Failed to search pros.");

@@ -10,13 +10,14 @@ import {
   Select,
   SimpleGrid,
   Stack,
+  Switch,
   Tabs,
   Text,
   Textarea,
   TextInput,
   Title,
 } from "@mantine/core";
-import { IconCheck, IconMapPin, IconSearch, IconSend } from "@tabler/icons-react";
+import { IconCheck, IconFilter, IconMapPin, IconSearch, IconSend } from "@tabler/icons-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
@@ -96,24 +97,21 @@ const CATEGORIES: Record<string, CategoryDef> = {
 
 const CATEGORY_KEYS = Object.keys(CATEGORIES);
 
-const NEUTRAL_GRADIENT = "linear-gradient(135deg,#888,#555)";
+// Tier-based fallback gradients when no category is assigned
+const PRO_GRADIENT   = "linear-gradient(135deg,#FF0055,#00C8FF)";  // GigKraft brand
+const MEMBER_GRADIENT = "linear-gradient(135deg,#9CA3AF,#6B7280)"; // muted silver
 
 function proGradient(pro: ProOut): string {
   const primary = pro.trade_categories?.[0]?.category;
   if (primary && CATEGORIES[primary]) return CATEGORIES[primary].gradient;
-  return NEUTRAL_GRADIENT;
-}
-
-function proTierLabel(pro: ProOut): string {
-  if (pro.role === "member") return "Member";
-  return "Pro";
+  return pro.role === "member" ? MEMBER_GRADIENT : PRO_GRADIENT;
 }
 
 // ── Pro card ──────────────────────────────────────────────────────────────────
 
 function ProCard({ pro, onClick }: { pro: ProOut; onClick: () => void }) {
   const gradient = proGradient(pro);
-  const tier = proTierLabel(pro);
+  const isPro = pro.role !== "member";
   const initials = pro.name
     .split(" ")
     .map((w) => w[0])
@@ -144,7 +142,7 @@ function ProCard({ pro, onClick }: { pro: ProOut; onClick: () => void }) {
           position: "relative",
         }}
       >
-        {/* Tier badge */}
+        {/* Tier badge — standard color regardless of card gradient */}
         <Box
           style={{
             position: "absolute",
@@ -152,15 +150,15 @@ function ProCard({ pro, onClick }: { pro: ProOut; onClick: () => void }) {
             right: 12,
             padding: "3px 10px",
             borderRadius: 20,
-            background: "rgba(255,255,255,0.22)",
-            border: "1px solid rgba(255,255,255,0.4)",
-            color: "#fff",
+            background: isPro ? "#00C8FF" : "rgba(255,255,255,0.92)",
+            color: isPro ? "#003344" : "#555",
             fontSize: 11,
             fontWeight: 800,
             letterSpacing: 0.3,
+            boxShadow: "0 1px 4px rgba(0,0,0,.15)",
           }}
         >
-          {tier === "Pro" ? "⚡ Pro" : "Member"}
+          {isPro ? "⚡ Pro" : "Member"}
         </Box>
       </Box>
 
@@ -305,7 +303,6 @@ function RfqForm({ initialCategory, initialZip }: { initialCategory: string; ini
   return (
     <Box style={{ maxWidth: 560, margin: "0 auto" }}>
       <Stack gap="md">
-        {/* Description textarea */}
         <Textarea
           label="Describe what you need"
           placeholder={`Describe your project — the more detail, the better quotes you'll get.\n\nFor example:\n• What's the problem or project?\n• How urgent is it?\n• Any access constraints (second floor, crawl space)?\n• Preferred days/times for a visit?`}
@@ -318,7 +315,6 @@ function RfqForm({ initialCategory, initialZip }: { initialCategory: string; ini
 
         <Text size="sm" fw={700} c="dimmed">4 quick details</Text>
 
-        {/* Category */}
         <Select
           label="Category"
           placeholder="Select a trade category"
@@ -328,7 +324,6 @@ function RfqForm({ initialCategory, initialZip }: { initialCategory: string; ini
           onChange={(v) => { setCategory(v ?? ""); setSubcategory(""); }}
         />
 
-        {/* Subcategory */}
         {subcats.length > 0 && (
           <Select
             label="Subcategory"
@@ -340,7 +335,6 @@ function RfqForm({ initialCategory, initialZip }: { initialCategory: string; ini
           />
         )}
 
-        {/* Timeline chips */}
         <Box>
           <Text size="sm" fw={500} mb={6}>Timeline <span style={{ color: "red" }}>*</span></Text>
           <Group gap="xs">
@@ -361,7 +355,6 @@ function RfqForm({ initialCategory, initialZip }: { initialCategory: string; ini
           </Group>
         </Box>
 
-        {/* ZIP */}
         <TextInput
           label="ZIP code"
           placeholder="e.g. 78701"
@@ -373,7 +366,6 @@ function RfqForm({ initialCategory, initialZip }: { initialCategory: string; ini
           w={180}
         />
 
-        {/* Budget */}
         <Select
           label="Budget (optional)"
           data={[
@@ -422,7 +414,57 @@ function RfqForm({ initialCategory, initialZip }: { initialCategory: string; ini
   );
 }
 
-// ── Search tab ────────────────────────────────────────────────────────────────
+// ── Coverage footer ───────────────────────────────────────────────────────────
+
+function CoverageFooter({ pros }: { pros: ProOut[] }) {
+  const zips = Array.from(
+    new Set(
+      pros.flatMap((p) => [
+        p.base_zip,
+        ...(Array.isArray(p.service_zips) ? p.service_zips : []),
+      ]).filter(Boolean)
+    )
+  ).sort();
+
+  if (zips.length === 0) return null;
+
+  return (
+    <Box
+      style={{
+        borderTop: "1px solid #E8E8E8",
+        paddingTop: 24,
+        marginTop: 8,
+      }}
+    >
+      <Group gap={6} mb={8} align="center">
+        <IconMapPin size={14} color="#888" />
+        <Text size="xs" fw={600} c="dimmed" tt="uppercase" style={{ letterSpacing: 0.5 }}>
+          Service areas we cover
+        </Text>
+      </Group>
+      <Group gap={6} wrap="wrap">
+        {zips.map((z) => (
+          <Box
+            key={z}
+            style={{
+              padding: "3px 10px",
+              borderRadius: 12,
+              background: "#F5F5F5",
+              color: "#555",
+              fontSize: 12,
+              fontWeight: 600,
+              fontFamily: "monospace",
+            }}
+          >
+            {z}
+          </Box>
+        ))}
+      </Group>
+    </Box>
+  );
+}
+
+// ── Search page ───────────────────────────────────────────────────────────────
 
 export function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -433,6 +475,15 @@ export function SearchPage() {
   const [activeCategory, setActiveCategory] = useState(searchParams.get("category") ?? "");
   const [activeSubcategory, setActiveSubcategory] = useState(searchParams.get("subcategory") ?? "");
   const [zipFilter, setZipFilter] = useState(searchParams.get("zip") ?? "");
+
+  // Attribute filters
+  const [filterLicensed, setFilterLicensed] = useState(false);
+  const [filterInsured, setFilterInsured] = useState(false);
+  const [filterResponseHours, setFilterResponseHours] = useState<number | null>(null);
+  const [filterMinKrafts, setFilterMinKrafts] = useState<number | null>(null);
+  const [filterMinRecs, setFilterMinRecs] = useState<number | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+
   const [pros, setPros] = useState<ProOut[]>([]);
   const [loading, setLoading] = useState(true);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -458,13 +509,22 @@ export function SearchPage() {
         zip: zipFilter || undefined,
         category: activeCategory || undefined,
         subcategory: activeSubcategory || undefined,
+        licensed: filterLicensed || undefined,
+        insured: filterInsured || undefined,
+        max_response_hours: filterResponseHours ?? undefined,
+        min_krafts: filterMinKrafts ?? undefined,
+        min_recs: filterMinRecs ?? undefined,
       })
         .then(setPros)
         .catch(() => setPros([]))
         .finally(() => setLoading(false));
     }, 350);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [query, activeCategory, activeSubcategory, zipFilter, activeTab, setSearchParams]);
+  }, [
+    query, activeCategory, activeSubcategory, zipFilter, activeTab,
+    filterLicensed, filterInsured, filterResponseHours, filterMinKrafts, filterMinRecs,
+    setSearchParams,
+  ]);
 
   function handleCategoryClick(key: string) {
     if (activeCategory === key) {
@@ -477,6 +537,11 @@ export function SearchPage() {
   }
 
   const subcategories = activeCategory ? (CATEGORIES[activeCategory]?.subcategories ?? []) : [];
+
+  const activeFilterCount = [
+    filterLicensed, filterInsured,
+    filterResponseHours != null, filterMinKrafts != null, filterMinRecs != null,
+  ].filter(Boolean).length;
 
   return (
     <Box style={{ maxWidth: 1080, margin: "0 auto", padding: "48px 24px 80px" }}>
@@ -517,7 +582,116 @@ export function SearchPage() {
                   style={{ width: 150 }}
                   maxLength={10}
                 />
+                <Button
+                  variant={activeFilterCount > 0 ? "filled" : "light"}
+                  color={activeFilterCount > 0 ? "dark" : "gray"}
+                  leftSection={<IconFilter size={15} />}
+                  onClick={() => setShowFilters((v) => !v)}
+                  size="sm"
+                  px="md"
+                >
+                  Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+                </Button>
               </Group>
+
+              {/* Expandable filter row */}
+              {showFilters && (
+                <Box
+                  style={{
+                    background: "#F9F9F9",
+                    border: "1px solid #E8E8E8",
+                    borderRadius: 12,
+                    padding: "16px 20px",
+                  }}
+                >
+                  <Group gap="xl" wrap="wrap" align="flex-start">
+                    {/* Toggles */}
+                    <Stack gap="xs">
+                      <Switch
+                        label="Licensed"
+                        size="sm"
+                        checked={filterLicensed}
+                        onChange={(e) => setFilterLicensed(e.currentTarget.checked)}
+                      />
+                      <Switch
+                        label="Insured"
+                        size="sm"
+                        checked={filterInsured}
+                        onChange={(e) => setFilterInsured(e.currentTarget.checked)}
+                      />
+                    </Stack>
+
+                    {/* Response time */}
+                    <Select
+                      label="Response time"
+                      placeholder="Any"
+                      size="sm"
+                      w={150}
+                      clearable
+                      data={[
+                        { value: "2", label: "≤ 2 hours" },
+                        { value: "4", label: "≤ 4 hours" },
+                        { value: "8", label: "≤ 8 hours" },
+                        { value: "24", label: "≤ 24 hours" },
+                      ]}
+                      value={filterResponseHours != null ? String(filterResponseHours) : null}
+                      onChange={(v) => setFilterResponseHours(v ? parseInt(v) : null)}
+                    />
+
+                    {/* Min Krafts */}
+                    <Select
+                      label="Min Krafts"
+                      placeholder="Any"
+                      size="sm"
+                      w={130}
+                      clearable
+                      data={[
+                        { value: "1", label: "1+" },
+                        { value: "3", label: "3+" },
+                        { value: "5", label: "5+" },
+                        { value: "10", label: "10+" },
+                      ]}
+                      value={filterMinKrafts != null ? String(filterMinKrafts) : null}
+                      onChange={(v) => setFilterMinKrafts(v ? parseInt(v) : null)}
+                    />
+
+                    {/* Min Recs */}
+                    <Select
+                      label="Min Recs"
+                      placeholder="Any"
+                      size="sm"
+                      w={130}
+                      clearable
+                      data={[
+                        { value: "1", label: "1+" },
+                        { value: "5", label: "5+" },
+                        { value: "10", label: "10+" },
+                      ]}
+                      value={filterMinRecs != null ? String(filterMinRecs) : null}
+                      onChange={(v) => setFilterMinRecs(v ? parseInt(v) : null)}
+                    />
+
+                    {activeFilterCount > 0 && (
+                      <Box style={{ alignSelf: "flex-end", paddingBottom: 2 }}>
+                        <Button
+                          size="xs"
+                          variant="subtle"
+                          color="red"
+                          onClick={() => {
+                            setFilterLicensed(false);
+                            setFilterInsured(false);
+                            setFilterResponseHours(null);
+                            setFilterMinKrafts(null);
+                            setFilterMinRecs(null);
+                          }}
+                        >
+                          Clear all
+                        </Button>
+                      </Box>
+                    )}
+                  </Group>
+                </Box>
+              )}
 
               {/* Category chips */}
               <Group gap="xs" wrap="wrap">
@@ -576,7 +750,7 @@ export function SearchPage() {
                 })}
               </Group>
 
-              {/* Subcategory chips — shown when a category is active */}
+              {/* Subcategory chips */}
               {subcategories.length > 0 && (
                 <Group gap="xs" wrap="wrap">
                   <Chip.Group value={activeSubcategory} onChange={(v) => setActiveSubcategory(v as string)}>
@@ -609,6 +783,9 @@ export function SearchPage() {
                   </SimpleGrid>
                 </Stack>
               )}
+
+              {/* Coverage footer — always shown when results are loaded */}
+              {!loading && <CoverageFooter pros={pros} />}
             </Stack>
           </Tabs.Panel>
 
