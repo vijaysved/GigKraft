@@ -6,6 +6,7 @@ import {
   Button,
   Card,
   Checkbox,
+  Chip,
   CopyButton,
   Drawer,
   Group,
@@ -36,6 +37,7 @@ import {
   IconEdit,
   IconMail,
   IconMailOpened,
+  IconMessage,
   IconPlayerPlay,
   IconPlus,
   IconSearch,
@@ -47,6 +49,7 @@ import {
   IconWorld,
 } from "@tabler/icons-react";
 import { useEffect, useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 
 import {
   advanceProspectStep,
@@ -221,7 +224,8 @@ function JourneyBlocks({
         const sent = !!s.sent_at;
         const opened = sent && s.channel === "email" && !!s.read_at;
         const emailSent = sent && s.channel === "email" && !s.read_at;
-        const chatSent = sent && s.channel === "whatsapp";
+        const waSent = sent && s.channel === "whatsapp";
+        const smsSent = sent && s.channel === "sms";
         const isCurrent = s.step === currentStep && sent;
 
         let bg = "var(--mantine-color-default-border)";
@@ -232,8 +236,11 @@ function JourneyBlocks({
         } else if (emailSent) {
           bg = "var(--mantine-color-yellow-5)";
           iconColor = "#000";
-        } else if (chatSent) {
+        } else if (waSent) {
           bg = "var(--mantine-color-teal-5)";
+          iconColor = "#fff";
+        } else if (smsSent) {
+          bg = "var(--mantine-color-blue-5)";
           iconColor = "#fff";
         }
 
@@ -241,8 +248,10 @@ function JourneyBlocks({
           ? `Step ${s.step}: Email opened ✓`
           : emailSent
           ? `Step ${s.step}: Email sent — not opened yet`
-          : chatSent
-          ? `Step ${s.step}: Chat message sent ✓`
+          : waSent
+          ? `Step ${s.step}: WhatsApp sent ✓`
+          : smsSent
+          ? `Step ${s.step}: Text sent ✓`
           : `Step ${s.step}: Not started`;
 
         return (
@@ -266,8 +275,10 @@ function JourneyBlocks({
                 <IconMailOpened size={11} color={iconColor} />
               ) : emailSent ? (
                 <IconMail size={11} color={iconColor} />
-              ) : chatSent ? (
+              ) : waSent ? (
                 <IconBrandWhatsapp size={11} color={iconColor} />
+              ) : smsSent ? (
+                <IconMessage size={11} color={iconColor} />
               ) : (
                 <Text size="xs" fw={700} style={{ color: iconColor, lineHeight: 1, fontSize: 10 }}>
                   {s.step}
@@ -499,12 +510,19 @@ function DashboardTab() {
 
 // ── Chat Step Modal ───────────────────────────────────────────────────────────
 
+type ChatChannel = "whatsapp" | "sms";
+
+function getLastChannel(prospectId: number): ChatChannel | null {
+  return localStorage.getItem(`gk-ch-${prospectId}`) as ChatChannel | null;
+}
+
 function ChatStepModal({
   prospect,
   opened,
   onClose,
   onSent,
   templateBody,
+  templateId,
 }: {
   prospect: Prospect;
   opened: boolean;
@@ -517,20 +535,25 @@ function ChatStepModal({
   const text = templateBody
     ? renderTemplate(templateBody, prospect)
     : (CHAT_TEMPLATES[nextStep]?.(prospect) ?? "");
-  const [confirming, setConfirming] = useState(false);
+
+  const [confirming, setConfirming] = useState<ChatChannel | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const handleConfirm = async () => {
-    setConfirming(true);
+  const lastChannel = getLastChannel(prospect.id);
+
+  const handleConfirm = async (channel: ChatChannel) => {
+    setConfirming(channel);
     setError(null);
     try {
-      const updated = await advanceProspectStep(prospect.id);
+      // Backend now stores the correct channel in the OutreachLog and journey
+      const updated = await advanceProspectStep(prospect.id, channel);
+      localStorage.setItem(`gk-ch-${prospect.id}`, channel);
       onSent(updated);
       onClose();
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Failed to confirm.");
     } finally {
-      setConfirming(false);
+      setConfirming(null);
     }
   };
 
@@ -541,62 +564,89 @@ function ChatStepModal({
       title={`Chat Step ${nextStep} — ${prospect.name}`}
       size="lg"
     >
-      <Stack>
+      <Stack gap="sm">
         {prospect.phone && (
           <Group
             justify="space-between"
             align="center"
             p="sm"
             style={{
-              background: "color-mix(in srgb, var(--mantine-color-teal-5) 10%, var(--gk-bg-surface))",
+              background: "color-mix(in srgb, var(--mantine-color-gray-5) 8%, var(--gk-bg-surface))",
               borderRadius: 8,
-              border: "1px solid color-mix(in srgb, var(--mantine-color-teal-5) 30%, transparent)",
+              border: "1px solid var(--mantine-color-default-border)",
             }}
           >
-            <Group gap="xs">
-              <IconBrandWhatsapp size={15} color="var(--mantine-color-teal-6)" />
-              <Text size="sm" fw={600}>{prospect.phone}</Text>
-            </Group>
+            <Text size="sm" fw={600}>{prospect.phone}</Text>
             <CopyButton value={prospect.phone} timeout={2000}>
               {({ copied, copy }) => (
                 <Button
                   size="xs"
+                  radius="xl"
                   variant="light"
-                  color={copied ? "green" : "teal"}
+                  color={copied ? "green" : "gray"}
                   leftSection={copied ? <IconCheck size={12} /> : <IconCopy size={12} />}
                   onClick={copy}
                 >
-                  {copied ? "Copied!" : "Copy Number"}
+                  {copied ? "Copied!" : "Copy"}
                 </Button>
               )}
             </CopyButton>
           </Group>
         )}
-        <Text size="sm" c="dimmed">
-          Copy this to WhatsApp or Nextdoor DM, then click <strong>Confirm Sent</strong>.
-        </Text>
-        <Textarea value={text} readOnly autosize minRows={6} styles={{ input: { fontFamily: "monospace" } }} />
-        <Group>
+
+        <Textarea
+          value={text}
+          readOnly
+          autosize
+          minRows={5}
+          styles={{ input: { fontFamily: "monospace", fontSize: 12 } }}
+        />
+
+        <Group justify="space-between" align="center">
           <CopyButton value={text} timeout={2000}>
             {({ copied, copy }) => (
               <Button
-                leftSection={copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
+                size="xs"
+                radius="xl"
+                leftSection={copied ? <IconCheck size={12} /> : <IconCopy size={12} />}
                 onClick={copy}
+                variant={copied ? "light" : "filled"}
+                color={copied ? "green" : undefined}
                 style={copied ? {} : { background: "var(--gk-accent-primary)", color: "#000" }}
               >
                 {copied ? "Copied!" : "Copy Message"}
               </Button>
             )}
           </CopyButton>
-          <Button
-            leftSection={<IconCheck size={14} />}
-            onClick={handleConfirm}
-            loading={confirming}
-            color="green"
-          >
-            Confirm Sent
-          </Button>
+
+          <Group gap="xs">
+            <Button
+              size="xs"
+              radius="xl"
+              variant={lastChannel === "whatsapp" ? "filled" : "light"}
+              color="teal"
+              leftSection={<IconBrandWhatsapp size={12} />}
+              loading={confirming === "whatsapp"}
+              disabled={confirming === "sms"}
+              onClick={() => handleConfirm("whatsapp")}
+            >
+              Confirmed via WhatsApp
+            </Button>
+            <Button
+              size="xs"
+              radius="xl"
+              variant={lastChannel === "sms" ? "filled" : "light"}
+              color="blue"
+              leftSection={<IconMessage size={12} />}
+              loading={confirming === "sms"}
+              disabled={confirming === "whatsapp"}
+              onClick={() => handleConfirm("sms")}
+            >
+              Confirmed via Text
+            </Button>
+          </Group>
         </Group>
+
         {error && <Alert color="red">{error}</Alert>}
       </Stack>
     </Modal>
@@ -951,8 +1001,9 @@ function ProspectDrawer({
       <Textarea label="Notes" value={form.notes ?? ""} onChange={(e) => f("notes")(e.target.value)} minRows={3} />
       {error && <Alert color="red">{error}</Alert>}
       <Group justify="flex-end">
-        <Button variant="default" onClick={onClose}>Cancel</Button>
+        <Button radius="xl" variant="default" onClick={onClose}>Cancel</Button>
         <Button
+          radius="xl"
           onClick={handleSave}
           loading={saving}
           style={{ background: "var(--gk-accent-primary)", color: "#000" }}
@@ -1047,8 +1098,25 @@ function ProspectsTab() {
   const [bulkLoading, setBulkLoading] = useState(false);
   const [waTemplates, setWaTemplates] = useState<MessageTemplate[]>([]);
   const [emailTemplates, setEmailTemplates] = useState<MessageTemplate[]>([]);
+  const [stepFilters, setStepFilters] = useState<string[]>([]);
+  const [channelFilters, setChannelFilters] = useState<string[]>([]);
 
   const { sorted, sortBy, sortDir, toggle } = useSort(prospects, "created_at", "desc");
+
+  const displayed = useMemo(() => {
+    let result = sorted;
+    if (stepFilters.length > 0) {
+      result = result.filter((p) => stepFilters.includes(String(p.current_sequence_step)));
+    }
+    if (channelFilters.length > 0) {
+      result = result.filter((p) =>
+        channelFilters.some((ch) =>
+          (p.journey ?? []).some((s) => s.channel === ch && s.sent_at),
+        ),
+      );
+    }
+    return result;
+  }, [sorted, stepFilters, channelFilters]);
 
   const load = async () => {
     setLoading(true);
@@ -1110,8 +1178,8 @@ function ProspectsTab() {
   const openEdit = (p: Prospect) => { setEditing(p); openDrawer(); };
   const openAdd = () => { setEditing(null); openDrawer(); };
 
-  const allSelected = sorted.length > 0 && sorted.every((p) => selectedIds.has(p.id));
-  const someSelected = !allSelected && sorted.some((p) => selectedIds.has(p.id));
+  const allSelected = displayed.length > 0 && displayed.every((p) => selectedIds.has(p.id));
+  const someSelected = !allSelected && displayed.some((p) => selectedIds.has(p.id));
 
   const handleToggleSelect = (id: number) =>
     setSelectedIds((prev) => {
@@ -1121,7 +1189,7 @@ function ProspectsTab() {
     });
 
   const handleToggleAll = () =>
-    setSelectedIds(allSelected ? new Set() : new Set(sorted.map((p) => p.id)));
+    setSelectedIds(allSelected ? new Set() : new Set(displayed.map((p) => p.id)));
 
   const handleBulkAdvance = async () => {
     setBulkLoading(true);
@@ -1184,10 +1252,31 @@ function ProspectsTab() {
           <Button
             leftSection={<IconPlus size={14} />}
             onClick={openAdd}
+            radius="xl"
             style={{ background: "var(--gk-accent-primary)", color: "#000" }}
           >
             Add Prospect
           </Button>
+        </Group>
+
+        <Group gap="xs" align="center">
+          <Text size="xs" c="dimmed" fw={500}>Journey</Text>
+          <Chip.Group multiple value={stepFilters} onChange={setStepFilters}>
+            <Group gap={6}>
+              <Chip size="xs" value="0" radius="xl">Not Started</Chip>
+              <Chip size="xs" value="1" radius="xl">Step 1</Chip>
+              <Chip size="xs" value="2" radius="xl">Step 2</Chip>
+              <Chip size="xs" value="3" radius="xl">Step 3</Chip>
+            </Group>
+          </Chip.Group>
+          <Text size="xs" c="dimmed" fw={500} ml="xs">Channel</Text>
+          <Chip.Group multiple value={channelFilters} onChange={setChannelFilters}>
+            <Group gap={6}>
+              <Chip size="xs" value="whatsapp" radius="xl">WhatsApp</Chip>
+              <Chip size="xs" value="email" radius="xl">Email</Chip>
+              <Chip size="xs" value="sms" radius="xl">Text</Chip>
+            </Group>
+          </Chip.Group>
         </Group>
 
         {error && <Alert color="red">{error}</Alert>}
@@ -1205,6 +1294,7 @@ function ProspectsTab() {
             <Text size="sm" fw={500}>{selectedIds.size} selected</Text>
             <Button
               size="xs"
+              radius="xl"
               color="teal"
               leftSection={<IconBrandWhatsapp size={12} />}
               loading={bulkLoading}
@@ -1212,7 +1302,7 @@ function ProspectsTab() {
             >
               Mark WhatsApp Sent
             </Button>
-            <Button size="xs" variant="subtle" color="gray" onClick={() => setSelectedIds(new Set())}>
+            <Button size="xs" radius="xl" variant="subtle" color="gray" onClick={() => setSelectedIds(new Set())}>
               Clear
             </Button>
           </Group>
@@ -1220,7 +1310,7 @@ function ProspectsTab() {
 
         {loading ? (
           <Loader size="sm" />
-        ) : sorted.length === 0 ? (
+        ) : displayed.length === 0 ? (
           <Text c="dimmed" ta="center" py="xl">No prospects found.</Text>
         ) : (
           <TableBox>
@@ -1248,7 +1338,7 @@ function ProspectsTab() {
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
-                {sorted.map((p) => {
+                {displayed.map((p) => {
                   const isActionLoading = actionLoading === p.id;
                   const isDeleting = deleting === p.id;
                   const ns = p.current_sequence_step === 0 ? 1 : Math.min(p.current_sequence_step + 1, 3);
@@ -1258,6 +1348,9 @@ function ProspectsTab() {
                   const emailBody = emailTmpl ? renderTemplate(emailTmpl.body, p) : null;
                   const isActionable = ["prospect", "in_progress"].includes(p.status);
                   const days = daysSince(p.last_contacted_at);
+                  const lastJourneyChannel = [...(p.journey ?? [])]
+                    .filter(s => s.sent_at && (s.channel === "whatsapp" || s.channel === "sms"))
+                    .sort((a, b) => (b.step ?? 0) - (a.step ?? 0))[0]?.channel ?? "whatsapp";
 
                   return (
                     <Table.Tr key={p.id}>
@@ -1270,7 +1363,15 @@ function ProspectsTab() {
                       </Table.Td>
                       <Table.Td>
                         <Stack gap={0}>
-                          <Text size="xs" fw={600}>{p.name}</Text>
+                          <Text
+                            size="xs"
+                            fw={600}
+                            component={Link}
+                            to={`/gk-admin/prospects/${p.id}`}
+                            style={{ color: "var(--gk-accent-primary)", textDecoration: "none" }}
+                          >
+                            {p.name}
+                          </Text>
                           <Text c="dimmed" ff="monospace" style={{ fontSize: 10 }}>{p.prospect_id}</Text>
                         </Stack>
                       </Table.Td>
@@ -1290,7 +1391,7 @@ function ProspectsTab() {
                             </Tooltip>
                           )}
                           {p.phone && (
-                            <Tooltip label="Open WhatsApp chat">
+                            <Tooltip label="Open WhatsApp">
                               <ActionIcon
                                 size="xs"
                                 variant="subtle"
@@ -1305,9 +1406,16 @@ function ProspectsTab() {
                             </Tooltip>
                           )}
                           {isActionable && p.current_sequence_step < 3 && (
-                            <Tooltip label="Send chat step">
-                              <ActionIcon color="teal" variant="light" size="xs" onClick={() => setChatTarget(p)}>
-                                <IconBrandWhatsapp size={10} />
+                            <Tooltip label={`Send chat step via ${lastJourneyChannel === "sms" ? "Text" : "WhatsApp"}`}>
+                              <ActionIcon
+                                color={lastJourneyChannel === "sms" ? "blue" : "teal"}
+                                variant="light"
+                                size="xs"
+                                onClick={() => setChatTarget(p)}
+                              >
+                                {lastJourneyChannel === "sms"
+                                  ? <IconMessage size={10} />
+                                  : <IconBrandWhatsapp size={10} />}
                               </ActionIcon>
                             </Tooltip>
                           )}
@@ -1708,11 +1816,14 @@ function TemplatesTab() {
 // ── Page Root ─────────────────────────────────────────────────────────────────
 
 export function GkAdminProspectsPage() {
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get("tab") ?? "dashboard";
+
   return (
     <Stack gap="xl" p="md" style={{ background: "var(--gk-bg-canvas)", minHeight: "100%" }}>
       <Title order={3}>Prospect Outreach</Title>
       <Tabs
-        defaultValue="dashboard"
+        defaultValue={initialTab}
         keepMounted={false}
         styles={{
           tab: {

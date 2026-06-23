@@ -506,6 +506,12 @@ export async function listProspects(params?: {
   return data as Prospect[];
 }
 
+export async function getProspect(id: number): Promise<Prospect> {
+  const { data, error, response } = await client.GET(`/api/prospects/${id}` as never);
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to load prospect."));
+  return data as Prospect;
+}
+
 export async function createProspect(body: ProspectIn): Promise<Prospect> {
   const { data, error, response } = await client.POST("/api/prospects" as never, {
     body,
@@ -546,10 +552,10 @@ export async function startProspectSequence(id: number): Promise<Prospect> {
   return data as Prospect;
 }
 
-export async function advanceProspectStep(id: number): Promise<Prospect> {
+export async function advanceProspectStep(id: number, channel: "whatsapp" | "sms" = "whatsapp"): Promise<Prospect> {
   const { data, error, response } = await client.POST(
     `/api/prospects/${id}/advance-step` as never,
-    {} as never,
+    { body: { channel } } as never,
   );
   if (!data) throw new ApiError(response.status, detailOf(error, "Failed to advance step."));
   return data as Prospect;

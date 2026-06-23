@@ -347,8 +347,12 @@ def start_sequence(request, prospect_id: int):
     return 200, _serialize(p)
 
 
+class AdvanceStepIn(Schema):
+    channel: str = "whatsapp"
+
+
 @router.post("/{prospect_id}/advance-step", response={200: ProspectOut, 400: ErrorOut, 404: ErrorOut})
-def advance_chat_step(request, prospect_id: int):
+def advance_chat_step(request, prospect_id: int, data: AdvanceStepIn):
     require_gk_admin(request)
     from comms.models import OutreachLog
 
@@ -369,9 +373,9 @@ def advance_chat_step(request, prospect_id: int):
     p.save(update_fields=["status", "current_sequence_step", "last_contacted_at", "updated_at"])
 
     OutreachLog.objects.create(
-        prospect=p, channel="whatsapp",
+        prospect=p, channel=data.channel,
         to_address=p.phone or "",
-        notes=f"Chat step {p.current_sequence_step} confirmed sent.",
+        notes=f"Chat step {p.current_sequence_step} confirmed sent via {data.channel}.",
         sequence_step=p.current_sequence_step,
     )
     _attach_logs(p)
