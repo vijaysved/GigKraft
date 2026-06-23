@@ -115,14 +115,14 @@ const SOURCE_OPTIONS = [
 
 const CHAT_TEMPLATES: Record<number, (p: Prospect) => string> = {
   1: (p) =>
-    `Hi ${p.name}! Noticed your excellent work on ${p.source}. I'm Vijay, admin for *gigKraft.com*—a local trust network for pros in ${p.primary_zip}. We build sovereign digital portfolios for independent contractors. No lead fees or hidden cuts—just your own verified link to show clients. It's *$24.99/mo* or *$249.99/yr* flat.\n\nIf you'd like to reserve your profile link, check it out here: ${buildSignupUrl(p)}`,
+    `Hi ${p.name}! Noticed your excellent work on ${p.source}. I'm Vijay, admin for *gigKraft.com*—a local trust network for pros in ${p.primary_zip}. We build sovereign digital portfolios for independent contractors. No lead fees or hidden cuts—just your own verified link to show clients. It's *$24.99/mo* or *$249.99/yr* flat.\n\nIf you'd like to reserve your profile link, check it out here: ${buildSignupUrl()}`,
   2: (p) =>
-    `Hey ${p.name}, just following up! Local pros are loving *gigKraft.com* because they fully own their reviews and portfolio link, bypassing unpredictable platform algorithms. Great for dropping directly into your WhatsApp groups or Nextdoor replies.\n\nSet up your verified local profile in 2 mins: ${buildSignupUrl(p)}`,
+    `Hey ${p.name}, just following up! Local pros are loving *gigKraft.com* because they fully own their reviews and portfolio link, bypassing unpredictable platform algorithms. Great for dropping directly into your WhatsApp groups or Nextdoor replies.\n\nSet up your verified local profile in 2 mins: ${buildSignupUrl()}`,
   3: (p) =>
-    `Hi ${p.name}, closing out your pending invite for now so I don't bug you. If you ever want to stand out to nearby homeowners with a clean profile for *$24.99/mo*, you can unlock it anytime here: ${buildSignupUrl(p)}. Wish you all the best!`,
+    `Hi ${p.name}, closing out your pending invite for now so I don't bug you. If you ever want to stand out to nearby homeowners with a clean profile for *$24.99/mo*, you can unlock it anytime here: ${buildSignupUrl()}. Wish you all the best!`,
 };
 
-function buildSignupUrl(_p: Prospect): string {
+function buildSignupUrl(): string {
   return "https://www.gigkraft.com/for-pros";
 }
 
@@ -139,7 +139,7 @@ function renderTemplate(body: string, p: Prospect): string {
     .replace(/\{\{source\}\}/g, p.source)
     .replace(/\{\{neighborhood\}\}/g, p.neighborhood || p.primary_zip || "")
     .replace(/\{\{primaryZip\}\}/g, p.primary_zip || "")
-    .replace(/\{\{signup_link\}\}/g, buildSignupUrl(p))
+    .replace(/\{\{signup_link\}\}/g, buildSignupUrl())
     .replace(/\{\{contact_person\}\}/g, "Vijay")
     .replace(/\{\{business_name\}\}/g, "GigKraft")
     .replace(/\{\{prospect_id\}\}/g, p.prospect_id);
@@ -657,7 +657,7 @@ function ChatStepModal({
 function parseProspectText(text: string): Partial<ProspectIn> {
   const out: Partial<ProspectIn> = {};
 
-  const emailM = text.match(/[\w.+\-]+@[\w\-]+(?:\.[\w\-]+)+/);
+  const emailM = text.match(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/);
   if (emailM) out.email = emailM[0].trim();
 
   const phoneM = text.match(/(?:\+?1[-.\s]?)?\(?([2-9]\d{2})\)?[-.\s]?\d{3}[-.\s]?\d{4}/);
@@ -700,8 +700,8 @@ interface BulkProspect {
 }
 
 const _BULK_PHONE = /(?:\+?1[-.\s]?)?\(?([2-9]\d{2})\)?[-.\s]?\d{3}[-.\s]?\d{4}/;
-const _BULK_EMAIL = /[\w.+\-]+@[\w\-]+(?:\.[\w\-]+)+/;
-const _BULK_URL = /https?:\/\/[^\s\)\]>"]+/;
+const _BULK_EMAIL = /[\w.+-]+@[\w-]+(?:\.[\w-]+)+/;
+const _BULK_URL = /https?:\/\/[^\s)\]>"]+/;
 
 function extractLineProspect(line: string): BulkProspect {
   const phoneM = line.match(_BULK_PHONE);
@@ -737,7 +737,7 @@ function parseBulkText(text: string): BulkProspect[] {
 
   // Numbered list fallback
   if (blocks.length <= 1) {
-    const numbered = text.split(/(?=(?:^|\n)\d+[\.\)]\s)/m).map((b) => b.trim()).filter(Boolean);
+    const numbered = text.split(/(?=(?:^|\n)\d+[.)]\s)/m).map((b) => b.trim()).filter(Boolean);
     if (numbered.length > 1) blocks = numbered;
   }
 
@@ -1549,7 +1549,7 @@ function ProspectsTab() {
                             </Badge>
                           </Tooltip>
                         ) : (
-                          <CopyButton value={buildSignupUrl(p)} timeout={1500}>
+                          <CopyButton value={buildSignupUrl()} timeout={1500}>
                             {({ copied, copy }) => (
                               <Tooltip label={copied ? "Copied!" : "Copy signup link"}>
                                 <ActionIcon size="xs" variant="subtle" onClick={copy} color={copied ? "green" : "gray"}>
