@@ -79,7 +79,7 @@ export function RegisterPage() {
 
   if (status === "authenticated") {
     if (isSubscribeIntent) {
-      return <Navigate to={`/pro/account?tab=billing`} replace />;
+      return <Navigate to="/subscribe" replace />;
     }
     if (user?.role === "homeowner") {
       return <Navigate to="/home/discover" replace />;
@@ -278,7 +278,7 @@ export function RegisterPage() {
                     try {
                       if (isSubscribeIntent) {
                         await loginWithGoogle(idToken, "member");
-                        navigate(`/pro/account?tab=billing`, { replace: true });
+                        navigate("/subscribe", { replace: true });
                       } else if (role === "homeowner") {
                         await loginWithGoogle(idToken, "homeowner");
                         const pending = popPendingLead();

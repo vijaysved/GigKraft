@@ -32,6 +32,7 @@ import { ProPublicProfilePage } from "./features/public/ProPublicProfilePage";
 // Member pages
 import { MemberWelcomePage } from "./features/member/MemberWelcomePage";
 import { MemberComparePage } from "./features/member/MemberComparePage";
+import { SubscribePage } from "./features/member/SubscribePage";
 
 // GK Admin pages (super-admin, cross-node)
 import { GkAdminDashboardPage } from "./features/gk-admin/GkAdminDashboardPage";
@@ -205,7 +206,11 @@ export default function App() {
         path="/pro/onboarding"
         element={<RequireAuth><RequireRole role="pro"><ProOnboardingPage /></RequireRole></RequireAuth>}
       />
-      <Route path="/pro/checkout" element={<Navigate to="/pro/account?tab=billing" replace />} />
+      <Route path="/pro/checkout" element={<Navigate to="/subscribe" replace />} />
+      <Route
+        path="/subscribe"
+        element={<RequireAuth><RequireRole role={["member", "pro"]}><SubscribePage /></RequireRole></RequireAuth>}
+      />
       <Route
         path="/pro/billing/success"
         element={<RequireAuth><RequireRole role={["pro", "member"]}><ProPaymentSuccessPage /></RequireRole></RequireAuth>}

@@ -263,7 +263,7 @@ export function MemberWelcomePage() {
                     size="md"
                     radius="md"
                     fullWidth
-                    onClick={() => navigate("/pro/account?tab=billing")}
+                    onClick={() => navigate("/subscribe")}
                     rightSection={<IconArrowRight size={15} />}
                     style={{ background: "#fff", color: "#3a6e00", border: "none", fontWeight: 700 }}
                   >

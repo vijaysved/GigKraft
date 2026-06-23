@@ -143,7 +143,7 @@ export function ProShell() {
               </Text>
               <Button
                 size="xs"
-                onClick={() => navigate("/pro/account?tab=billing")}
+                onClick={() => navigate("/subscribe")}
                 style={{ background: "var(--gk-accent-primary)", color: "#fff", flexShrink: 0 }}
               >
                 Upgrade to Pro →
