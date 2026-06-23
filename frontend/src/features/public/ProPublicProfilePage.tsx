@@ -22,6 +22,8 @@ import {
 } from "@mantine/core";
 import {
   IconBrandWhatsapp,
+  IconDownload,
+  IconExternalLink,
   IconLink,
   IconLock,
   IconMail,
@@ -31,6 +33,8 @@ import {
   IconStars,
 } from "@tabler/icons-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import jsPDF from "jspdf";
+import { toCanvas } from "html-to-image";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { claimAnonymousLead, createAnonymousLead, createLead, getKraftsByPro, getProByHandle, trackKraftClick, trackKraftImpression, trackProfileView, trackProPageView, trackSitePageView, type KraftPublicOut, type ProOut } from "../../api/endpoints";
@@ -81,6 +85,9 @@ export function ProPublicProfilePage() {
   const [anonLeadId, setAnonLeadId] = useState<number | null>(null);
   const [anonLeadLoading, setAnonLeadLoading] = useState(false);
   const [anonLeadError, setAnonLeadError] = useState<string | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const profileContentRef = useRef<HTMLDivElement>(null);
   // Inject OG meta tags so sharing picks up name / avatar / description
   useEffect(() => {
     if (!pro) return;
@@ -262,24 +269,64 @@ export function ProPublicProfilePage() {
     await submitQuote();
   }
 
-  async function handleShare() {
-    const shareData = {
-      title: pro ? `${pro.name} on gigKraft.com` : "gigKraft.com Pro Profile",
-      text: pro ? `Check out ${pro.name}'s profile on gigKraft.com` : "Check out this pro on gigKraft.com",
-      url: profileUrl,
-    };
-    if (navigator.share && navigator.canShare?.(shareData)) {
-      try {
-        await navigator.share(shareData);
-        return;
-      } catch {
-        // user cancelled or API unavailable — fall through to clipboard
-      }
-    }
+  function handleShare() {
+    setShareOpen(true);
+  }
+
+  function copyProfileLink() {
     void navigator.clipboard.writeText(profileUrl).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
+  }
+
+  async function exportToPDF() {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const el = profileContentRef.current;
+      if (!el) throw new Error("Profile content not found.");
+      const canvas = await toCanvas(el, {
+        backgroundColor: "#ffffff",
+        pixelRatio: 2,
+        filter: (node) =>
+          !(node instanceof HTMLElement && (
+            node.tagName === "BUTTON" ||
+            node.tagName === "A" ||
+            node.getAttribute("role") === "button"
+          )),
+      });
+      const doc = new jsPDF({ unit: "pt", format: "letter" });
+      const pdfW = doc.internal.pageSize.getWidth();
+      const pdfH = doc.internal.pageSize.getHeight();
+      const margin = 24;
+      const usableW = pdfW - margin * 2;
+      const ratio = usableW / canvas.width;
+      const totalPdfH = canvas.height * ratio;
+      const pageH = pdfH - margin * 2;
+      if (totalPdfH <= pageH) {
+        doc.addImage(canvas, "JPEG", margin, margin, usableW, totalPdfH);
+      } else {
+        const pages = Math.ceil(totalPdfH / pageH);
+        for (let i = 0; i < pages; i++) {
+          if (i > 0) doc.addPage();
+          const srcY = Math.floor((i * pageH) / ratio);
+          const srcH = Math.min(Math.ceil(pageH / ratio), canvas.height - srcY);
+          const tmp = document.createElement("canvas");
+          tmp.width = canvas.width;
+          tmp.height = srcH;
+          tmp.getContext("2d")!.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
+          doc.addImage(tmp, "JPEG", margin, margin, usableW, srcH * ratio);
+        }
+      }
+      const safeName = (pro?.name ?? "pro").replace(/\s+/g, "-").toLowerCase();
+      const safeTrade = (pro?.primary_trade ?? "profile").replace(/\s+/g, "-").toLowerCase();
+      doc.save(`${safeName}-${safeTrade}.pdf`);
+    } catch (err) {
+      console.error("PDF export failed:", err);
+    } finally {
+      setExporting(false);
+    }
   }
 
   return (
@@ -295,6 +342,7 @@ export function ProPublicProfilePage() {
         )}
 
         {pro && (
+          <div ref={profileContentRef}>
           <Stack gap="lg">
             {/* ── Hero card — gradient border wrapper ── */}
             <div style={{
@@ -352,14 +400,14 @@ export function ProPublicProfilePage() {
                         <IconStars size={16} color="var(--gk-accent-primary)" />
                       </ActionIcon>
                     </Tooltip>
-                    <Tooltip label="Share on WhatsApp" withArrow>
-                      <ActionIcon size="sm" variant="subtle" onClick={handleWhatsAppShare}>
-                        <IconBrandWhatsapp size={16} color="var(--mantine-color-green-6)" />
+                    <Tooltip label="Share" withArrow>
+                      <ActionIcon size="sm" variant="subtle" onClick={handleShare}>
+                        <IconLink size={16} color="var(--gk-accent-secondary)" />
                       </ActionIcon>
                     </Tooltip>
-                    <Tooltip label={copied ? "Copied!" : "Share"} withArrow>
-                      <ActionIcon size="sm" variant="subtle" onClick={handleShare}>
-                        <IconLink size={16} color={copied ? "var(--mantine-color-green-6)" : "var(--gk-accent-secondary)"} />
+                    <Tooltip label="Download PDF" withArrow>
+                      <ActionIcon size="sm" variant="subtle" loading={exporting} onClick={() => void exportToPDF()}>
+                        <IconDownload size={16} color="var(--gk-accent-secondary)" />
                       </ActionIcon>
                     </Tooltip>
                   </Group>
@@ -565,6 +613,7 @@ export function ProPublicProfilePage() {
               </Card>
             )}
           </Stack>
+          </div>
         )}
 
         {/* Powered by footer */}
@@ -699,6 +748,100 @@ export function ProPublicProfilePage() {
           </Text>
         </Stack>
       </Modal>
+
+      {/* ── Share card modal ── */}
+      {pro && (
+        <Modal
+          opened={shareOpen}
+          onClose={() => setShareOpen(false)}
+          title={<Text fw={700} size="sm">Share Profile</Text>}
+          size="sm"
+          centered
+        >
+          {/* Profile card */}
+          <Box
+            style={{
+              borderRadius: 14,
+              padding: 2,
+              background: "var(--gk-brand-gradient)",
+              boxShadow: "0 4px 24px color-mix(in srgb, var(--gk-accent-primary) 20%, transparent)",
+            }}
+          >
+            <Box style={{ borderRadius: 12, background: "var(--gk-bg-surface)", padding: "20px" }}>
+              <Group gap="md" wrap="nowrap" align="flex-start">
+                <Avatar
+                  size={72}
+                  src={pro.avatar_url || undefined}
+                  color="blue"
+                  radius="xl"
+                  style={{ flexShrink: 0, border: "2px solid var(--gk-border)" }}
+                >
+                  {!pro.avatar_url && pro.name[0]?.toUpperCase()}
+                </Avatar>
+                <Stack gap={4} style={{ minWidth: 0, flex: 1 }}>
+                  <Text fw={700} size="lg" style={{ lineHeight: 1.2 }}>{pro.name}</Text>
+                  {pro.primary_trade && (
+                    <Text size="sm" fw={600} style={{ color: "var(--gk-accent-primary)" }}>
+                      {pro.primary_trade}
+                    </Text>
+                  )}
+                  {pro.response_hours && (
+                    <Text size="xs" style={{ color: "var(--gk-accent-secondary)" }}>
+                      ⚡ {pro.response_hours}h response
+                    </Text>
+                  )}
+                  {pro.bio && (
+                    <Text size="xs" c="dimmed" lineClamp={1} style={{ lineHeight: 1.5 }}>
+                      {pro.bio}
+                    </Text>
+                  )}
+                </Stack>
+              </Group>
+            </Box>
+          </Box>
+
+          {/* URL row */}
+          <Group gap="xs" mt="md" wrap="nowrap">
+            <Text size="xs" c="dimmed" truncate style={{ flex: 1, fontFamily: "var(--mantine-font-family-monospace)" }}>
+              {profileUrl}
+            </Text>
+            <Tooltip label={copied ? "Copied!" : "Copy link"} withArrow>
+              <ActionIcon size="sm" variant="light" color={copied ? "green" : "gray"} onClick={copyProfileLink}>
+                <IconLink size={14} />
+              </ActionIcon>
+            </Tooltip>
+            <Tooltip label="Open profile" withArrow>
+              <ActionIcon size="sm" variant="light" color="gray" component="a" href={profileUrl} target="_blank" rel="noopener noreferrer">
+                <IconExternalLink size={14} />
+              </ActionIcon>
+            </Tooltip>
+          </Group>
+
+          <Divider my="md" />
+
+          {/* Action buttons */}
+          <Stack gap="xs">
+            <Button
+              fullWidth
+              leftSection={<IconBrandWhatsapp size={16} />}
+              color="green"
+              variant="light"
+              onClick={() => { setShareOpen(false); handleWhatsAppShare(); }}
+            >
+              Share on WhatsApp
+            </Button>
+            <Button
+              fullWidth
+              leftSection={<IconDownload size={16} />}
+              variant="light"
+              loading={exporting}
+              onClick={() => { setShareOpen(false); void exportToPDF(); }}
+            >
+              Download PDF
+            </Button>
+          </Stack>
+        </Modal>
+      )}
     </Box>
   );
 }
