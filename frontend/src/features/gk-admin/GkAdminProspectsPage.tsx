@@ -206,7 +206,7 @@ function JourneyBlocks({
   ];
 
   return (
-    <Group gap={5} wrap="nowrap">
+    <Group gap={4} wrap="nowrap">
       {steps.map((s) => {
         const sent = !!s.sent_at;
         const opened = sent && s.channel === "email" && !!s.read_at;
@@ -239,9 +239,9 @@ function JourneyBlocks({
           <Tooltip key={s.step} label={tooltip} withArrow>
             <Box
               style={{
-                width: 28,
-                height: 28,
-                borderRadius: 7,
+                width: 22,
+                height: 22,
+                borderRadius: 6,
                 background: bg,
                 display: "flex",
                 alignItems: "center",
@@ -253,13 +253,13 @@ function JourneyBlocks({
               }}
             >
               {opened ? (
-                <IconMailOpened size={13} color={iconColor} />
+                <IconMailOpened size={11} color={iconColor} />
               ) : emailSent ? (
-                <IconMail size={13} color={iconColor} />
+                <IconMail size={11} color={iconColor} />
               ) : chatSent ? (
-                <IconBrandWhatsapp size={13} color={iconColor} />
+                <IconBrandWhatsapp size={11} color={iconColor} />
               ) : (
-                <Text size="xs" fw={700} style={{ color: iconColor, lineHeight: 1 }}>
+                <Text size="xs" fw={700} style={{ color: iconColor, lineHeight: 1, fontSize: 10 }}>
                   {s.step}
                 </Text>
               )}
@@ -297,30 +297,30 @@ function SortTh({
         cursor: "pointer",
         userSelect: "none",
         whiteSpace: "nowrap",
-        minWidth: minWidth ?? 80,
+        minWidth: minWidth ?? 70,
         background: active ? "color-mix(in srgb, var(--gk-accent-primary) 12%, transparent)" : undefined,
       }}
       onClick={() => onSort(col)}
     >
-      <Group gap={4} wrap="nowrap">
+      <Group gap={3} wrap="nowrap">
         <span>{children}</span>
         {active ? (
           sortDir === "asc" ? (
-            <IconChevronUp size={12} color="var(--gk-accent-primary)" />
+            <IconChevronUp size={11} color="var(--gk-accent-primary)" />
           ) : (
-            <IconChevronDown size={12} color="var(--gk-accent-primary)" />
+            <IconChevronDown size={11} color="var(--gk-accent-primary)" />
           )
         ) : (
-          <IconArrowsSort size={11} style={{ opacity: 0.3 }} />
+          <IconArrowsSort size={10} style={{ opacity: 0.3 }} />
         )}
       </Group>
     </Table.Th>
   );
 }
 
-function useSort<T>(data: T[], initial: keyof T | null = null) {
+function useSort<T>(data: T[], initial: keyof T | null = null, initialDir: SortDir = "asc") {
   const [sortBy, setSortBy] = useState<string | null>(initial as string | null);
-  const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [sortDir, setSortDir] = useState<SortDir>(initialDir);
 
   const toggle = (col: string) => {
     if (sortBy === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -593,336 +593,28 @@ function ChatStepModal({
   );
 }
 
-// ── Action Queue Tab ──────────────────────────────────────────────────────────
-
-function ActionQueueTab() {
-  const [prospects, setProspects] = useState<Prospect[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [chatTarget, setChatTarget] = useState<Prospect | null>(null);
-  const [actionLoading, setActionLoading] = useState<number | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
-  const [debouncedSearch] = useDebouncedValue(search, 300);
-  const [waTemplates, setWaTemplates] = useState<MessageTemplate[]>([]);
-  const [emailTemplates, setEmailTemplates] = useState<MessageTemplate[]>([]);
-
-  const { sorted, sortBy, sortDir, toggle } = useSort(prospects, "name");
-
-  const load = async () => {
-    setLoading(true);
-    try {
-      const [inProg, newPros] = await Promise.all([
-        listProspects({ status: "in_progress" }),
-        listProspects({ status: "prospect" }),
-      ]);
-      setProspects([...inProg, ...newPros]);
-    } catch {
-      setError("Failed to load action queue.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    void load();
-    listTemplates({ channel: "whatsapp" }).then(setWaTemplates).catch(() => {});
-    listTemplates({ channel: "email" }).then(setEmailTemplates).catch(() => {});
-  }, []);
-
-  const displayed = useMemo(() => {
-    let rows = sorted;
-    if (statusFilter) rows = rows.filter((p) => p.status === statusFilter);
-    if (debouncedSearch) {
-      const q = debouncedSearch.toLowerCase();
-      rows = rows.filter((p) => p.name.toLowerCase().includes(q) || p.email.toLowerCase().includes(q));
-    }
-    return rows;
-  }, [sorted, statusFilter, debouncedSearch]);
-
-  const updateStatus = async (id: number, status: string) => {
-    setActionLoading(id);
-    try {
-      const updated = await updateProspect(id, { status });
-      if (["on_hold", "abandoned", "converted"].includes(status)) {
-        setProspects((prev) => prev.filter((p) => p.id !== updated.id));
-      } else {
-        setProspects((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
-      }
-    } catch { /* ignore */ }
-    finally { setActionLoading(null); }
-  };
-
-  const handleStartSequence = async (p: Prospect) => {
-    setActionLoading(p.id);
-    try {
-      const updated = await startProspectSequence(p.id);
-      setProspects((prev) => prev.map((x) => (x.id === updated.id ? updated : x)));
-    } catch { /* ignore */ }
-    finally { setActionLoading(null); }
-  };
-
-  if (loading) return <Loader size="sm" />;
-  if (error) return <Alert color="red">{error}</Alert>;
-
-  const chatNextStep = chatTarget
-    ? (chatTarget.current_sequence_step === 0 ? 1 : Math.min(chatTarget.current_sequence_step + 1, 3))
-    : 1;
-  const chatWaTemplate = waTemplates.find(t => t.kind === `sequence_${chatNextStep}`);
-
-  return (
-    <>
-      {chatTarget && (
-        <ChatStepModal
-          prospect={chatTarget}
-          opened
-          templateBody={chatWaTemplate?.body}
-          onClose={() => setChatTarget(null)}
-          onSent={(updated) => {
-            setProspects((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
-            setChatTarget(null);
-          }}
-        />
-      )}
-
-      <Stack gap="sm">
-        {/* Filter bar */}
-        <Group>
-          <TextInput
-            placeholder="Search name or email…"
-            leftSection={<IconSearch size={14} />}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{ flex: 1 }}
-          />
-          <Select
-            placeholder="All statuses"
-            data={STATUS_OPTIONS.filter((o) => ["prospect", "in_progress"].includes(o.value))}
-            value={statusFilter}
-            onChange={setStatusFilter}
-            clearable
-            w={160}
-          />
-        </Group>
-
-        {displayed.length === 0 ? (
-          <Text c="dimmed" ta="center" py="xl">No active prospects in the queue.</Text>
-        ) : (
-          <TableBox>
-            <Table highlightOnHover>
-              <Table.Thead style={{ background: "color-mix(in srgb, var(--gk-accent-primary) 8%, var(--gk-bg-surface))" }}>
-                <Table.Tr>
-                  <SortTh col="name" sortBy={sortBy} sortDir={sortDir} onSort={toggle} minWidth={140}>Name</SortTh>
-                  <Table.Th style={{ minWidth: 140 }}>Contact</Table.Th>
-                  <SortTh col="source" sortBy={sortBy} sortDir={sortDir} onSort={toggle}>Source</SortTh>
-                  <SortTh col="status" sortBy={sortBy} sortDir={sortDir} onSort={toggle}>Status</SortTh>
-                  <Table.Th style={{ minWidth: 110 }}>Journey</Table.Th>
-                  <SortTh col="last_contacted_at" sortBy={sortBy} sortDir={sortDir} onSort={toggle} minWidth={90}>
-                    Days Ago
-                  </SortTh>
-                  <Table.Th style={{ minWidth: 80 }}>Link</Table.Th>
-                  <Table.Th style={{ minWidth: 160 }}>Actions</Table.Th>
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {displayed.map((p) => {
-                  const days = daysSince(p.last_contacted_at);
-                  const isLoading = actionLoading === p.id;
-                  const ns = p.current_sequence_step === 0 ? 1 : Math.min(p.current_sequence_step + 1, 3);
-                  const waTmpl = waTemplates.find(t => t.kind === `sequence_${ns}`);
-                  const emailTmpl = emailTemplates.find(t => t.kind === `sequence_${ns}`);
-                  const waMsg = waTmpl ? renderTemplate(waTmpl.body, p) : null;
-                  const emailBody = emailTmpl ? renderTemplate(emailTmpl.body, p) : null;
-                  return (
-                    <Table.Tr key={p.id}>
-                      <Table.Td>
-                        <Stack gap={0}>
-                          <Text size="sm" fw={500}>{p.name}</Text>
-                          <Text size="xs" c="dimmed" ff="monospace">{p.prospect_id}</Text>
-                        </Stack>
-                      </Table.Td>
-                      <Table.Td style={{ minWidth: 190 }}>
-                        <Stack gap={3}>
-                          {p.email ? (
-                            <Group gap={4} wrap="nowrap">
-                              <Text size="xs" truncate style={{ maxWidth: 130 }}>{p.email}</Text>
-                              <CopyButton value={p.email} timeout={1200}>
-                                {({ copied, copy }) => (
-                                  <Tooltip label={copied ? "Copied!" : "Copy email"} withArrow>
-                                    <ActionIcon size="xs" variant="subtle" color={copied ? "green" : "gray"} onClick={copy}>
-                                      <IconCopy size={10} />
-                                    </ActionIcon>
-                                  </Tooltip>
-                                )}
-                              </CopyButton>
-                              {emailBody && (
-                                <CopyButton value={emailBody} timeout={1200}>
-                                  {({ copied, copy }) => (
-                                    <Tooltip label={copied ? "Copied!" : `Copy email body (step ${ns})`} withArrow>
-                                      <ActionIcon size="xs" variant="subtle" color={copied ? "green" : "blue"} onClick={copy}>
-                                        <IconMail size={10} />
-                                      </ActionIcon>
-                                    </Tooltip>
-                                  )}
-                                </CopyButton>
-                              )}
-                            </Group>
-                          ) : (
-                            <Text size="xs" c="dimmed">—</Text>
-                          )}
-                          {p.phone ? (
-                            <Group gap={4} wrap="nowrap">
-                              <Text size="xs" c="dimmed" truncate style={{ maxWidth: 130 }}>{p.phone}</Text>
-                              <CopyButton value={p.phone} timeout={1200}>
-                                {({ copied, copy }) => (
-                                  <Tooltip label={copied ? "Copied!" : "Copy phone"} withArrow>
-                                    <ActionIcon size="xs" variant="subtle" color={copied ? "green" : "gray"} onClick={copy}>
-                                      <IconCopy size={10} />
-                                    </ActionIcon>
-                                  </Tooltip>
-                                )}
-                              </CopyButton>
-                              {waMsg && (
-                                <CopyButton value={waMsg} timeout={1200}>
-                                  {({ copied, copy }) => (
-                                    <Tooltip label={copied ? "Copied!" : `Copy WhatsApp message (step ${ns})`} withArrow>
-                                      <ActionIcon size="xs" variant="subtle" color={copied ? "green" : "teal"} onClick={copy}>
-                                        <IconBrandWhatsapp size={10} />
-                                      </ActionIcon>
-                                    </Tooltip>
-                                  )}
-                                </CopyButton>
-                              )}
-                            </Group>
-                          ) : (
-                            <Text size="xs" c="dimmed">—</Text>
-                          )}
-                        </Stack>
-                      </Table.Td>
-                      <Table.Td>
-                        <Badge color={SOURCE_COLORS[p.source] ?? "gray"} size="xs" variant="light">
-                          {p.source}
-                        </Badge>
-                      </Table.Td>
-                      <Table.Td>
-                        <Badge color={STATUS_COLORS[p.status]} size="sm">
-                          {STATUS_LABELS[p.status]}
-                        </Badge>
-                      </Table.Td>
-                      <Table.Td>
-                        <JourneyBlocks journey={p.journey ?? []} currentStep={p.current_sequence_step} />
-                      </Table.Td>
-                      <Table.Td>
-                        <Stack gap={0}>
-                          <Text size="sm" c={days !== null && days >= 3 ? "orange" : undefined} fw={days !== null && days >= 3 ? 600 : undefined}>
-                            {days !== null ? `${days}d` : "—"}
-                          </Text>
-                          {p.last_contacted_at && (
-                            <Text size="xs" c="dimmed">
-                              {new Date(p.last_contacted_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                            </Text>
-                          )}
-                        </Stack>
-                      </Table.Td>
-                      <Table.Td>
-                        {p.link_clicked_at ? (
-                          <Tooltip label={`Clicked ${new Date(p.link_clicked_at).toLocaleDateString()}`}>
-                            <Badge size="xs" variant="dot" style={{ color: "var(--gk-accent-primary)", borderColor: "var(--gk-accent-primary)" }}>
-                              Clicked
-                            </Badge>
-                          </Tooltip>
-                        ) : (
-                          <CopyButton value={buildSignupUrl(p)} timeout={1500}>
-                            {({ copied, copy }) => (
-                              <Tooltip label={copied ? "Copied!" : "Copy signup link"}>
-                                <ActionIcon size="sm" variant="subtle" onClick={copy} color={copied ? "green" : "gray"}>
-                                  <IconCopy size={12} />
-                                </ActionIcon>
-                              </Tooltip>
-                            )}
-                          </CopyButton>
-                        )}
-                      </Table.Td>
-                      <Table.Td>
-                        <Group gap={4} wrap="nowrap">
-                          {p.status === "prospect" && p.email && (
-                            <Tooltip label="Start email sequence (step 1)">
-                              <ActionIcon
-                                size="sm"
-                                variant="light"
-                                style={{ background: "color-mix(in srgb, var(--gk-accent-primary) 15%, transparent)", color: "var(--gk-accent-primary)" }}
-                                loading={isLoading}
-                                onClick={() => handleStartSequence(p)}
-                              >
-                                <IconPlayerPlay size={12} />
-                              </ActionIcon>
-                            </Tooltip>
-                          )}
-                          {p.current_sequence_step < 3 && (
-                            <Tooltip label="Send chat step">
-                              <ActionIcon color="teal" variant="light" size="sm" onClick={() => setChatTarget(p)}>
-                                <IconBrandWhatsapp size={12} />
-                              </ActionIcon>
-                            </Tooltip>
-                          )}
-                          <Tooltip label="Mark Converted">
-                            <ActionIcon color="green" variant="subtle" size="sm" loading={isLoading} onClick={() => updateStatus(p.id, "converted")}>
-                              <IconUserCheck size={12} />
-                            </ActionIcon>
-                          </Tooltip>
-                          <Tooltip label="Put On Hold">
-                            <ActionIcon color="orange" variant="subtle" size="sm" loading={isLoading} onClick={() => updateStatus(p.id, "on_hold")}>
-                              <IconClockHour4 size={12} />
-                            </ActionIcon>
-                          </Tooltip>
-                          <Tooltip label="Abandon">
-                            <ActionIcon color="gray" variant="subtle" size="sm" loading={isLoading} onClick={() => updateStatus(p.id, "abandoned")}>
-                              <IconTrash size={12} />
-                            </ActionIcon>
-                          </Tooltip>
-                        </Group>
-                      </Table.Td>
-                    </Table.Tr>
-                  );
-                })}
-              </Table.Tbody>
-            </Table>
-          </TableBox>
-        )}
-      </Stack>
-    </>
-  );
-}
-
 // ── Prospect Form Drawer ──────────────────────────────────────────────────────
 
 function parseProspectText(text: string): Partial<ProspectIn> {
   const out: Partial<ProspectIn> = {};
 
-  // Email
   const emailM = text.match(/[\w.+\-]+@[\w\-]+(?:\.[\w\-]+)+/);
   if (emailM) out.email = emailM[0].trim();
 
-  // Phone — common US formats
   const phoneM = text.match(/(?:\+?1[-.\s]?)?\(?([2-9]\d{2})\)?[-.\s]?\d{3}[-.\s]?\d{4}/);
   if (phoneM) out.phone = phoneM[0].trim();
 
-  // ZIP — 5-digit
   const zipM = text.match(/\b(\d{5})(?:-\d{4})?\b/);
   if (zipM) out.primary_zip = zipM[1];
 
-  // Name — try strategies in order
-  // 1. Explicit label: "Name: ..." or "Contact: ..."
   const labelM = text.match(/(?:^|\n)(?:name|contact|from)[:\s]+([A-Z][a-z]+(?:\s[A-Z][a-z]+)+)/im);
   if (labelM) { out.name = labelM[1].trim(); }
 
-  // 2. "I'm X" / "I am X" / "My name is X"
   if (!out.name) {
     const introM = text.match(/(?:i'?m|i am|my name is)\s+([A-Z][a-z]+(?:\s[A-Z][a-z]+)+)/i);
     if (introM) out.name = introM[1].trim();
   }
 
-  // 3. A line that is exactly 2–3 title-case words (looks like a standalone name)
   if (!out.name) {
     for (const line of text.split(/\n/)) {
       const t = line.trim();
@@ -933,7 +625,6 @@ function parseProspectText(text: string): Partial<ProspectIn> {
     }
   }
 
-  // 4. First two consecutive title-case words anywhere
   if (!out.name) {
     const twoM = text.match(/\b([A-Z][a-z]{1,20}\s[A-Z][a-z]{1,20})\b/);
     if (twoM) out.name = twoM[1];
@@ -1100,9 +791,9 @@ function ProspectDrawer({
   );
 }
 
-// ── All Prospects Tab ─────────────────────────────────────────────────────────
+// ── Prospects Tab (merged Action Queue + All Prospects) ───────────────────────
 
-function AllProspectsTab() {
+function ProspectsTab() {
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -1113,8 +804,12 @@ function AllProspectsTab() {
   const [drawerOpened, { open: openDrawer, close: closeDrawer }] = useDisclosure(false);
   const [editing, setEditing] = useState<Prospect | null>(null);
   const [deleting, setDeleting] = useState<number | null>(null);
+  const [chatTarget, setChatTarget] = useState<Prospect | null>(null);
+  const [actionLoading, setActionLoading] = useState<number | null>(null);
+  const [waTemplates, setWaTemplates] = useState<MessageTemplate[]>([]);
+  const [emailTemplates, setEmailTemplates] = useState<MessageTemplate[]>([]);
 
-  const { sorted, sortBy, sortDir, toggle } = useSort(prospects, "name");
+  const { sorted, sortBy, sortDir, toggle } = useSort(prospects, "created_at", "desc");
 
   const load = async () => {
     setLoading(true);
@@ -1134,6 +829,11 @@ function AllProspectsTab() {
 
   useEffect(() => { void load(); }, [debouncedSearch, statusFilter, sourceFilter]);
 
+  useEffect(() => {
+    listTemplates({ channel: "whatsapp" }).then(setWaTemplates).catch(() => {});
+    listTemplates({ channel: "email" }).then(setEmailTemplates).catch(() => {});
+  }, []);
+
   const handleSaved = (p: Prospect) => {
     setProspects((prev) => {
       const idx = prev.findIndex((x) => x.id === p.id);
@@ -1150,12 +850,47 @@ function AllProspectsTab() {
     finally { setDeleting(null); }
   };
 
+  const updateStatus = async (id: number, status: string) => {
+    setActionLoading(id);
+    try {
+      const updated = await updateProspect(id, { status });
+      setProspects((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+    } catch { /* ignore */ }
+    finally { setActionLoading(null); }
+  };
+
+  const handleStartSequence = async (p: Prospect) => {
+    setActionLoading(p.id);
+    try {
+      const updated = await startProspectSequence(p.id);
+      setProspects((prev) => prev.map((x) => (x.id === updated.id ? updated : x)));
+    } catch { /* ignore */ }
+    finally { setActionLoading(null); }
+  };
+
   const openEdit = (p: Prospect) => { setEditing(p); openDrawer(); };
   const openAdd = () => { setEditing(null); openDrawer(); };
+
+  const chatNextStep = chatTarget
+    ? (chatTarget.current_sequence_step === 0 ? 1 : Math.min(chatTarget.current_sequence_step + 1, 3))
+    : 1;
+  const chatWaTemplate = waTemplates.find(t => t.kind === `sequence_${chatNextStep}`);
 
   return (
     <>
       <ProspectDrawer opened={drawerOpened} onClose={closeDrawer} prospect={editing} onSaved={handleSaved} />
+      {chatTarget && (
+        <ChatStepModal
+          prospect={chatTarget}
+          opened
+          templateBody={chatWaTemplate?.body}
+          onClose={() => setChatTarget(null)}
+          onSent={(updated) => {
+            setProspects((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+            setChatTarget(null);
+          }}
+        />
+      )}
 
       <Stack gap="sm">
         <Group>
@@ -1166,8 +901,22 @@ function AllProspectsTab() {
             onChange={(e) => setSearch(e.target.value)}
             style={{ flex: 1 }}
           />
-          <Select placeholder="All statuses" data={STATUS_OPTIONS} value={statusFilter} onChange={setStatusFilter} clearable w={160} />
-          <Select placeholder="All sources" data={SOURCE_OPTIONS} value={sourceFilter} onChange={setSourceFilter} clearable w={140} />
+          <Select
+            placeholder="All statuses"
+            data={STATUS_OPTIONS}
+            value={statusFilter}
+            onChange={setStatusFilter}
+            clearable
+            w={160}
+          />
+          <Select
+            placeholder="All sources"
+            data={SOURCE_OPTIONS}
+            value={sourceFilter}
+            onChange={setSourceFilter}
+            clearable
+            w={140}
+          />
           <Button
             leftSection={<IconPlus size={14} />}
             onClick={openAdd}
@@ -1185,93 +934,208 @@ function AllProspectsTab() {
           <Text c="dimmed" ta="center" py="xl">No prospects found.</Text>
         ) : (
           <TableBox>
-            <Table highlightOnHover>
+            <Table highlightOnHover fz="xs" verticalSpacing={4}>
               <Table.Thead style={{ background: "color-mix(in srgb, var(--gk-accent-primary) 8%, var(--gk-bg-surface))" }}>
                 <Table.Tr>
-                  <Table.Th style={{ minWidth: 80 }}>ID</Table.Th>
-                  <SortTh col="name" sortBy={sortBy} sortDir={sortDir} onSort={toggle} minWidth={140}>Name</SortTh>
-                  <Table.Th style={{ minWidth: 140 }}>Contact</Table.Th>
-                  <SortTh col="primary_zip" sortBy={sortBy} sortDir={sortDir} onSort={toggle} minWidth={70}>ZIP</SortTh>
-                  <SortTh col="source" sortBy={sortBy} sortDir={sortDir} onSort={toggle} minWidth={90}>Source</SortTh>
-                  <SortTh col="status" sortBy={sortBy} sortDir={sortDir} onSort={toggle} minWidth={110}>Status</SortTh>
-                  <Table.Th style={{ minWidth: 120 }}>Journey</Table.Th>
-                  <SortTh col="converted_user_id" sortBy={sortBy} sortDir={sortDir} onSort={toggle} minWidth={100}>
-                    Converted
-                  </SortTh>
-                  <Table.Th style={{ minWidth: 80 }}>Link</Table.Th>
-                  <Table.Th style={{ minWidth: 80 }}>Actions</Table.Th>
+                  <SortTh col="name" sortBy={sortBy} sortDir={sortDir} onSort={toggle} minWidth={120}>Name</SortTh>
+                  <Table.Th style={{ minWidth: 170 }}>Contact</Table.Th>
+                  <SortTh col="primary_zip" sortBy={sortBy} sortDir={sortDir} onSort={toggle} minWidth={55}>ZIP</SortTh>
+                  <SortTh col="source" sortBy={sortBy} sortDir={sortDir} onSort={toggle} minWidth={80}>Source</SortTh>
+                  <SortTh col="status" sortBy={sortBy} sortDir={sortDir} onSort={toggle} minWidth={100}>Status</SortTh>
+                  <Table.Th style={{ minWidth: 90 }}>Journey</Table.Th>
+                  <SortTh col="created_at" sortBy={sortBy} sortDir={sortDir} onSort={toggle} minWidth={80}>Added</SortTh>
+                  <SortTh col="last_contacted_at" sortBy={sortBy} sortDir={sortDir} onSort={toggle} minWidth={95}>Last Contact</SortTh>
+                  <Table.Th style={{ minWidth: 55 }}>Link</Table.Th>
+                  <Table.Th style={{ minWidth: 130 }}>Actions</Table.Th>
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
-                {sorted.map((p) => (
-                  <Table.Tr key={p.id}>
-                    <Table.Td>
-                      <Text size="xs" c="dimmed" ff="monospace">{p.prospect_id}</Text>
-                    </Table.Td>
-                    <Table.Td>
-                      <Text size="sm" fw={500}>{p.name}</Text>
-                    </Table.Td>
-                    <Table.Td>
-                      <Stack gap={0}>
-                        <Text size="xs">{p.email || "—"}</Text>
-                        <Text size="xs" c="dimmed">{p.phone || "—"}</Text>
-                      </Stack>
-                    </Table.Td>
-                    <Table.Td>
-                      <Text size="xs">{p.primary_zip || "—"}</Text>
-                    </Table.Td>
-                    <Table.Td>
-                      <Badge color={SOURCE_COLORS[p.source] ?? "gray"} size="xs" variant="light">
-                        {p.source}
-                      </Badge>
-                    </Table.Td>
-                    <Table.Td>
-                      <Badge color={STATUS_COLORS[p.status]} size="sm">
-                        {STATUS_LABELS[p.status]}
-                      </Badge>
-                    </Table.Td>
-                    <Table.Td>
-                      <JourneyBlocks journey={p.journey ?? []} currentStep={p.current_sequence_step} />
-                    </Table.Td>
-                    <Table.Td>
-                      {p.converted_user_id ? (
-                        <Badge size="xs" variant="light" style={{ background: "color-mix(in srgb, var(--gk-accent-primary) 15%, transparent)", color: "var(--gk-accent-primary)" }}>
-                          User #{p.converted_user_id}
+                {sorted.map((p) => {
+                  const isActionLoading = actionLoading === p.id;
+                  const isDeleting = deleting === p.id;
+                  const ns = p.current_sequence_step === 0 ? 1 : Math.min(p.current_sequence_step + 1, 3);
+                  const waTmpl = waTemplates.find(t => t.kind === `sequence_${ns}`);
+                  const emailTmpl = emailTemplates.find(t => t.kind === `sequence_${ns}`);
+                  const waMsg = waTmpl ? renderTemplate(waTmpl.body, p) : null;
+                  const emailBody = emailTmpl ? renderTemplate(emailTmpl.body, p) : null;
+                  const isActionable = ["prospect", "in_progress"].includes(p.status);
+                  const days = daysSince(p.last_contacted_at);
+
+                  return (
+                    <Table.Tr key={p.id}>
+                      <Table.Td>
+                        <Stack gap={0}>
+                          <Text size="xs" fw={600}>{p.name}</Text>
+                          <Text c="dimmed" ff="monospace" style={{ fontSize: 10 }}>{p.prospect_id}</Text>
+                        </Stack>
+                      </Table.Td>
+                      <Table.Td style={{ minWidth: 170 }}>
+                        <Stack gap={2}>
+                          {p.email && (
+                            <Group gap={3} wrap="nowrap">
+                              <Text size="xs" truncate style={{ maxWidth: 125 }}>{p.email}</Text>
+                              <CopyButton value={p.email} timeout={1200}>
+                                {({ copied, copy }) => (
+                                  <Tooltip label={copied ? "Copied!" : "Copy email"} withArrow>
+                                    <ActionIcon size="xs" variant="subtle" color={copied ? "green" : "gray"} onClick={copy}>
+                                      <IconCopy size={10} />
+                                    </ActionIcon>
+                                  </Tooltip>
+                                )}
+                              </CopyButton>
+                              {emailBody && (
+                                <CopyButton value={emailBody} timeout={1200}>
+                                  {({ copied, copy }) => (
+                                    <Tooltip label={copied ? "Copied!" : `Copy email body (step ${ns})`} withArrow>
+                                      <ActionIcon size="xs" variant="subtle" color={copied ? "green" : "blue"} onClick={copy}>
+                                        <IconMail size={10} />
+                                      </ActionIcon>
+                                    </Tooltip>
+                                  )}
+                                </CopyButton>
+                              )}
+                            </Group>
+                          )}
+                          {p.phone && (
+                            <Group gap={3} wrap="nowrap">
+                              <Text size="xs" c="dimmed" truncate style={{ maxWidth: 125 }}>{p.phone}</Text>
+                              <CopyButton value={p.phone} timeout={1200}>
+                                {({ copied, copy }) => (
+                                  <Tooltip label={copied ? "Copied!" : "Copy phone"} withArrow>
+                                    <ActionIcon size="xs" variant="subtle" color={copied ? "green" : "gray"} onClick={copy}>
+                                      <IconCopy size={10} />
+                                    </ActionIcon>
+                                  </Tooltip>
+                                )}
+                              </CopyButton>
+                              {waMsg && (
+                                <CopyButton value={waMsg} timeout={1200}>
+                                  {({ copied, copy }) => (
+                                    <Tooltip label={copied ? "Copied!" : `Copy WhatsApp message (step ${ns})`} withArrow>
+                                      <ActionIcon size="xs" variant="subtle" color={copied ? "green" : "teal"} onClick={copy}>
+                                        <IconBrandWhatsapp size={10} />
+                                      </ActionIcon>
+                                    </Tooltip>
+                                  )}
+                                </CopyButton>
+                              )}
+                            </Group>
+                          )}
+                          {!p.email && !p.phone && <Text size="xs" c="dimmed">—</Text>}
+                        </Stack>
+                      </Table.Td>
+                      <Table.Td>
+                        <Text size="xs">{p.primary_zip || "—"}</Text>
+                      </Table.Td>
+                      <Table.Td>
+                        <Badge color={SOURCE_COLORS[p.source] ?? "gray"} size="xs" variant="light">
+                          {p.source}
                         </Badge>
-                      ) : (
-                        <Text size="xs" c="dimmed">—</Text>
-                      )}
-                    </Table.Td>
-                    <Table.Td>
-                      <Group gap={4}>
-                        <CopyButton value={buildSignupUrl(p)} timeout={1500}>
-                          {({ copied, copy }) => (
-                            <Tooltip label={copied ? "Copied!" : "Copy signup link"}>
-                              <ActionIcon size="sm" variant="subtle" color={copied ? "green" : "gray"} onClick={copy}>
-                                <IconCopy size={12} />
+                      </Table.Td>
+                      <Table.Td>
+                        <Badge color={STATUS_COLORS[p.status]} size="xs">
+                          {STATUS_LABELS[p.status]}
+                        </Badge>
+                      </Table.Td>
+                      <Table.Td>
+                        <JourneyBlocks journey={p.journey ?? []} currentStep={p.current_sequence_step} />
+                      </Table.Td>
+                      <Table.Td>
+                        <Text size="xs" c="dimmed">
+                          {new Date(p.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" })}
+                        </Text>
+                      </Table.Td>
+                      <Table.Td>
+                        {p.last_contacted_at ? (
+                          <Stack gap={0}>
+                            <Text
+                              size="xs"
+                              c={days !== null && days >= 3 ? "orange" : undefined}
+                              fw={days !== null && days >= 3 ? 600 : undefined}
+                            >
+                              {new Date(p.last_contacted_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                            </Text>
+                            <Text style={{ fontSize: 10 }} c="dimmed">{days}d ago</Text>
+                          </Stack>
+                        ) : (
+                          <Text size="xs" c="dimmed">—</Text>
+                        )}
+                      </Table.Td>
+                      <Table.Td>
+                        {p.link_clicked_at ? (
+                          <Tooltip label={`Clicked ${new Date(p.link_clicked_at).toLocaleDateString()}`}>
+                            <Badge size="xs" variant="dot" style={{ color: "var(--gk-accent-primary)", borderColor: "var(--gk-accent-primary)" }}>
+                              Clicked
+                            </Badge>
+                          </Tooltip>
+                        ) : (
+                          <CopyButton value={buildSignupUrl(p)} timeout={1500}>
+                            {({ copied, copy }) => (
+                              <Tooltip label={copied ? "Copied!" : "Copy signup link"}>
+                                <ActionIcon size="xs" variant="subtle" onClick={copy} color={copied ? "green" : "gray"}>
+                                  <IconCopy size={11} />
+                                </ActionIcon>
+                              </Tooltip>
+                            )}
+                          </CopyButton>
+                        )}
+                      </Table.Td>
+                      <Table.Td>
+                        <Group gap={3} wrap="nowrap">
+                          {isActionable && p.status === "prospect" && p.email && (
+                            <Tooltip label="Start email sequence">
+                              <ActionIcon
+                                size="xs"
+                                variant="light"
+                                style={{ background: "color-mix(in srgb, var(--gk-accent-primary) 15%, transparent)", color: "var(--gk-accent-primary)" }}
+                                loading={isActionLoading}
+                                onClick={() => handleStartSequence(p)}
+                              >
+                                <IconPlayerPlay size={10} />
                               </ActionIcon>
                             </Tooltip>
                           )}
-                        </CopyButton>
-                        {p.link_clicked_at && (
-                          <Tooltip label={`Clicked ${new Date(p.link_clicked_at).toLocaleDateString()}`}>
-                            <Box w={8} h={8} style={{ borderRadius: "50%", background: "var(--gk-accent-primary)", flexShrink: 0 }} />
+                          {isActionable && p.current_sequence_step < 3 && (
+                            <Tooltip label="Send chat step">
+                              <ActionIcon color="teal" variant="light" size="xs" onClick={() => setChatTarget(p)}>
+                                <IconBrandWhatsapp size={10} />
+                              </ActionIcon>
+                            </Tooltip>
+                          )}
+                          {isActionable && (
+                            <>
+                              <Tooltip label="Mark Converted">
+                                <ActionIcon color="green" variant="subtle" size="xs" loading={isActionLoading} onClick={() => updateStatus(p.id, "converted")}>
+                                  <IconUserCheck size={10} />
+                                </ActionIcon>
+                              </Tooltip>
+                              <Tooltip label="Put On Hold">
+                                <ActionIcon color="orange" variant="subtle" size="xs" loading={isActionLoading} onClick={() => updateStatus(p.id, "on_hold")}>
+                                  <IconClockHour4 size={10} />
+                                </ActionIcon>
+                              </Tooltip>
+                              <Tooltip label="Abandon">
+                                <ActionIcon color="gray" variant="subtle" size="xs" loading={isActionLoading} onClick={() => updateStatus(p.id, "abandoned")}>
+                                  <IconTrash size={10} />
+                                </ActionIcon>
+                              </Tooltip>
+                            </>
+                          )}
+                          <Tooltip label="Edit">
+                            <ActionIcon size="xs" variant="subtle" onClick={() => openEdit(p)}>
+                              <IconEdit size={10} />
+                            </ActionIcon>
                           </Tooltip>
-                        )}
-                      </Group>
-                    </Table.Td>
-                    <Table.Td>
-                      <Group gap="xs" wrap="nowrap">
-                        <ActionIcon size="sm" variant="subtle" onClick={() => openEdit(p)}>
-                          <IconEdit size={12} />
-                        </ActionIcon>
-                        <ActionIcon size="sm" variant="subtle" color="red" loading={deleting === p.id} onClick={() => handleDelete(p.id)}>
-                          <IconTrash size={12} />
-                        </ActionIcon>
-                      </Group>
-                    </Table.Td>
-                  </Table.Tr>
-                ))}
+                          <Tooltip label="Delete">
+                            <ActionIcon size="xs" variant="subtle" color="red" loading={isDeleting} onClick={() => handleDelete(p.id)}>
+                              <IconTrash size={10} />
+                            </ActionIcon>
+                          </Tooltip>
+                        </Group>
+                      </Table.Td>
+                    </Table.Tr>
+                  );
+                })}
               </Table.Tbody>
             </Table>
           </TableBox>
@@ -1541,14 +1405,12 @@ export function GkAdminProspectsPage() {
       >
         <Tabs.List style={{ borderColor: "var(--gk-border)" }}>
           <Tabs.Tab value="dashboard" leftSection={<IconChartBar size={14} />}>Dashboard</Tabs.Tab>
-          <Tabs.Tab value="queue" leftSection={<IconClockHour4 size={14} />}>Action Queue</Tabs.Tab>
-          <Tabs.Tab value="all" leftSection={<IconUsers size={14} />}>All Prospects</Tabs.Tab>
+          <Tabs.Tab value="prospects" leftSection={<IconUsers size={14} />}>Prospects</Tabs.Tab>
           <Tabs.Tab value="templates" leftSection={<IconFileText size={14} />}>Templates</Tabs.Tab>
         </Tabs.List>
 
         <Tabs.Panel value="dashboard" pt="md"><DashboardTab /></Tabs.Panel>
-        <Tabs.Panel value="queue" pt="md"><ActionQueueTab /></Tabs.Panel>
-        <Tabs.Panel value="all" pt="md"><AllProspectsTab /></Tabs.Panel>
+        <Tabs.Panel value="prospects" pt="md"><ProspectsTab /></Tabs.Panel>
         <Tabs.Panel value="templates" pt="md"><TemplatesTab /></Tabs.Panel>
       </Tabs>
     </Stack>
