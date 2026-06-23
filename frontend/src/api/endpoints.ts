@@ -1053,15 +1053,43 @@ export async function searchProsPublic(params: {
   q?: string;
   trade?: string;
   zip?: string;
+  category?: string;
+  subcategory?: string;
 }): Promise<ProOut[]> {
   const q: Record<string, string> = {};
   if (params.q) q.q = params.q;
   if (params.trade) q.trade = params.trade;
   if (params.zip) q.zip = params.zip;
+  if (params.category) q.category = params.category;
+  if (params.subcategory) q.subcategory = params.subcategory;
   const qs = Object.keys(q).length ? `?${new URLSearchParams(q).toString()}` : "";
   const { data, response } = await client.GET(`/api/pros/search${qs}` as never);
   if (!data) throw new ApiError(response.status, "Failed to search pros.");
   return data as ProOut[];
+}
+
+export interface RfqPayload {
+  description: string;
+  category: string;
+  subcategory?: string;
+  timeline: "this_week" | "next_month" | "just_planning";
+  zip_code: string;
+  budget?: string;
+  requester_name: string;
+  requester_contact: string;
+}
+
+export async function submitRfq(payload: RfqPayload): Promise<{ id: number; matched_pro_count: number }> {
+  const res = await fetch("/api/pros/rfq", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new ApiError(res.status, (err as { detail?: string }).detail ?? "Failed to submit request.");
+  }
+  return res.json() as Promise<{ id: number; matched_pro_count: number }>;
 }
 
 export async function claimAnonymousLead(leadId: number): Promise<InboxLead> {

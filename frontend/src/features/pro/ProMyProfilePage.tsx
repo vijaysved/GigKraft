@@ -3,6 +3,7 @@ import {
   Alert,
   Avatar,
   Badge,
+  Box,
   Button,
   Card,
   Code,
@@ -46,6 +47,47 @@ import {
 
 const TRADES = ["Plumber", "Electrician", "HVAC", "Carpenter", "Painter", "Roofer", "General contractor", "Other"];
 
+// ── Trade categories ──────────────────────────────────────────────────────────
+const CATEGORY_DEFS: { key: string; gradient: string; light: string; textColor: string; subcategories: string[] }[] = [
+  {
+    key: "Remodeling & Build",
+    gradient: "linear-gradient(135deg,#7900FF,#FF0055)",
+    light: "#F3E8FF",
+    textColor: "#7900FF",
+    subcategories: ["Additions & Remodels", "Builders (New Homes)", "Architects & Designers", "Decorators & Designers", "Foundations", "Kitchen / Bathroom"],
+  },
+  {
+    key: "Licensed Home Systems",
+    gradient: "linear-gradient(135deg,#0055FF,#00E5FF)",
+    light: "#E0F2FF",
+    textColor: "#0055FF",
+    subcategories: ["Plumbing", "Electrical", "HVAC", "Pools, Spas & Hot Tubs"],
+  },
+  {
+    key: "Interior Finishes",
+    gradient: "linear-gradient(135deg,#FF6B1A,#FFB800)",
+    light: "#FFF4E0",
+    textColor: "#C84F00",
+    subcategories: ["Drywall & Insulation", "Painting & Staining", "Flooring & Carpet", "Tile & Stone", "Carpentry & Cabinets"],
+  },
+  {
+    key: "Exterior & Hardscape",
+    gradient: "linear-gradient(135deg,#16A34A,#00C8A0)",
+    light: "#DCFCE7",
+    textColor: "#16A34A",
+    subcategories: ["Roofing, Siding & Gutters", "Windows & Doors", "Garages & Openers", "Concrete, Brick & Stone", "Decks, Porches & Fences"],
+  },
+  {
+    key: "Maintenance & Handyman",
+    gradient: "linear-gradient(135deg,#FF5E00,#FFBA00)",
+    light: "#FFF3E0",
+    textColor: "#E04500",
+    subcategories: ["Handyman Services", "Lawn, Trees & Shrubs", "Cleaning Services"],
+  },
+];
+
+type TradeCategory = { category: string; subcategories: string[] };
+
 const INITIAL = {
   trade: "Plumber",
   bio: "Licensed and insured plumber with 10 years of residential and commercial experience. I specialize in leak repairs, water heater installation, drain cleaning, and full bathroom remodels. I respond within 2 hours and show up on time — every time.",
@@ -68,7 +110,7 @@ const INITIAL = {
   ],
 };
 
-type Modal_ = "bio" | "credentials" | "service-area" | "handle" | null;
+type Modal_ = "bio" | "credentials" | "service-area" | "handle" | "categories" | null;
 
 export function ProMyProfilePage() {
   const { user } = useAuth();
@@ -90,6 +132,9 @@ export function ProMyProfilePage() {
   const [licensed, setLicensed] = useState(INITIAL.licensed);
   const [insured, setInsured] = useState(INITIAL.insured);
   const [licenseNumber, setLicenseNumber] = useState(INITIAL.licenseNumber);
+  const [tradeCategories, setTradeCategories] = useState<TradeCategory[]>([]);
+  const [categoryDraft, setCategoryDraft] = useState<TradeCategory[]>([]);
+
   const [serviceMode, setServiceMode] = useState<"zips" | "radius">(INITIAL.serviceArea.mode);
   const [zips, setZips] = useState<string[]>(INITIAL.serviceArea.zips);
   const [zipInput, setZipInput] = useState("");
@@ -271,6 +316,51 @@ export function ProMyProfilePage() {
         </Card>
       </SimpleGrid>
 
+      {/* Trade categories */}
+      <Card withBorder radius="md" padding="md">
+        <Group justify="space-between" mb="sm">
+          <Title order={5}>Your categories</Title>
+          <ActionIcon variant="light" size="md" onClick={() => { setCategoryDraft(tradeCategories.map((c) => ({ ...c, subcategories: [...c.subcategories] }))); setOpenModal("categories"); }}>
+            <IconPencil size={14} />
+          </ActionIcon>
+        </Group>
+        {tradeCategories.length === 0 ? (
+          <Text size="sm" c="dimmed">
+            No categories set.{" "}
+            <span
+              style={{ color: "var(--mantine-color-blue-6)", cursor: "pointer", fontWeight: 600 }}
+              onClick={() => { setCategoryDraft([]); setOpenModal("categories"); }}
+            >
+              Add categories
+            </span>{" "}
+            so homeowners can find you.
+          </Text>
+        ) : (
+          <Stack gap="xs">
+            {tradeCategories.map((tc) => {
+              const def = CATEGORY_DEFS.find((d) => d.key === tc.category);
+              return (
+                <Group key={tc.category} gap="xs" wrap="wrap">
+                  <Badge
+                    size="md"
+                    style={{
+                      background: def?.gradient ?? "#888",
+                      color: "#fff",
+                      border: "none",
+                    }}
+                  >
+                    {tc.category}
+                  </Badge>
+                  {tc.subcategories.map((s) => (
+                    <Badge key={s} size="sm" variant="light">{s}</Badge>
+                  ))}
+                </Group>
+              );
+            })}
+          </Stack>
+        )}
+      </Card>
+
       {/* Krafts */}
       <Stack gap="sm">
         <Group justify="space-between">
@@ -389,6 +479,79 @@ export function ProMyProfilePage() {
           )}
           <Switch label="Insured" checked={insured} onChange={(e) => setInsured(e.currentTarget.checked)} />
           <Button onClick={() => setOpenModal(null)}>Save</Button>
+        </Stack>
+      </Modal>
+
+      {/* Categories modal */}
+      <Modal opened={openModal === "categories"} onClose={() => setOpenModal(null)} title="Your trade categories" size="md">
+        <Stack gap="md">
+          <Text size="sm" c="dimmed">Pick up to 2 categories, then up to 2 subcategories within each. This controls how homeowners find you on the search page.</Text>
+          {CATEGORY_DEFS.map((def) => {
+            const selected = categoryDraft.find((c) => c.category === def.key);
+            const isSelected = !!selected;
+            const atMax = categoryDraft.length >= 2 && !isSelected;
+            return (
+              <Card
+                key={def.key}
+                withBorder
+                radius="md"
+                padding="sm"
+                style={{
+                  cursor: atMax ? "not-allowed" : "pointer",
+                  opacity: atMax ? 0.5 : 1,
+                  borderColor: isSelected ? def.textColor : undefined,
+                  background: isSelected ? def.light : undefined,
+                }}
+                onClick={() => {
+                  if (atMax) return;
+                  if (isSelected) {
+                    setCategoryDraft(categoryDraft.filter((c) => c.category !== def.key));
+                  } else {
+                    setCategoryDraft([...categoryDraft, { category: def.key, subcategories: [] }]);
+                  }
+                }}
+              >
+                <Group gap="sm" mb={isSelected ? "xs" : 0}>
+                  <Box style={{ width: 28, height: 28, borderRadius: 8, background: def.gradient, flexShrink: 0 }} />
+                  <Text fw={700} size="sm" style={{ color: def.textColor }}>{def.key}</Text>
+                  {isSelected && <IconCheck size={14} color={def.textColor} style={{ marginLeft: "auto" }} />}
+                </Group>
+                {isSelected && (
+                  <Group gap="xs" wrap="wrap" mt="xs" onClick={(e) => e.stopPropagation()}>
+                    {def.subcategories.map((sub) => {
+                      const subSelected = selected.subcategories.includes(sub);
+                      const subAtMax = selected.subcategories.length >= 2 && !subSelected;
+                      return (
+                        <Badge
+                          key={sub}
+                          size="sm"
+                          variant={subSelected ? "filled" : "outline"}
+                          style={{ cursor: subAtMax ? "not-allowed" : "pointer", opacity: subAtMax ? 0.5 : 1 }}
+                          onClick={() => {
+                            if (subAtMax) return;
+                            const updatedSubs = subSelected
+                              ? selected.subcategories.filter((s) => s !== sub)
+                              : [...selected.subcategories, sub];
+                            setCategoryDraft(categoryDraft.map((c) =>
+                              c.category === def.key ? { ...c, subcategories: updatedSubs } : c
+                            ));
+                          }}
+                        >
+                          {sub}
+                        </Badge>
+                      );
+                    })}
+                  </Group>
+                )}
+              </Card>
+            );
+          })}
+          <Text size="xs" c="dimmed">{categoryDraft.length}/2 categories selected</Text>
+          <Button
+            onClick={() => { setTradeCategories(categoryDraft); setOpenModal(null); }}
+          >
+            Save categories
+          </Button>
         </Stack>
       </Modal>
 

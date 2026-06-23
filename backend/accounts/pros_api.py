@@ -70,6 +70,8 @@ class ProOut(Schema):
     node_id: Optional[str]
     email: Optional[str]
     phone: Optional[str]
+    role: str
+    trade_categories: list
     stats: ProStatsSummary
 
 
@@ -103,6 +105,8 @@ def serialize_pro(pro: ProProfile) -> dict:
         "node_id": pro.user.node.node_id if pro.user.node_id else None,
         "email": pro.user.email,
         "phone": pro.user.phone,
+        "role": pro.user.role,
+        "trade_categories": pro.trade_categories or [],
         "stats": {
             "krafts_verified": pro.krafts.filter(
                 status=Kraft.Status.VERIFIED
@@ -369,8 +373,15 @@ def search_pros_public(
     q: Optional[str] = None,
     trade: Optional[str] = None,
     zip: Optional[str] = None,
+    category: Optional[str] = None,
+    subcategory: Optional[str] = None,
 ):
-    """Public pro discovery — no auth required, no node scoping."""
+    """Public pro discovery — no auth required, no node scoping.
+
+    category/subcategory filter against trade_categories JSONField (partial match:
+    primary category first, then secondary). Results are sorted so primary-category
+    matches appear before secondary-category matches.
+    """
     pros = ProProfile.objects.filter(is_suspended=False).select_related("user", "user__node")
     if trade:
         pros = pros.filter(primary_trade__iexact=trade)
@@ -386,7 +397,113 @@ def search_pros_public(
             | Q(primary_trade__icontains=q)
             | Q(skill_tags__icontains=q)
         )
-    return [serialize_pro(p) for p in pros[:50]]
+    if category:
+        # trade_categories is a JSON list of {category, subcategories} objects;
+        # filter to pros whose list contains an entry matching the requested category.
+        pros = pros.filter(trade_categories__icontains=category)
+        if subcategory:
+            pros = pros.filter(trade_categories__icontains=subcategory)
+
+    result = list(pros[:50])
+
+    if category:
+        # Sort: pros whose FIRST entry matches → primary; others → secondary
+        def _sort_key(p):
+            cats = p.trade_categories or []
+            if cats and cats[0].get("category", "") == category:
+                return 0
+            return 1
+        result.sort(key=_sort_key)
+
+    return [serialize_pro(p) for p in result]
+
+
+# ── Public: Request for Quote (no auth) ──────────────────────────────────────
+
+class QuoteRequestIn(Schema):
+    description: str
+    category: str
+    subcategory: str = ""
+    timeline: str       # "this_week" | "next_month" | "just_planning"
+    zip_code: str
+    budget: str = "no_pref"
+    requester_name: str
+    requester_contact: str  # phone or email
+
+
+class QuoteRequestOut(Schema):
+    id: int
+    matched_pro_count: int
+
+
+@public_router.post("/rfq", auth=None, response={201: QuoteRequestOut})
+def post_rfq(request, payload: QuoteRequestIn):
+    """Submit a free-form quote request. Matches pros by category + zip (partial match)
+    and emails a summary to the GK Admin inbox."""
+    from leads.models import QuoteRequest
+    from comms.services import send_email
+
+    if len(payload.description.strip()) < 20:
+        from ninja.errors import HttpError as _HttpError
+        raise _HttpError(400, "Description must be at least 20 characters.")
+
+    # Match pros by category + zip
+    matched = ProProfile.objects.filter(
+        is_suspended=False,
+        trade_categories__icontains=payload.category,
+    )
+    if payload.zip_code:
+        matched = matched.filter(
+            Q(base_zip=payload.zip_code)
+            | Q(service_center_zip=payload.zip_code)
+            | Q(service_zips__icontains=payload.zip_code)
+        )
+    matched_ids = list(matched.values_list("id", flat=True)[:20])
+
+    qr = QuoteRequest.objects.create(
+        description=payload.description.strip(),
+        category=payload.category,
+        subcategory=payload.subcategory,
+        timeline=payload.timeline,
+        zip_code=payload.zip_code,
+        budget=payload.budget,
+        requester_name=payload.requester_name.strip(),
+        requester_contact=payload.requester_contact.strip(),
+        notified_pro_ids=matched_ids,
+    )
+
+    timeline_labels = {
+        "this_week": "This week",
+        "next_month": "Next month",
+        "just_planning": "Just planning",
+    }
+    budget_labels = {
+        "no_pref": "No preference",
+        "under_500": "Under $500",
+        "500_2k": "$500–$2k",
+        "2k_10k": "$2k–$10k",
+        "over_10k": "$10k+",
+    }
+
+    body = (
+        f"New Quote Request #{qr.id}\n\n"
+        f"From: {qr.requester_name} ({qr.requester_contact})\n"
+        f"Category: {qr.category}"
+        + (f" › {qr.subcategory}" if qr.subcategory else "")
+        + f"\nTimeline: {timeline_labels.get(qr.timeline, qr.timeline)}\n"
+        f"ZIP: {qr.zip_code}\n"
+        f"Budget: {budget_labels.get(qr.budget, qr.budget)}\n\n"
+        f"Description:\n{qr.description}\n\n"
+        f"Matched pros: {len(matched_ids)}"
+    )
+
+    send_email(
+        to="oddlynicellc@gmail.com",
+        subject=f"[GigKraft RFQ #{qr.id}] {qr.category} in {qr.zip_code}",
+        body=body,
+    )
+
+    return 201, {"id": qr.id, "matched_pro_count": len(matched_ids)}
 
 
 class ProfileViewIn(Schema):

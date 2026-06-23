@@ -1543,6 +1543,10 @@ export interface components {
             email: string | null;
             /** Phone */
             phone: string | null;
+            /** Role */
+            role: string;
+            /** Trade Categories */
+            trade_categories: { category: string; subcategories: string[] }[];
             stats: components["schemas"]["ProStatsSummary"];
         };
         /** ProStatsSummary */

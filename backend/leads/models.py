@@ -86,6 +86,39 @@ class Message(models.Model):
         return f"Message#{self.pk} lead={self.lead_id}"
 
 
+class QuoteRequest(models.Model):
+    """Free-form quote request submitted from the public /search page Type tab."""
+
+    class Timeline(models.TextChoices):
+        THIS_WEEK   = "this_week",    "This week"
+        NEXT_MONTH  = "next_month",   "Next month"
+        JUST_PLAN   = "just_planning","Just planning"
+
+    class Budget(models.TextChoices):
+        NO_PREF = "no_pref",   "No preference"
+        U500    = "under_500", "Under $500"
+        U2K     = "500_2k",   "$500–$2k"
+        U10K    = "2k_10k",   "$2k–$10k"
+        OVER10K = "over_10k", "$10k+"
+
+    description       = models.TextField()
+    category          = models.CharField(max_length=60)
+    subcategory       = models.CharField(max_length=80, blank=True, default="")
+    timeline          = models.CharField(max_length=20, choices=Timeline.choices)
+    zip_code          = models.CharField(max_length=10)
+    budget            = models.CharField(max_length=20, choices=Budget.choices, default=Budget.NO_PREF)
+    requester_name    = models.CharField(max_length=120)
+    requester_contact = models.CharField(max_length=200)
+    notified_pro_ids  = models.JSONField(default=list)
+    created_at        = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"RFQ#{self.pk} {self.category} {self.zip_code}"
+
+
 class Quote(models.Model):
     """A structured quote sent by the pro inside a lead chat."""
 

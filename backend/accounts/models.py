@@ -101,6 +101,9 @@ class ProProfile(models.Model):
     wallpaper_id = models.PositiveSmallIntegerField(default=0)
     wallpaper_url = models.TextField(blank=True, default="")  # custom upload/URL; overrides wallpaper_id when set
     avatar_url = models.TextField(blank=True, default="")
+    # Trade categories (up to 2), each with up to 2 subcategories.
+    # Shape: [{"category": "Licensed Home Systems", "subcategories": ["Plumbing"]}]
+    trade_categories = models.JSONField(default=list, blank=True)
     # Admin flags.
     is_verified = models.BooleanField(default=False)
     is_suspended = models.BooleanField(default=False)
