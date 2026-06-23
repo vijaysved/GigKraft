@@ -522,7 +522,6 @@ function ChatStepModal({
   onClose,
   onSent,
   templateBody,
-  templateId,
 }: {
   prospect: Prospect;
   opened: boolean;
