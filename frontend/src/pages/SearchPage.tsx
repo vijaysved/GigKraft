@@ -617,12 +617,12 @@ export function SearchPage() {
   ].filter(Boolean).length;
 
   return (
-    <Box style={{ maxWidth: 1080, margin: "0 auto", padding: "48px 24px 80px" }}>
-      <Stack gap="xl">
-        <Stack gap={4}>
-          <Title order={2} style={{ fontWeight: 800 }}>Find a Pro</Title>
-          <Text c="dimmed">Verified professionals in your area, backed by real reviews.</Text>
-        </Stack>
+    <Box style={{ maxWidth: 1080, margin: "0 auto", padding: "20px 24px 80px" }}>
+      <Stack gap="md">
+        <Group gap="sm" align="baseline" wrap="nowrap">
+          <Title order={2} style={{ fontWeight: 800, whiteSpace: "nowrap" }}>Find a Pro</Title>
+          <Text c="dimmed" size="sm">Professionals in your area, backed by real reviews.</Text>
+        </Group>
 
         {/* Tab switcher */}
         <Tabs value={activeTab} onChange={(v) => { setActiveTab(v ?? "search"); setSearchParams({ tab: v ?? "search" }, { replace: true }); }}>
