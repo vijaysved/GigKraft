@@ -759,7 +759,7 @@ function parseBulkText(text: string): BulkProspect[] {
       }
 
       if (!name) {
-        const firstLine = block.split("\n")[0].trim().replace(/^\d+[\.\)]\s+/, "");
+        const firstLine = block.split("\n")[0].trim().replace(/^\d+[.)]\s+/, "");
         const namePart = firstLine.split(/\s*[-·|,]\s*/)[0].trim();
         if (/^[A-Z][a-z]{1,25}(?:\s[A-Z][a-z]{1,25}){1,2}$/.test(namePart)) {
           name = namePart;
@@ -1183,7 +1183,7 @@ function ProspectsTab() {
   const handleToggleSelect = (id: number) =>
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) { next.delete(id); } else { next.add(id); }
       return next;
     });
 
