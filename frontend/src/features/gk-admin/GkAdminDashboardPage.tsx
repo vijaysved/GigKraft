@@ -1,9 +1,11 @@
 import {
   Alert,
+  Anchor,
   Badge,
   Card,
   Group,
   Loader,
+  Progress,
   SimpleGrid,
   Stack,
   Table,
@@ -18,6 +20,7 @@ import {
   listAnonymousLeads,
   type AnonLeadRow,
   type GkPlatformMetrics,
+  type GkSiteTrafficRow,
 } from "../../api/endpoints";
 import { GkStatTile } from "../../components/GkStatTile";
 
@@ -131,6 +134,70 @@ export function GkAdminDashboardPage() {
           </Table>
         </Stack>
       </Card>
+
+      {/* Platform Traffic */}
+      {metrics && metrics.site_traffic.length > 0 && (
+        <Card withBorder radius="md" padding="lg">
+          <Stack>
+            <Group justify="space-between">
+              <Title order={4}>Platform Traffic</Title>
+              <Text size="xs" c="dimmed">Demo &amp; marketing pages · unauthenticated visitors only</Text>
+            </Group>
+            <Table striped highlightOnHover>
+              <Table.Thead>
+                <Table.Tr>
+                  <Table.Th>Page</Table.Th>
+                  <Table.Th>Last 7 days</Table.Th>
+                  <Table.Th>Last 30 days</Table.Th>
+                </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody>
+                {metrics.site_traffic.map((row: GkSiteTrafficRow) => (
+                  <Table.Tr key={row.url}>
+                    <Table.Td>
+                      <Text size="sm" fw={600}>{row.label}</Text>
+                      <Anchor href={row.url} target="_blank" size="xs" c="dimmed" style={{ fontFamily: "var(--mantine-font-family-monospace)" }}>
+                        {row.url}
+                      </Anchor>
+                    </Table.Td>
+                    <Table.Td><Text size="sm">{row.views_7d.toLocaleString()}</Text></Table.Td>
+                    <Table.Td><Text size="sm">{row.views_30d.toLocaleString()}</Text></Table.Td>
+                  </Table.Tr>
+                ))}
+              </Table.Tbody>
+            </Table>
+          </Stack>
+        </Card>
+      )}
+
+      {/* Campaign Performance */}
+      {metrics?.campaign && (
+        <Card withBorder radius="md" padding="lg">
+          <Stack>
+            <Title order={4}>Campaign Performance</Title>
+            <SimpleGrid cols={{ base: 2, sm: 4 }}>
+              <GkStatTile label="Total Sent" value={metrics.campaign.total_sent} hint={`${metrics.campaign.sent_email} email · ${metrics.campaign.sent_whatsapp} WA · ${metrics.campaign.sent_sms} SMS`} />
+              <GkStatTile label="Email Open Rate" value={`${metrics.campaign.open_rate}%`} hint={`${metrics.campaign.emails_opened} of ${metrics.campaign.sent_email} emails`} />
+              <GkStatTile label="Link Click Rate" value={`${metrics.campaign.click_rate}%`} hint={`${metrics.campaign.links_clicked} clicks across all messages`} />
+              <GkStatTile label="Conversion Rate" value={`${metrics.campaign.conversion_rate}%`} hint={`${metrics.campaign.converted} converted`} accent />
+            </SimpleGrid>
+            <Text size="xs" c="dimmed" fw={600}>Step Funnel</Text>
+            <Stack gap={6}>
+              {[1, 2, 3].map((step) => {
+                const count = metrics.campaign.step_funnel[String(step)] ?? 0;
+                const max = metrics.campaign.step_funnel["1"] ?? 1;
+                return (
+                  <Group key={step} gap="sm" align="center">
+                    <Text size="xs" w={50} c="dimmed">Step {step}</Text>
+                    <Progress value={max > 0 ? (count / max) * 100 : 0} size="sm" style={{ flex: 1 }} color="violet" />
+                    <Text size="xs" w={30} ta="right">{count}</Text>
+                  </Group>
+                );
+              })}
+            </Stack>
+          </Stack>
+        </Card>
+      )}
 
       {/* Nodes table */}
       <Card withBorder radius="md" padding="lg">

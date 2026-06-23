@@ -14,6 +14,7 @@ from billing.api import router as billing_router
 from vendors.api import public_router as prospects_public_router
 from vendors.api import router as prospects_router
 from comms.api import router as comms_router
+from common.api import public_router as common_public_router
 from common.api import router as common_router
 from common.gk_admin_api import router as gk_admin_router
 from emergencies.api import router as emergencies_router
@@ -34,6 +35,7 @@ api = NinjaAPI(
 )
 
 api.add_router("", common_router)
+api.add_router("", common_public_router)
 api.add_router("/auth", auth_router)
 api.add_router("", me_router)
 api.add_router("/me", prefs_router)

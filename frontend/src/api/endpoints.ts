@@ -312,6 +312,27 @@ export interface GkNodeSummary {
   is_active: boolean;
 }
 
+export interface GkSiteTrafficRow {
+  label: string;
+  url: string;
+  views_30d: number;
+  views_7d: number;
+}
+
+export interface GkCampaignMetrics {
+  total_sent: number;
+  sent_email: number;
+  sent_whatsapp: number;
+  sent_sms: number;
+  emails_opened: number;
+  open_rate: number;
+  links_clicked: number;
+  click_rate: number;
+  converted: number;
+  conversion_rate: number;
+  step_funnel: Record<string, number>;
+}
+
 export interface GkPlatformMetrics {
   total_users: number;
   total_pros: number;
@@ -327,6 +348,8 @@ export interface GkPlatformMetrics {
   active_subscriptions: number;
   open_infractions: number;
   nodes: GkNodeSummary[];
+  site_traffic: GkSiteTrafficRow[];
+  campaign: GkCampaignMetrics;
 }
 
 export interface GkUserRow {
@@ -756,6 +779,8 @@ export interface OutreachLog {
   sent_at: string;
   template_id: number | null;
   template_name: string | null;
+  read_at: string | null;
+  link_clicked_at: string | null;
 }
 
 export interface LogIn {
@@ -965,9 +990,46 @@ export async function createAnonymousLead(payload: {
   return data as { id: number; status: string };
 }
 
+export async function searchPros(params: {
+  q?: string;
+  trade?: string;
+  zip?: string;
+  node?: string;
+}): Promise<ProOut[]> {
+  const q: Record<string, string> = {};
+  if (params.q) q.q = params.q;
+  if (params.trade) q.trade = params.trade;
+  if (params.zip) q.zip = params.zip;
+  if (params.node) q.node = params.node;
+  const qs = Object.keys(q).length ? `?${new URLSearchParams(q).toString()}` : "";
+  const { data, response } = await _get(`/api/pros${qs}`);
+  if (!data) throw new ApiError(response.status, "Failed to search pros.");
+  return data as ProOut[];
+}
+
+export async function searchProsPublic(params: {
+  q?: string;
+  trade?: string;
+  zip?: string;
+}): Promise<ProOut[]> {
+  const q: Record<string, string> = {};
+  if (params.q) q.q = params.q;
+  if (params.trade) q.trade = params.trade;
+  if (params.zip) q.zip = params.zip;
+  const qs = Object.keys(q).length ? `?${new URLSearchParams(q).toString()}` : "";
+  const { data, response } = await client.GET(`/api/pros/search${qs}` as never);
+  if (!data) throw new ApiError(response.status, "Failed to search pros.");
+  return data as ProOut[];
+}
+
 export async function claimAnonymousLead(leadId: number): Promise<InboxLead> {
   const { data, error, response } = await _post(`${LEADS_BASE}/${leadId}/claim`);
   if (!data) throw new ApiError(response.status, detailOf(error, "Failed to claim lead."));
   return data as InboxLead;
+}
+
+export function trackSitePageView(url: string): void {
+  const referrer = document.referrer || "";
+  void _post("/api/track/page-view", { body: { url, referrer } });
 }
 

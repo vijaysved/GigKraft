@@ -33,7 +33,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
-import { claimAnonymousLead, createAnonymousLead, createLead, getKraftsByPro, getProByHandle, trackKraftClick, trackKraftImpression, trackProfileView, trackProPageView, type KraftPublicOut, type ProOut } from "../../api/endpoints";
+import { claimAnonymousLead, createAnonymousLead, createLead, getKraftsByPro, getProByHandle, trackKraftClick, trackKraftImpression, trackProfileView, trackProPageView, trackSitePageView, type KraftPublicOut, type ProOut } from "../../api/endpoints";
 import { useAuth } from "../../auth/AuthContext";
 import { GkLogo } from "../../brand/GkLogo";
 import { GoogleSignInButton } from "../../components/GoogleSignInButton";
@@ -145,6 +145,8 @@ export function ProPublicProfilePage() {
     const ref = searchParams.get("ref") ?? undefined;
     trackProPageView(handle, ref).catch(() => {});
     trackProfileView(handle);
+    // Site-config traffic tracking (server-side filters out authenticated admins)
+    trackSitePageView(window.location.href);
   }, [handle, searchParams]);
 
   useEffect(() => {

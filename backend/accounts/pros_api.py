@@ -357,6 +357,34 @@ def my_performance(request, range: str = "30d"):
 
 # --- Analytics tracking (fire-and-forget, no auth required) ---
 
+# ── Public: pro directory search (no auth) ───────────────────────────────────
+
+@public_router.get("/search", auth=None, response=list[ProOut])
+def search_pros_public(
+    request,
+    q: Optional[str] = None,
+    trade: Optional[str] = None,
+    zip: Optional[str] = None,
+):
+    """Public pro discovery — no auth required, no node scoping."""
+    pros = ProProfile.objects.filter(is_suspended=False).select_related("user", "user__node")
+    if trade:
+        pros = pros.filter(primary_trade__iexact=trade)
+    if zip:
+        pros = pros.filter(
+            Q(base_zip=zip) | Q(service_center_zip=zip) | Q(service_zips__icontains=zip)
+        )
+    if q:
+        pros = pros.filter(
+            Q(user__first_name__icontains=q)
+            | Q(user__last_name__icontains=q)
+            | Q(business_name__icontains=q)
+            | Q(primary_trade__icontains=q)
+            | Q(skill_tags__icontains=q)
+        )
+    return [serialize_pro(p) for p in pros[:50]]
+
+
 class ProfileViewIn(Schema):
     pro_handle: str
     viewer_zip: str = ""

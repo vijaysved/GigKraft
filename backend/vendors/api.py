@@ -54,6 +54,7 @@ class StepJourney(Schema):
     sent_at: Optional[str]
     channel: Optional[str]
     read_at: Optional[str]
+    link_clicked_at: Optional[str]
 
 
 class ProspectOut(Schema):
@@ -132,6 +133,7 @@ def _build_journey(sequence_logs) -> list[dict]:
             "sent_at": log.sent_at.isoformat() if log else None,
             "channel": log.channel if log else None,
             "read_at": log.read_at.isoformat() if log and log.read_at else None,
+            "link_clicked_at": log.link_clicked_at.isoformat() if log and log.link_clicked_at else None,
         })
     return result
 
@@ -325,7 +327,8 @@ def start_sequence(request, prospect_id: int):
     if p.email:
         template = MessageTemplate.objects.filter(kind="sequence_1", channel="email", is_default=True).first()
         if template:
-            subject, body = template.render(p.template_vars)
+            link_click_token = _uuid.uuid4()
+            subject, body = template.render(p.template_vars_for_log(link_click_token))
             track_token = _uuid.uuid4()
             try:
                 resend_id = _send_email(
@@ -336,6 +339,7 @@ def start_sequence(request, prospect_id: int):
                     prospect=p, template=template, channel="email",
                     to_address=p.email, subject_sent=subject, body_sent=body,
                     resend_id=resend_id, sequence_step=1, email_track_token=track_token,
+                    link_click_token=link_click_token,
                 )
                 _attach_logs(p)
                 return 200, _serialize(p)
@@ -377,6 +381,7 @@ def advance_chat_step(request, prospect_id: int, data: AdvanceStepIn):
         to_address=p.phone or "",
         notes=f"Chat step {p.current_sequence_step} confirmed sent via {data.channel}.",
         sequence_step=p.current_sequence_step,
+        link_click_token=_uuid.uuid4(),
     )
     _attach_logs(p)
     return 200, _serialize(p)
@@ -406,13 +411,31 @@ def track_email_open(request, token: str):
 
 @public_router.get("/track/{token}", auth=None)
 def track_signup_click(request, token: str):
+    from comms.models import OutreachLog
+    now = timezone.now()
     try:
-        p = Prospect.objects.filter(signup_link_token=_uuid.UUID(token)).first()
+        uid = _uuid.UUID(token)
     except (ValueError, AttributeError):
-        p = None
-    if p and not p.link_clicked_at:
-        p.link_clicked_at = timezone.now()
-        p.save(update_fields=["link_clicked_at", "updated_at"])
+        uid = None
+
+    if uid:
+        # Per-message token (new path) — look up via OutreachLog first
+        log = OutreachLog.objects.select_related("prospect").filter(link_click_token=uid).first()
+        if log:
+            if not log.link_clicked_at:
+                log.link_clicked_at = now
+                log.save(update_fields=["link_clicked_at"])
+            # Also backfill prospect-level timestamp for backwards compat
+            if log.prospect and not log.prospect.link_clicked_at:
+                log.prospect.link_clicked_at = now
+                log.prospect.save(update_fields=["link_clicked_at", "updated_at"])
+        else:
+            # Legacy path — prospect-level token for old sent messages
+            p = Prospect.objects.filter(signup_link_token=uid).first()
+            if p and not p.link_clicked_at:
+                p.link_clicked_at = now
+                p.save(update_fields=["link_clicked_at", "updated_at"])
+
     signup_url = os.environ.get("SIGNUP_URL", "https://gigkraft.com/signup")
     return HttpResponseRedirect(signup_url)
 

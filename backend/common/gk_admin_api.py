@@ -9,7 +9,7 @@ from ninja import Router, Schema
 from accounts.auth import jwt_auth
 from accounts.models import ProProfile, User
 from billing.models import BillingInvoice, Subscription, StripeSettings
-from common.models import SiteSettings
+from common.models import SitePageView, SiteSettings
 from common.permissions import require_gk_admin
 from krafts.models import Kraft
 from leads.models import Lead
@@ -27,6 +27,27 @@ class NodeSummary(Schema):
     is_active: bool
 
 
+class SiteTrafficRow(Schema):
+    label: str
+    url: str
+    views_30d: int
+    views_7d: int
+
+
+class CampaignMetrics(Schema):
+    total_sent: int
+    sent_email: int
+    sent_whatsapp: int
+    sent_sms: int
+    emails_opened: int
+    open_rate: float
+    links_clicked: int
+    click_rate: float
+    converted: int
+    conversion_rate: float
+    step_funnel: dict
+
+
 class PlatformMetrics(Schema):
     total_users: int
     total_pros: int
@@ -42,6 +63,8 @@ class PlatformMetrics(Schema):
     active_subscriptions: int
     open_infractions: int
     nodes: List[NodeSummary]
+    site_traffic: List[SiteTrafficRow]
+    campaign: CampaignMetrics
 
 
 class UserRow(Schema):
@@ -115,6 +138,15 @@ class UserListOut(Schema):
 @router.get("/metrics", response=PlatformMetrics)
 def platform_metrics(request):
     require_gk_admin(request)
+    from datetime import timedelta
+
+    from django.utils import timezone
+    from comms.models import OutreachLog
+    from vendors.models import Prospect
+
+    now = timezone.now()
+    cutoff_30d = now - timedelta(days=30)
+    cutoff_7d = now - timedelta(days=7)
 
     role_counts = dict(
         User.objects.values_list("role").annotate(c=Count("id"))
@@ -142,6 +174,60 @@ def platform_metrics(request):
             is_active=node.is_active,
         ))
 
+    # ── Site traffic ──────────────────────────────────────────────────────────
+    cfg = SiteSettings.get()
+    is_prod = not os.environ.get("DEBUG", "").lower() in ("1", "true")
+    tracked_pages = [
+        ("Template Pro", cfg.template_pro_url_prod if is_prod else cfg.template_pro_url_local),
+        ("Template Member", cfg.template_member_url_prod if is_prod else cfg.template_member_url_local),
+    ]
+    for extra in (cfg.extra_template_urls or []):
+        tracked_pages.append((extra.get("label", "Page"), extra.get("url", "")))
+
+    site_traffic = []
+    for label, url in tracked_pages:
+        if not url:
+            continue
+        # Normalise to path portion so http/https and domain don't matter
+        from urllib.parse import urlparse
+        path = urlparse(url).path or url
+        views_30d = SitePageView.objects.filter(url__endswith=path, visited_at__gte=cutoff_30d).count()
+        views_7d = SitePageView.objects.filter(url__endswith=path, visited_at__gte=cutoff_7d).count()
+        site_traffic.append(SiteTrafficRow(label=label, url=url, views_30d=views_30d, views_7d=views_7d))
+
+    # ── Campaign stats ────────────────────────────────────────────────────────
+    total_sent = OutreachLog.objects.count()
+    sent_email = OutreachLog.objects.filter(channel="email").count()
+    sent_whatsapp = OutreachLog.objects.filter(channel="whatsapp").count()
+    sent_sms = OutreachLog.objects.filter(channel="sms").count()
+    emails_opened = OutreachLog.objects.filter(channel="email", read_at__isnull=False).count()
+    links_clicked = OutreachLog.objects.filter(link_clicked_at__isnull=False).count()
+    total_prospects = Prospect.objects.count()
+    converted = Prospect.objects.filter(status=Prospect.Status.CONVERTED).count()
+
+    open_rate = round((emails_opened / sent_email * 100) if sent_email else 0, 1)
+    click_rate = round((links_clicked / total_sent * 100) if total_sent else 0, 1)
+    conversion_rate = round((converted / total_prospects * 100) if total_prospects else 0, 1)
+
+    step_funnel = {
+        str(i): OutreachLog.objects.filter(sequence_step=i).count()
+        for i in range(1, 4)
+    }
+
+    campaign = CampaignMetrics(
+        total_sent=total_sent,
+        sent_email=sent_email,
+        sent_whatsapp=sent_whatsapp,
+        sent_sms=sent_sms,
+        emails_opened=emails_opened,
+        open_rate=open_rate,
+        links_clicked=links_clicked,
+        click_rate=click_rate,
+        converted=converted,
+        conversion_rate=conversion_rate,
+        step_funnel=step_funnel,
+    )
+
     return PlatformMetrics(
         total_users=User.objects.count(),
         total_pros=role_counts.get("pro", 0),
@@ -157,6 +243,8 @@ def platform_metrics(request):
         active_subscriptions=Subscription.objects.filter(status="active").count(),
         open_infractions=SafetyLog.objects.filter(status="open").count(),
         nodes=node_summaries,
+        site_traffic=site_traffic,
+        campaign=campaign,
     )
 
 

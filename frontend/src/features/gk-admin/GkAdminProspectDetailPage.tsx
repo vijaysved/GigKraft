@@ -376,6 +376,12 @@ function TLRow({ item, isLast }: { item: TLItem; isLast: boolean }) {
           {log.template_name && !isNote && (
             <Text size="xs" c="dimmed" truncate>{log.template_name}</Text>
           )}
+          {log.read_at && (
+            <Badge size="xs" color="grape" variant="dot">Opened</Badge>
+          )}
+          {log.link_clicked_at && (
+            <Badge size="xs" color="green" variant="dot">Link clicked</Badge>
+          )}
         </Group>
         {log.subject_sent && (
           <Text size="xs" fw={600} mb={2}>{log.subject_sent}</Text>

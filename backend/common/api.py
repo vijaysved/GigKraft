@@ -1,9 +1,12 @@
+from typing import Optional
+
 from django.conf import settings
 from ninja import Router, Schema
 
-from common.models import SiteSettings
+from common.models import SitePageView, SiteSettings
 
 router = Router(tags=["system"])
+public_router = Router(tags=["system-public"])
 
 
 class HealthOut(Schema):
@@ -47,3 +50,26 @@ def public_site_info(request):
         template_member_url_local=cfg.template_member_url_local,
         template_member_url_prod=cfg.template_member_url_prod,
     )
+
+
+# ── Public: site page view tracking ──────────────────────────────────────────
+
+class TrackPageViewIn(Schema):
+    url: str
+    referrer: Optional[str] = ""
+
+
+@public_router.post("/track/page-view", response={200: dict}, auth=None)
+def track_site_page_view(request, payload: TrackPageViewIn):
+    """Records a visit to a site-config demo/marketing page.
+
+    Only logged by unauthenticated visitors — authenticated requests are ignored
+    so internal admin visits don't skew the numbers.
+    """
+    if request.auth:
+        return {"ok": True, "skipped": True}
+    SitePageView.objects.create(
+        url=payload.url,
+        referrer=(payload.referrer or "")[:500],
+    )
+    return {"ok": True, "skipped": False}

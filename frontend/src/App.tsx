@@ -28,6 +28,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./features/public/RegisterPage";
 import { ReviewPage } from "./features/public/ReviewPage";
 import { ProPublicProfilePage } from "./features/public/ProPublicProfilePage";
+import { SearchPage } from "./pages/SearchPage";
 
 // Member pages
 import { MemberWelcomePage } from "./features/member/MemberWelcomePage";
@@ -117,6 +118,7 @@ export default function App() {
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/review/:handle/:token" element={<ReviewPage />} />
       <Route path="/pros/:id" element={<ProPublicProfilePage />} />
+      <Route path="/search" element={<MarketingLayout><SearchPage /></MarketingLayout>} />
 
       {/* Member pages — authenticated, any role (page handles non-member redirects) */}
       <Route path="/member/welcome" element={<RequireAuth><MemberWelcomePage /></RequireAuth>} />

@@ -7,6 +7,7 @@ Routes (all under /comms):
   GET/POST         /prospects/{id}/logs
   DELETE           /logs/{id}
 """
+import uuid as _uuid
 from typing import Optional
 
 from django.utils import timezone
@@ -139,6 +140,8 @@ def send_email_endpoint(request, payload: SendEmailIn):
     if not payload.to.strip() or not payload.subject.strip() or not payload.body.strip():
         return 400, {"detail": "to, subject, and body are required."}
 
+    email_track_token = _uuid.uuid4()
+    link_click_token = _uuid.uuid4()
     try:
         resend_id = _send_email(
             to=payload.to,
@@ -146,6 +149,7 @@ def send_email_endpoint(request, payload: SendEmailIn):
             body=payload.body,
             cc=payload.cc or None,
             bcc=payload.bcc or None,
+            track_token=str(email_track_token),
         )
     except Exception as exc:
         return 500, {"detail": f"Email send failed: {exc}"}
@@ -172,6 +176,8 @@ def send_email_endpoint(request, payload: SendEmailIn):
         subject_sent=payload.subject,
         body_sent=payload.body,
         resend_id=resend_id,
+        email_track_token=email_track_token,
+        link_click_token=link_click_token,
     )
 
     if prospect:
@@ -196,6 +202,8 @@ class LogOut(Schema):
     sent_at: str
     template_id: Optional[int]
     template_name: Optional[str]
+    read_at: Optional[str]
+    link_clicked_at: Optional[str]
 
 
 class LogIn(Schema):
@@ -220,6 +228,8 @@ def _ser_log(log: OutreachLog) -> dict:
         "sent_at": log.sent_at.isoformat(),
         "template_id": log.template_id,
         "template_name": log.template.name if log.template_id else None,
+        "read_at": log.read_at.isoformat() if log.read_at else None,
+        "link_clicked_at": log.link_clicked_at.isoformat() if log.link_clicked_at else None,
     }
 
 

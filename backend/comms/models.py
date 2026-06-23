@@ -83,6 +83,8 @@ class OutreachLog(models.Model):
     sequence_step = models.PositiveSmallIntegerField(default=0)  # 0=manual, 1/2/3=automated
     email_track_token = models.UUIDField(default=uuid.uuid4, unique=True, null=True, editable=False)
     read_at = models.DateTimeField(null=True, blank=True)
+    link_click_token = models.UUIDField(default=uuid.uuid4, unique=True, null=True, editable=False)
+    link_clicked_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-sent_at"]

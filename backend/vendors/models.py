@@ -73,8 +73,12 @@ class Prospect(models.Model):
 
     @property
     def template_vars(self) -> dict:
+        return self.template_vars_for_log(None)
+
+    def template_vars_for_log(self, link_click_token) -> dict:
         base_url = os.environ.get("BACKEND_URL", "https://gigkraft.com")
-        signup_link = f"{base_url}/api/prospects/track/{self.signup_link_token}"
+        token = link_click_token if link_click_token else self.signup_link_token
+        signup_link = f"{base_url}/api/prospects/track/{token}"
         return {
             "name": self.name,
             "source": self.get_source_display(),

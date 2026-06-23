@@ -12,6 +12,7 @@ const ROLE_HOME: Record<string, string> = {
 };
 
 const NAV_LINKS = [
+  { label: "Find a Pro", to: "/search" },
   { label: "For Pros", to: "/for-pros" },
   { label: "Homeowners", to: "/for-homeowners" },
   { label: "Trust Graph", to: "/trust-graph" },

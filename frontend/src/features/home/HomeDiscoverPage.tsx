@@ -3,6 +3,7 @@ import {
   Card,
   Chip,
   Group,
+  Loader,
   SimpleGrid,
   Stack,
   Text,
@@ -10,50 +11,37 @@ import {
   Title,
 } from "@mantine/core";
 import { IconSearch } from "@tabler/icons-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+import { searchPros, type ProOut } from "../../api/endpoints";
 import { GkBeforeAfter } from "../../components/GkBeforeAfter";
 import { GkProofBadge } from "../../components/GkProofBadge";
 
-const TRADES = ["All", "Plumber", "Electrician", "HVAC", "Carpenter", "Painter"];
-
-const MOCK_PROS = [
-  {
-    id: 1, name: "John Smith", trade: "Plumber", verified: true,
-    recs: 12, krafts: 8, avgResponse: "2h",
-    tagline: "Licensed & insured. 10 years experience.",
-    invoiceAmount: 280,
-  },
-  {
-    id: 2, name: "Dave Torres", trade: "Electrician", verified: true,
-    recs: 7, krafts: 5, avgResponse: "1.5h",
-    tagline: "Panel upgrades, EV chargers, code compliance.",
-    invoiceAmount: 450,
-  },
-  {
-    id: 3, name: "Maria Garcia", trade: "HVAC", verified: true,
-    recs: 20, krafts: 15, avgResponse: "3h",
-    tagline: "Certified HVAC technician. Residential & commercial.",
-    invoiceAmount: 600,
-  },
-  {
-    id: 4, name: "Tom Wilson", trade: "Carpenter", verified: false,
-    recs: 2, krafts: 3, avgResponse: "4h",
-    tagline: "Custom woodwork and general carpentry.",
-    invoiceAmount: 180,
-  },
-];
+const TRADES = ["All", "Plumber", "Electrician", "HVAC", "Carpenter", "Painter", "General Contractor"];
 
 export function HomeDiscoverPage() {
   const [search, setSearch] = useState("");
   const [tradeFilter, setTradeFilter] = useState("All");
+  const [pros, setPros] = useState<ProOut[]>([]);
+  const [loading, setLoading] = useState(true);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const navigate = useNavigate();
 
-  const filtered = MOCK_PROS.filter((p) =>
-    (tradeFilter === "All" || p.trade === tradeFilter) &&
-    (search === "" || p.name.toLowerCase().includes(search.toLowerCase()) || p.trade.toLowerCase().includes(search.toLowerCase()))
-  );
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setLoading(true);
+      searchPros({
+        q: search || undefined,
+        trade: tradeFilter !== "All" ? tradeFilter : undefined,
+      })
+        .then(setPros)
+        .catch(() => setPros([]))
+        .finally(() => setLoading(false));
+    }, 300);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [search, tradeFilter]);
 
   return (
     <Stack>
@@ -73,40 +61,48 @@ export function HomeDiscoverPage() {
         </Group>
       </Chip.Group>
 
-      <SimpleGrid cols={{ base: 1, sm: 2 }}>
-        {filtered.map((pro) => (
-          <Card
-            key={pro.id}
-            withBorder
-            radius="md"
-            padding="md"
-            style={{ cursor: "pointer" }}
-            onClick={() => navigate(`/home/pros/${pro.id}`)}
-          >
-            <Stack gap="sm">
-              <GkBeforeAfter height={100} />
-              <Group justify="space-between" wrap="nowrap">
-                <Stack gap={2}>
-                  <Group gap="xs">
-                    <Text fw={700}>{pro.name}</Text>
-                    {pro.verified && <Badge size="xs" color="green">Verified</Badge>}
-                  </Group>
-                  <Text size="sm" c="dimmed">{pro.trade}</Text>
-                  <Text size="xs" c="dimmed">{pro.tagline}</Text>
-                </Stack>
-              </Group>
-              <Group gap="xs">
-                <GkProofBadge amount={pro.invoiceAmount} confirmed={pro.verified} />
-                <Badge size="xs" variant="light">{pro.recs} reviews</Badge>
-                <Badge size="xs" variant="light" color="blue">⚡ {pro.avgResponse}</Badge>
-              </Group>
-            </Stack>
-          </Card>
-        ))}
-      </SimpleGrid>
+      {loading && <Loader size="sm" />}
 
-      {filtered.length === 0 && (
-        <Text size="sm" c="dimmed" ta="center" py="xl">No pros found for this filter.</Text>
+      {!loading && (
+        <SimpleGrid cols={{ base: 1, sm: 2 }}>
+          {pros.map((pro) => (
+            <Card
+              key={pro.id}
+              withBorder
+              radius="md"
+              padding="md"
+              style={{ cursor: "pointer" }}
+              onClick={() => pro.handle && navigate(`/pros/${pro.handle}`)}
+            >
+              <Stack gap="sm">
+                <GkBeforeAfter height={100} />
+                <Group justify="space-between" wrap="nowrap">
+                  <Stack gap={2}>
+                    <Group gap="xs">
+                      <Text fw={700}>{pro.name}</Text>
+                      {pro.is_verified && <Badge size="xs" color="green">Verified</Badge>}
+                    </Group>
+                    <Text size="sm" c="dimmed">{pro.primary_trade || "General"}</Text>
+                    {pro.bio && <Text size="xs" c="dimmed" lineClamp={2}>{pro.bio}</Text>}
+                  </Stack>
+                </Group>
+                <Group gap="xs">
+                  <GkProofBadge amount={200} confirmed={pro.is_verified} />
+                  {pro.stats.recs_approved > 0 && (
+                    <Badge size="xs" variant="light">{pro.stats.recs_approved} reviews</Badge>
+                  )}
+                  {pro.response_hours > 0 && (
+                    <Badge size="xs" variant="light" color="blue">⚡ {pro.response_hours}h avg</Badge>
+                  )}
+                </Group>
+              </Stack>
+            </Card>
+          ))}
+        </SimpleGrid>
+      )}
+
+      {!loading && pros.length === 0 && (
+        <Text size="sm" c="dimmed" ta="center" py="xl">No pros found. Try a different search or trade.</Text>
       )}
     </Stack>
   );

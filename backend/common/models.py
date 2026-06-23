@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 
 class SiteSettings(models.Model):
@@ -59,3 +60,17 @@ class SiteSettings(models.Model):
     def get(cls) -> "SiteSettings":
         obj, _ = cls.objects.get_or_create(pk=1)
         return obj
+
+
+class SitePageView(models.Model):
+    """Tracks visits to site-config demo/marketing pages by unauthenticated visitors."""
+
+    url = models.CharField(max_length=500, db_index=True)
+    referrer = models.CharField(max_length=500, blank=True, default="")
+    visited_at = models.DateTimeField(default=timezone.now, db_index=True)
+
+    class Meta:
+        ordering = ["-visited_at"]
+
+    def __str__(self):
+        return f"View of {self.url} at {self.visited_at.date()}"
