@@ -414,9 +414,17 @@ function RfqForm({ initialCategory, initialZip }: { initialCategory: string; ini
   );
 }
 
-// ── Coverage footer ───────────────────────────────────────────────────────────
+// ── Service area bar ─────────────────────────────────────────────────────────
 
-function CoverageFooter({ pros }: { pros: ProOut[] }) {
+function ServiceAreaBar({
+  pros,
+  activeZip,
+  onZipClick,
+}: {
+  pros: ProOut[];
+  activeZip: string;
+  onZipClick: (zip: string) => void;
+}) {
   const zips = Array.from(
     new Set(
       pros.flatMap((p) => [
@@ -429,36 +437,54 @@ function CoverageFooter({ pros }: { pros: ProOut[] }) {
   if (zips.length === 0) return null;
 
   return (
-    <Box
-      style={{
-        borderTop: "1px solid #E8E8E8",
-        paddingTop: 24,
-        marginTop: 8,
-      }}
-    >
+    <Box>
       <Group gap={6} mb={8} align="center">
-        <IconMapPin size={14} color="#888" />
+        <IconMapPin size={13} color="#888" />
         <Text size="xs" fw={600} c="dimmed" tt="uppercase" style={{ letterSpacing: 0.5 }}>
           Service areas we cover
         </Text>
       </Group>
       <Group gap={6} wrap="wrap">
-        {zips.map((z) => (
+        {zips.map((z) => {
+          const isActive = activeZip === z;
+          return (
+            <Box
+              key={z}
+              onClick={() => onZipClick(z)}
+              style={{
+                padding: "4px 11px",
+                borderRadius: 12,
+                background: isActive ? "#1A1A1A" : "#F0F0F0",
+                color: isActive ? "#fff" : "#555",
+                fontSize: 12,
+                fontWeight: 700,
+                fontFamily: "monospace",
+                cursor: "pointer",
+                border: isActive ? "none" : "1.5px solid #E0E0E0",
+                transition: "all .12s",
+              }}
+            >
+              {z}
+            </Box>
+          );
+        })}
+        {activeZip && (
           <Box
-            key={z}
+            onClick={() => onZipClick(activeZip)}
             style={{
-              padding: "3px 10px",
+              padding: "4px 10px",
               borderRadius: 12,
-              background: "#F5F5F5",
-              color: "#555",
+              background: "transparent",
+              color: "#888",
               fontSize: 12,
               fontWeight: 600,
-              fontFamily: "monospace",
+              cursor: "pointer",
+              textDecoration: "underline",
             }}
           >
-            {z}
+            Clear
           </Box>
-        ))}
+        )}
       </Group>
     </Box>
   );
@@ -565,6 +591,15 @@ export function SearchPage() {
           {/* ── Search tab ── */}
           <Tabs.Panel value="search" pt="lg">
             <Stack gap="md">
+              {/* Coverage area ZIPs — top of panel, acts as quick zip filters */}
+              {!loading && (
+                <ServiceAreaBar
+                  pros={pros}
+                  activeZip={zipFilter}
+                  onZipClick={(z) => setZipFilter((cur) => (cur === z ? "" : z))}
+                />
+              )}
+
               {/* Search + ZIP row */}
               <Group align="flex-end" gap="sm" wrap="wrap">
                 <TextInput
@@ -784,8 +819,6 @@ export function SearchPage() {
                 </Stack>
               )}
 
-              {/* Coverage footer — always shown when results are loaded */}
-              {!loading && <CoverageFooter pros={pros} />}
             </Stack>
           </Tabs.Panel>
 
