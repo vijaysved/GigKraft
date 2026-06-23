@@ -87,6 +87,7 @@ export function ProPublicProfilePage() {
   const [anonLeadError, setAnonLeadError] = useState<string | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [pdfGenerating, setPdfGenerating] = useState(false);
   const profileContentRef = useRef<HTMLDivElement>(null);
   // Inject OG meta tags so sharing picks up name / avatar / description
   useEffect(() => {
@@ -283,6 +284,11 @@ export function ProPublicProfilePage() {
   async function exportToPDF() {
     if (exporting) return;
     setExporting(true);
+    setPdfGenerating(true);
+    // Wait two animation frames so React re-renders PDF-only elements before capture
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => { requestAnimationFrame(() => resolve()); })
+    );
     try {
       const el = profileContentRef.current;
       if (!el) throw new Error("Profile content not found.");
@@ -325,6 +331,7 @@ export function ProPublicProfilePage() {
     } catch (err) {
       console.error("PDF export failed:", err);
     } finally {
+      setPdfGenerating(false);
       setExporting(false);
     }
   }
@@ -394,23 +401,36 @@ export function ProPublicProfilePage() {
                       @{handle}
                     </Text>
                   </Stack>
-                  <Group gap={4} wrap="nowrap">
-                    <Tooltip label="Recommend" withArrow>
-                      <ActionIcon size="sm" variant="subtle" onClick={handleWriteRec}>
-                        <IconStars size={16} color="var(--gk-accent-primary)" />
-                      </ActionIcon>
-                    </Tooltip>
-                    <Tooltip label="Share" withArrow>
-                      <ActionIcon size="sm" variant="subtle" onClick={handleShare}>
-                        <IconLink size={16} color="var(--gk-accent-secondary)" />
-                      </ActionIcon>
-                    </Tooltip>
-                    <Tooltip label="Download PDF" withArrow>
-                      <ActionIcon size="sm" variant="subtle" loading={exporting} onClick={() => void exportToPDF()}>
-                        <IconDownload size={16} color="var(--gk-accent-secondary)" />
-                      </ActionIcon>
-                    </Tooltip>
-                  </Group>
+                  {pdfGenerating ? (
+                    <Text
+                      size="xs"
+                      style={{
+                        fontFamily: "var(--mantine-font-family-monospace)",
+                        color: "var(--gk-accent-primary)",
+                        flexShrink: 0,
+                      }}
+                    >
+                      {profileUrl}
+                    </Text>
+                  ) : (
+                    <Group gap={4} wrap="nowrap">
+                      <Tooltip label="Recommend" withArrow>
+                        <ActionIcon size="sm" variant="subtle" onClick={handleWriteRec}>
+                          <IconStars size={16} color="var(--gk-accent-primary)" />
+                        </ActionIcon>
+                      </Tooltip>
+                      <Tooltip label="Share" withArrow>
+                        <ActionIcon size="sm" variant="subtle" onClick={handleShare}>
+                          <IconLink size={16} color="var(--gk-accent-secondary)" />
+                        </ActionIcon>
+                      </Tooltip>
+                      <Tooltip label="Download PDF" withArrow>
+                        <ActionIcon size="sm" variant="subtle" loading={exporting} onClick={() => void exportToPDF()}>
+                          <IconDownload size={16} color="var(--gk-accent-secondary)" />
+                        </ActionIcon>
+                      </Tooltip>
+                    </Group>
+                  )}
                 </Group>
 
                 {/* 2-col equal-height cards: Left = Bio + Contact | Right = About */}
@@ -611,6 +631,45 @@ export function ProPublicProfilePage() {
                   </Group>
                 </Stack>
               </Card>
+            )}
+
+            {/* PDF-only footer: avatar + URL + powered-by logo */}
+            {pdfGenerating && (
+              <Box
+                pt="lg"
+                mt="sm"
+                style={{ borderTop: "2px solid var(--gk-border)" }}
+              >
+                <Group justify="space-between" align="center">
+                  <Group gap="md" align="center">
+                    <Avatar
+                      size={52}
+                      src={pro.avatar_url || undefined}
+                      color="blue"
+                      radius="xl"
+                      style={{ border: "2px solid var(--gk-border)", flexShrink: 0 }}
+                    >
+                      {!pro.avatar_url && pro.name[0]?.toUpperCase()}
+                    </Avatar>
+                    <Stack gap={2}>
+                      <Text fw={700} size="sm">{pro.name}</Text>
+                      <Text
+                        size="xs"
+                        style={{
+                          fontFamily: "var(--mantine-font-family-monospace)",
+                          color: "var(--gk-accent-primary)",
+                        }}
+                      >
+                        {profileUrl}
+                      </Text>
+                    </Stack>
+                  </Group>
+                  <Stack align="flex-end" gap={4}>
+                    <GkLogo height={28} />
+                    <Text size="xs" c="dimmed" fw={500}>Powered by gigKraft.com</Text>
+                  </Stack>
+                </Group>
+              </Box>
             )}
           </Stack>
           </div>
