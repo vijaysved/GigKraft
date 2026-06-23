@@ -575,6 +575,7 @@ function ActionQueueTab() {
   const [search, setSearch] = useState("");
   const [debouncedSearch] = useDebouncedValue(search, 300);
   const [waTemplates, setWaTemplates] = useState<MessageTemplate[]>([]);
+  const [emailTemplates, setEmailTemplates] = useState<MessageTemplate[]>([]);
 
   const { sorted, sortBy, sortDir, toggle } = useSort(prospects, "name");
 
@@ -596,6 +597,7 @@ function ActionQueueTab() {
   useEffect(() => {
     void load();
     listTemplates({ channel: "whatsapp" }).then(setWaTemplates).catch(() => {});
+    listTemplates({ channel: "email" }).then(setEmailTemplates).catch(() => {});
   }, []);
 
   const displayed = useMemo(() => {
@@ -696,6 +698,11 @@ function ActionQueueTab() {
                 {displayed.map((p) => {
                   const days = daysSince(p.last_contacted_at);
                   const isLoading = actionLoading === p.id;
+                  const ns = p.current_sequence_step === 0 ? 1 : Math.min(p.current_sequence_step + 1, 3);
+                  const waTmpl = waTemplates.find(t => t.kind === `sequence_${ns}`);
+                  const emailTmpl = emailTemplates.find(t => t.kind === `sequence_${ns}`);
+                  const waMsg = waTmpl ? renderTemplate(waTmpl.body, p) : null;
+                  const emailBody = emailTmpl ? renderTemplate(emailTmpl.body, p) : null;
                   return (
                     <Table.Tr key={p.id}>
                       <Table.Td>
@@ -704,10 +711,62 @@ function ActionQueueTab() {
                           <Text size="xs" c="dimmed" ff="monospace">{p.prospect_id}</Text>
                         </Stack>
                       </Table.Td>
-                      <Table.Td>
-                        <Stack gap={0}>
-                          <Text size="xs">{p.email || "—"}</Text>
-                          <Text size="xs" c="dimmed">{p.phone || "—"}</Text>
+                      <Table.Td style={{ minWidth: 190 }}>
+                        <Stack gap={3}>
+                          {p.email ? (
+                            <Group gap={4} wrap="nowrap">
+                              <Text size="xs" truncate style={{ maxWidth: 130 }}>{p.email}</Text>
+                              <CopyButton value={p.email} timeout={1200}>
+                                {({ copied, copy }) => (
+                                  <Tooltip label={copied ? "Copied!" : "Copy email"} withArrow>
+                                    <ActionIcon size="xs" variant="subtle" color={copied ? "green" : "gray"} onClick={copy}>
+                                      <IconCopy size={10} />
+                                    </ActionIcon>
+                                  </Tooltip>
+                                )}
+                              </CopyButton>
+                              {emailBody && (
+                                <CopyButton value={emailBody} timeout={1200}>
+                                  {({ copied, copy }) => (
+                                    <Tooltip label={copied ? "Copied!" : `Copy email body (step ${ns})`} withArrow>
+                                      <ActionIcon size="xs" variant="subtle" color={copied ? "green" : "blue"} onClick={copy}>
+                                        <IconMail size={10} />
+                                      </ActionIcon>
+                                    </Tooltip>
+                                  )}
+                                </CopyButton>
+                              )}
+                            </Group>
+                          ) : (
+                            <Text size="xs" c="dimmed">—</Text>
+                          )}
+                          {p.phone ? (
+                            <Group gap={4} wrap="nowrap">
+                              <Text size="xs" c="dimmed" truncate style={{ maxWidth: 130 }}>{p.phone}</Text>
+                              <CopyButton value={p.phone} timeout={1200}>
+                                {({ copied, copy }) => (
+                                  <Tooltip label={copied ? "Copied!" : "Copy phone"} withArrow>
+                                    <ActionIcon size="xs" variant="subtle" color={copied ? "green" : "gray"} onClick={copy}>
+                                      <IconCopy size={10} />
+                                    </ActionIcon>
+                                  </Tooltip>
+                                )}
+                              </CopyButton>
+                              {waMsg && (
+                                <CopyButton value={waMsg} timeout={1200}>
+                                  {({ copied, copy }) => (
+                                    <Tooltip label={copied ? "Copied!" : `Copy WhatsApp message (step ${ns})`} withArrow>
+                                      <ActionIcon size="xs" variant="subtle" color={copied ? "green" : "teal"} onClick={copy}>
+                                        <IconBrandWhatsapp size={10} />
+                                      </ActionIcon>
+                                    </Tooltip>
+                                  )}
+                                </CopyButton>
+                              )}
+                            </Group>
+                          ) : (
+                            <Text size="xs" c="dimmed">—</Text>
+                          )}
                         </Stack>
                       </Table.Td>
                       <Table.Td>
