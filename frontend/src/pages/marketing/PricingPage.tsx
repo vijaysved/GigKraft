@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import { useWaitlist } from "../../components/marketing/WaitlistModal";
+import { ProfileComparisonSection } from "../../components/marketing/ProfileComparisonSection";
 import { API_BASE_URL } from "../../config";
 
 interface SiteInfo {
@@ -279,6 +280,8 @@ export function PricingPage() {
           Homeowners browse and hire for free — Pro pricing applies to tradespeople publishing portfolios.
         </Text>
       </Container>
+
+      <ProfileComparisonSection />
     </Box>
   );
 }

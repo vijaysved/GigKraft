@@ -4,12 +4,17 @@ import {
   Badge,
   Button,
   Card,
+  Checkbox,
   Divider,
   Group,
   Loader,
+  NumberInput,
+  SimpleGrid,
   Stack,
+  TagsInput,
   Text,
   TextInput,
+  Textarea,
   Title,
   Tooltip,
 } from "@mantine/core";
@@ -25,6 +30,7 @@ import { useEffect, useState } from "react";
 
 import { API_BASE_URL } from "../../config";
 import { getAccessToken } from "../../api/tokens";
+import { getTemplateProfile, updateTemplateProfile, type TemplateProfileData } from "../../api/endpoints";
 
 // ── types ──────────────────────────────────────────────────────────────────
 
@@ -91,6 +97,167 @@ function OpenLink({ url }: { url: string }) {
         <IconExternalLink size={14} />
       </ActionIcon>
     </Tooltip>
+  );
+}
+
+// ── Template profile editor ────────────────────────────────────────────────
+
+function TemplateProfileEditor({ handle, label }: { handle: string; label: string }) {
+  const [profile, setProfile] = useState<TemplateProfileData | null>(null);
+  const [form, setForm] = useState<Partial<TemplateProfileData>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [savedAt, setSavedAt] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => { void load(); }, [handle]);
+
+  async function load() {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getTemplateProfile(handle);
+      setProfile(data);
+      setForm(data);
+    } catch {
+      setError("Could not load template profile.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    setSavedAt(null);
+    setError(null);
+    try {
+      const updated = await updateTemplateProfile(handle, form);
+      setProfile(updated);
+      setForm(updated);
+      setSavedAt(new Date().toLocaleTimeString());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Save failed");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function set<K extends keyof TemplateProfileData>(key: K, value: TemplateProfileData[K]) {
+    setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  if (loading) return <Loader size="sm" />;
+  if (error && !profile) return <Alert color="red" icon={<IconAlertCircle size={14} />}>{error}</Alert>;
+  if (!profile) return null;
+
+  return (
+    <Card withBorder radius="md" padding="md">
+      <Stack gap="md">
+        <Group justify="space-between">
+          <Group gap="xs">
+            <Title order={6}>{label}</Title>
+            <Badge size="xs" variant="outline" color="violet">/pros/{handle}</Badge>
+          </Group>
+          <Group gap="xs">
+            <ActionIcon variant="subtle" color="dimmed" size="sm" onClick={() => void load()}>
+              <IconRefresh size={14} />
+            </ActionIcon>
+            <ActionIcon
+              component="a"
+              href={`/pros/${handle}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              variant="subtle"
+              color="dimmed"
+              size="sm"
+            >
+              <IconExternalLink size={14} />
+            </ActionIcon>
+          </Group>
+        </Group>
+
+        <SimpleGrid cols={2} spacing="sm">
+          <TextInput
+            label="Business name"
+            value={form.business_name ?? ""}
+            onChange={(e) => set("business_name", e.currentTarget.value)}
+          />
+          <TextInput
+            label="Primary trade"
+            value={form.primary_trade ?? ""}
+            onChange={(e) => set("primary_trade", e.currentTarget.value)}
+          />
+        </SimpleGrid>
+
+        <Textarea
+          label="Bio"
+          maxLength={500}
+          autosize
+          minRows={2}
+          value={form.bio ?? ""}
+          onChange={(e) => set("bio", e.currentTarget.value)}
+          description={`${(form.bio ?? "").length}/500`}
+        />
+
+        <TagsInput
+          label="Skill tags"
+          value={form.skill_tags ?? []}
+          onChange={(v) => set("skill_tags", v)}
+          placeholder="Add a skill and press Enter"
+          clearable
+        />
+
+        <SimpleGrid cols={3} spacing="sm">
+          <NumberInput
+            label="Response hours"
+            value={form.response_hours ?? 4}
+            min={1}
+            max={72}
+            onChange={(v) => set("response_hours", Number(v) || 4)}
+          />
+          <NumberInput
+            label="Wallpaper ID"
+            value={form.wallpaper_id ?? 0}
+            min={0}
+            onChange={(v) => set("wallpaper_id", Number(v) || 0)}
+          />
+        </SimpleGrid>
+
+        <Group gap="xl">
+          <Checkbox
+            label="Licensed"
+            checked={form.licensed ?? false}
+            onChange={(e) => set("licensed", e.currentTarget.checked)}
+          />
+          <Checkbox
+            label="Insured"
+            checked={form.insured ?? false}
+            onChange={(e) => set("insured", e.currentTarget.checked)}
+          />
+          <Checkbox
+            label="Verified badge"
+            checked={form.is_verified ?? false}
+            onChange={(e) => set("is_verified", e.currentTarget.checked)}
+          />
+        </Group>
+
+        {form.licensed && (
+          <TextInput
+            label="License number"
+            value={form.license_number ?? ""}
+            onChange={(e) => set("license_number", e.currentTarget.value)}
+          />
+        )}
+
+        <Group>
+          <Button size="xs" onClick={() => void handleSave()} loading={saving} leftSection={<IconCheck size={13} />}>
+            Save
+          </Button>
+          {savedAt && <Text size="xs" c="green">Saved at {savedAt}</Text>}
+          {error && <Text size="xs" c="red">{error}</Text>}
+        </Group>
+      </Stack>
+    </Card>
   );
 }
 
@@ -179,7 +346,19 @@ export function GkAdminSiteConfigPage() {
         correct handle for local dev and production. Changes take effect immediately after saving.
       </Text>
 
-      <Stack maw={680} gap="md">
+      <Stack maw={720} gap="md">
+
+        {/* Template profile editors */}
+        <Title order={5}>Template Profile Content</Title>
+        <Text size="xs" c="dimmed" mt={-8}>
+          Edit the demo profiles that appear on the marketing comparison section. Seed them first
+          with <code>python manage.py seed_template_profiles</code> if they don't exist yet.
+        </Text>
+
+        <TemplateProfileEditor handle="template-pro" label="Pro Demo Profile" />
+        <TemplateProfileEditor handle="template-member" label="Member Demo Profile" />
+
+        <Divider my="xs" />
 
         {/* Template pro URLs */}
         <Card withBorder radius="md" padding="md">

@@ -65,6 +65,9 @@ class PlatformMetrics(Schema):
     nodes: List[NodeSummary]
     site_traffic: List[SiteTrafficRow]
     campaign: CampaignMetrics
+    inbox_unread: int
+    feedback_unread: int
+    new_users_today: int
 
 
 class UserRow(Schema):
@@ -228,6 +231,12 @@ def platform_metrics(request):
         step_funnel=step_funnel,
     )
 
+    from feedback.models import Feedback
+
+    inbox_unread = Lead.objects.filter(status=Lead.Status.ACTIVE).count()
+    feedback_unread = Feedback.objects.filter(status=Feedback.Status.OPEN).count()
+    new_users_today = User.objects.filter(date_joined__date=now.date()).count()
+
     return PlatformMetrics(
         total_users=User.objects.count(),
         total_pros=role_counts.get("pro", 0),
@@ -245,6 +254,9 @@ def platform_metrics(request):
         nodes=node_summaries,
         site_traffic=site_traffic,
         campaign=campaign,
+        inbox_unread=inbox_unread,
+        feedback_unread=feedback_unread,
+        new_users_today=new_users_today,
     )
 
 
@@ -715,3 +727,82 @@ def update_site_config(request, payload: SiteConfigIn):
     cfg.updated_by = request.auth
     cfg.save()
     return 200, _site_cfg_out(cfg)
+
+
+# ── Template profile editor (gk_admin only) ───────────────────────────────────
+
+class TemplateProfileOut(Schema):
+    handle: str
+    business_name: str
+    primary_trade: str
+    skill_tags: List[str]
+    bio: str
+    response_hours: int
+    licensed: bool
+    license_number: str
+    insured: bool
+    availability: str
+    wallpaper_id: int
+    wallpaper_url: str
+    avatar_url: str
+    is_verified: bool
+
+
+class TemplateProfileIn(Schema):
+    business_name: Optional[str] = None
+    primary_trade: Optional[str] = None
+    skill_tags: Optional[List[str]] = None
+    bio: Optional[str] = None
+    response_hours: Optional[int] = None
+    licensed: Optional[bool] = None
+    license_number: Optional[str] = None
+    insured: Optional[bool] = None
+    availability: Optional[str] = None
+    wallpaper_id: Optional[int] = None
+    wallpaper_url: Optional[str] = None
+    avatar_url: Optional[str] = None
+    is_verified: Optional[bool] = None
+
+
+def _template_profile_out(pro: "ProProfile") -> TemplateProfileOut:
+    return TemplateProfileOut(
+        handle=pro.handle or "",
+        business_name=pro.business_name,
+        primary_trade=pro.primary_trade,
+        skill_tags=pro.skill_tags or [],
+        bio=pro.bio,
+        response_hours=pro.response_hours,
+        licensed=pro.licensed,
+        license_number=pro.license_number,
+        insured=pro.insured,
+        availability=pro.availability,
+        wallpaper_id=pro.wallpaper_id,
+        wallpaper_url=pro.wallpaper_url,
+        avatar_url=pro.avatar_url,
+        is_verified=pro.is_verified,
+    )
+
+
+@router.get("/template-profile/{handle}", response={200: TemplateProfileOut, 404: dict})
+def get_template_profile(request, handle: str):
+    require_gk_admin(request)
+    pro = ProProfile.objects.filter(handle=handle, is_template=True).first()
+    if not pro:
+        return 404, {"detail": f"No template profile with handle '{handle}' found."}
+    return 200, _template_profile_out(pro)
+
+
+@router.patch("/template-profile/{handle}", response={200: TemplateProfileOut, 400: dict, 404: dict})
+def update_template_profile(request, handle: str, payload: TemplateProfileIn):
+    require_gk_admin(request)
+    pro = ProProfile.objects.filter(handle=handle, is_template=True).first()
+    if not pro:
+        return 404, {"detail": f"No template profile with handle '{handle}' found."}
+    data = payload.dict(exclude_unset=True)
+    if "bio" in data and data["bio"] is not None and len(data["bio"]) > 500:
+        return 400, {"detail": "Bio must be 500 characters or fewer."}
+    for field, value in data.items():
+        if value is not None:
+            setattr(pro, field, value)
+    pro.save()
+    return 200, _template_profile_out(pro)

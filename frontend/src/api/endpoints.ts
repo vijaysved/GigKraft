@@ -350,6 +350,26 @@ export interface GkPlatformMetrics {
   nodes: GkNodeSummary[];
   site_traffic: GkSiteTrafficRow[];
   campaign: GkCampaignMetrics;
+  inbox_unread: number;
+  feedback_unread: number;
+  new_users_today: number;
+}
+
+export interface TemplateProfileData {
+  handle: string;
+  business_name: string;
+  primary_trade: string;
+  skill_tags: string[];
+  bio: string;
+  response_hours: number;
+  licensed: boolean;
+  license_number: string;
+  insured: boolean;
+  availability: string;
+  wallpaper_id: number;
+  wallpaper_url: string;
+  avatar_url: string;
+  is_verified: boolean;
 }
 
 export interface GkUserRow {
@@ -443,6 +463,28 @@ export async function listAnonymousLeads(): Promise<AnonLeadRow[]> {
   const { data, error, response } = await client.GET("/api/gk-admin/anonymous-leads" as never);
   if (!data) throw new ApiError(response.status, detailOf(error, "Failed to load anonymous leads."));
   return data as AnonLeadRow[];
+}
+
+// ---------- Template Profiles ----------
+
+export async function getTemplateProfile(handle: string): Promise<TemplateProfileData> {
+  const { data, error, response } = await client.GET(
+    `/api/gk-admin/template-profile/${handle}` as never,
+  );
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to load template profile."));
+  return data as TemplateProfileData;
+}
+
+export async function updateTemplateProfile(
+  handle: string,
+  payload: Partial<Omit<TemplateProfileData, "handle">>,
+): Promise<TemplateProfileData> {
+  const { data, error, response } = await client.PATCH(
+    `/api/gk-admin/template-profile/${handle}` as never,
+    { body: payload } as never,
+  );
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to update template profile."));
+  return data as TemplateProfileData;
 }
 
 // ---------- Prospects ----------

@@ -104,7 +104,7 @@ class ProProfile(models.Model):
     # Admin flags.
     is_verified = models.BooleanField(default=False)
     is_suspended = models.BooleanField(default=False)
-    # Subscription plan surface for the admin ledger ("monthly"/"annual").
+    is_template = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

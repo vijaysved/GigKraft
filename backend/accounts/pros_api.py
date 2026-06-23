@@ -155,6 +155,8 @@ def my_pro_profile(request):
 @router.patch("/me", response=ProOut)
 def update_pro_profile(request, payload: ProProfileIn):
     pro = require_pro(request)
+    if pro.is_template:
+        raise HttpError(403, "Template profiles cannot be modified via this endpoint.")
     data = payload.dict(exclude_unset=True)
     if "bio" in data and data["bio"] is not None and len(data["bio"]) > 500:
         raise HttpError(400, "Bio must be 500 characters or fewer.")
@@ -204,6 +206,8 @@ def update_service_area(request, payload: ServiceAreaIn):
 @router.patch("/me/handle", response={200: ProOut, 400: ErrorOut, 409: ErrorOut})
 def update_handle(request, payload: HandleIn):
     pro = require_pro(request)
+    if pro.is_template:
+        raise HttpError(403, "Template profile handles cannot be changed.")
     handle = payload.handle.lower().strip()
     if not HANDLE_RE.match(handle):
         return 400, {"detail": "Handle must be 2–30 characters: lowercase letters, numbers, and hyphens only."}

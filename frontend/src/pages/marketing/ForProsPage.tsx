@@ -5,6 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ApiError } from "../../api/endpoints";
 import { useAuth } from "../../auth/AuthContext";
 import { GoogleSignInButton } from "../../components/GoogleSignInButton";
+import { ProfileComparisonSection } from "../../components/marketing/ProfileComparisonSection";
 
 const SHIFT_BAD = [
   "Pay $30–80 per shared lead, bid against 5 others",
@@ -151,6 +152,9 @@ export function ForProsPage() {
           ))}
         </Grid>
       </Container>
+
+      {/* Profile comparison */}
+      <ProfileComparisonSection />
 
       {/* CTA */}
       <Box className="mk-cta-band">
