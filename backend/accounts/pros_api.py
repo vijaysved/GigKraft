@@ -678,7 +678,8 @@ def og_preview(request, handle: str):
     if pro is None:
         return HttpResponse("<h1>Not Found</h1>", status=404, content_type="text/html")
 
-    name     = _html.escape(pro.user.get_full_name() or handle)
+    full_name = f"{pro.user.first_name} {pro.user.last_name}".strip()
+    name     = _html.escape(full_name or handle)
     trade    = _html.escape(pro.primary_trade or "Pro on gigKraft.com")
     bio_raw  = (pro.bio or "").strip()
     bio_line = _html.escape(bio_raw[:120] + ("…" if len(bio_raw) > 120 else ""))
