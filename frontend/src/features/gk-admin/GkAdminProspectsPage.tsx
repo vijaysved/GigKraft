@@ -896,6 +896,52 @@ function ActionQueueTab() {
 
 // ── Prospect Form Drawer ──────────────────────────────────────────────────────
 
+function parseProspectText(text: string): Partial<ProspectIn> {
+  const out: Partial<ProspectIn> = {};
+
+  // Email
+  const emailM = text.match(/[\w.+\-]+@[\w\-]+(?:\.[\w\-]+)+/);
+  if (emailM) out.email = emailM[0].trim();
+
+  // Phone — common US formats
+  const phoneM = text.match(/(?:\+?1[-.\s]?)?\(?([2-9]\d{2})\)?[-.\s]?\d{3}[-.\s]?\d{4}/);
+  if (phoneM) out.phone = phoneM[0].trim();
+
+  // ZIP — 5-digit
+  const zipM = text.match(/\b(\d{5})(?:-\d{4})?\b/);
+  if (zipM) out.primary_zip = zipM[1];
+
+  // Name — try strategies in order
+  // 1. Explicit label: "Name: ..." or "Contact: ..."
+  const labelM = text.match(/(?:^|\n)(?:name|contact|from)[:\s]+([A-Z][a-z]+(?:\s[A-Z][a-z]+)+)/im);
+  if (labelM) { out.name = labelM[1].trim(); }
+
+  // 2. "I'm X" / "I am X" / "My name is X"
+  if (!out.name) {
+    const introM = text.match(/(?:i'?m|i am|my name is)\s+([A-Z][a-z]+(?:\s[A-Z][a-z]+)+)/i);
+    if (introM) out.name = introM[1].trim();
+  }
+
+  // 3. A line that is exactly 2–3 title-case words (looks like a standalone name)
+  if (!out.name) {
+    for (const line of text.split(/\n/)) {
+      const t = line.trim();
+      if (/^[A-Z][a-z]{1,20}(?:\s[A-Z][a-z]{1,20}){1,2}$/.test(t)) {
+        out.name = t;
+        break;
+      }
+    }
+  }
+
+  // 4. First two consecutive title-case words anywhere
+  if (!out.name) {
+    const twoM = text.match(/\b([A-Z][a-z]{1,20}\s[A-Z][a-z]{1,20})\b/);
+    if (twoM) out.name = twoM[1];
+  }
+
+  return out;
+}
+
 function ProspectDrawer({
   opened,
   onClose,
@@ -907,12 +953,16 @@ function ProspectDrawer({
   prospect: Prospect | null;
   onSaved: (p: Prospect) => void;
 }) {
+  const [activeTab, setActiveTab] = useState<string>("paste");
+  const [rawText, setRawText] = useState("");
   const [form, setForm] = useState<Partial<ProspectIn>>({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (opened) {
+      setActiveTab("paste");
+      setRawText("");
       setForm(
         prospect
           ? {
@@ -933,6 +983,12 @@ function ProspectDrawer({
 
   const f = (k: keyof ProspectIn) => (val: string | null) =>
     setForm((prev) => ({ ...prev, [k]: val ?? "" }));
+
+  const handleParse = () => {
+    const parsed = parseProspectText(rawText);
+    setForm((prev) => ({ ...prev, ...parsed }));
+    setActiveTab("form");
+  };
 
   const handleSave = async () => {
     if (!form.name?.trim()) { setError("Name is required."); return; }
@@ -955,34 +1011,91 @@ function ProspectDrawer({
     }
   };
 
+  const formFields = (
+    <Stack>
+      <TextInput label="Name" required value={form.name ?? ""} onChange={(e) => f("name")(e.target.value)} />
+      <TextInput label="Email" value={form.email ?? ""} onChange={(e) => f("email")(e.target.value)} />
+      <TextInput label="Phone" placeholder="e.g. (555) 123-4567 or +1 555 123 4567" value={form.phone ?? ""} onChange={(e) => f("phone")(e.target.value)} />
+      <TextInput label="Primary ZIP" value={form.primary_zip ?? ""} onChange={(e) => f("primary_zip")(e.target.value)} />
+      <TextInput label="Neighborhood" value={form.neighborhood ?? ""} onChange={(e) => f("neighborhood")(e.target.value)} />
+      <Select label="Source" data={SOURCE_OPTIONS} value={form.source ?? "nextdoor"} onChange={f("source")} />
+      <Select
+        label="Role"
+        data={[{ value: "pro", label: "Pro" }, { value: "homeowner", label: "Homeowner" }]}
+        value={form.role ?? "pro"}
+        onChange={f("role")}
+      />
+      <Textarea label="Notes" value={form.notes ?? ""} onChange={(e) => f("notes")(e.target.value)} minRows={3} />
+      {error && <Alert color="red">{error}</Alert>}
+      <Group justify="flex-end">
+        <Button variant="default" onClick={onClose}>Cancel</Button>
+        <Button
+          onClick={handleSave}
+          loading={saving}
+          style={{ background: "var(--gk-accent-primary)", color: "#000" }}
+        >
+          Save
+        </Button>
+      </Group>
+    </Stack>
+  );
+
   return (
-    <Drawer opened={opened} onClose={onClose} title={prospect ? `Edit — ${prospect.name}` : "Add Prospect"} position="right" size="md">
-      <Stack>
-        <TextInput label="Name" required value={form.name ?? ""} onChange={(e) => f("name")(e.target.value)} />
-        <TextInput label="Email" value={form.email ?? ""} onChange={(e) => f("email")(e.target.value)} />
-        <TextInput label="Phone" placeholder="e.g. (555) 123-4567 or +1 555 123 4567" value={form.phone ?? ""} onChange={(e) => f("phone")(e.target.value)} />
-        <TextInput label="Primary ZIP" value={form.primary_zip ?? ""} onChange={(e) => f("primary_zip")(e.target.value)} />
-        <TextInput label="Neighborhood" value={form.neighborhood ?? ""} onChange={(e) => f("neighborhood")(e.target.value)} />
-        <Select label="Source" data={SOURCE_OPTIONS} value={form.source ?? "nextdoor"} onChange={f("source")} />
-        <Select
-          label="Role"
-          data={[{ value: "pro", label: "Pro" }, { value: "homeowner", label: "Homeowner" }]}
-          value={form.role ?? "pro"}
-          onChange={f("role")}
-        />
-        <Textarea label="Notes" value={form.notes ?? ""} onChange={(e) => f("notes")(e.target.value)} minRows={3} />
-        {error && <Alert color="red">{error}</Alert>}
-        <Group justify="flex-end">
-          <Button variant="default" onClick={onClose}>Cancel</Button>
-          <Button
-            onClick={handleSave}
-            loading={saving}
-            style={{ background: "var(--gk-accent-primary)", color: "#000" }}
-          >
-            Save
-          </Button>
-        </Group>
-      </Stack>
+    <Drawer
+      opened={opened}
+      onClose={onClose}
+      title={prospect ? `Edit — ${prospect.name}` : "Add Prospect"}
+      position="right"
+      size="md"
+    >
+      {prospect ? (
+        formFields
+      ) : (
+        <Tabs
+          value={activeTab}
+          onChange={(v) => setActiveTab(v ?? "paste")}
+          styles={{
+            tab: {
+              "&[data-active]": {
+                borderBottomColor: "var(--gk-accent-primary)",
+                color: "var(--gk-accent-primary)",
+              },
+            },
+          }}
+        >
+          <Tabs.List style={{ borderColor: "var(--gk-border)", marginBottom: 16 }}>
+            <Tabs.Tab value="paste">Paste Text</Tabs.Tab>
+            <Tabs.Tab value="form">Details</Tabs.Tab>
+          </Tabs.List>
+
+          <Tabs.Panel value="paste">
+            <Stack>
+              <Textarea
+                placeholder={"Paste a Nextdoor post, WhatsApp message, email, or any text.\nName, phone, email, and ZIP will be extracted automatically."}
+                value={rawText}
+                onChange={(e) => setRawText(e.target.value)}
+                autosize
+                minRows={10}
+                styles={{ input: { fontFamily: "monospace", fontSize: 13 } }}
+              />
+              <Group justify="flex-end">
+                <Button variant="default" onClick={onClose}>Cancel</Button>
+                <Button
+                  onClick={handleParse}
+                  disabled={!rawText.trim()}
+                  style={{ background: "var(--gk-accent-primary)", color: "#000" }}
+                >
+                  Next →
+                </Button>
+              </Group>
+            </Stack>
+          </Tabs.Panel>
+
+          <Tabs.Panel value="form">
+            {formFields}
+          </Tabs.Panel>
+        </Tabs>
+      )}
     </Drawer>
   );
 }
