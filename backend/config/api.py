@@ -7,6 +7,7 @@ frontend/mobile typed client generation.
 from ninja import NinjaAPI
 
 from accounts.api import me_router, router as auth_router
+from accounts.favorites_api import router as favorites_router
 from accounts.home_api import prefs_router, router as home_router, waitlist_router
 from accounts.pros_api import public_router as pros_public_router
 from accounts.pros_api import router as pros_router
@@ -51,6 +52,7 @@ api.add_router("/leads", leads_router)
 api.add_router("/emergencies", emergencies_router)
 api.add_router("/recommendations", recommendations_public_router)
 api.add_router("/recommendations", recommendations_router)
+api.add_router("/favorites", favorites_router)
 api.add_router("/home", home_router)
 api.add_router("/waitlist", waitlist_router)
 api.add_router("/admin", admin_router)

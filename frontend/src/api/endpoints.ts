@@ -1102,6 +1102,28 @@ export async function submitRfq(payload: RfqPayload): Promise<{ id: number; matc
   return res.json() as Promise<{ id: number; matched_pro_count: number }>;
 }
 
+// ── Favorites ────────────────────────────────────────────────────────────────
+
+export async function getFavoritePros(): Promise<{ pro_ids: number[] }> {
+  const { data, response } = await client.GET("/api/favorites/pros" as never);
+  if (!data) throw new ApiError(response.status, "Failed to fetch favorites.");
+  return data as { pro_ids: number[] };
+}
+
+export async function syncFavoritePros(pro_ids: number[]): Promise<{ pro_ids: number[] }> {
+  const { data, response } = await client.POST("/api/favorites/pros/sync" as never, {
+    body: { pro_ids } as never,
+  });
+  if (!data) throw new ApiError(response.status, "Failed to sync favorites.");
+  return data as { pro_ids: number[] };
+}
+
+export async function toggleFavoritePro(pro_id: number): Promise<{ favorited: boolean; pro_ids: number[] }> {
+  const { data, response } = await client.POST(`/api/favorites/pros/${pro_id}/toggle` as never);
+  if (!data) throw new ApiError(response.status, "Failed to toggle favorite.");
+  return data as { favorited: boolean; pro_ids: number[] };
+}
+
 export async function claimAnonymousLead(leadId: number): Promise<InboxLead> {
   const { data, error, response } = await _post(`${LEADS_BASE}/${leadId}/claim`);
   if (!data) throw new ApiError(response.status, detailOf(error, "Failed to claim lead."));

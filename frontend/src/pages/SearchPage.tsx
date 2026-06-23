@@ -16,8 +16,9 @@ import {
   Textarea,
   TextInput,
   Title,
+  Tooltip,
 } from "@mantine/core";
-import { IconCheck, IconFilter, IconMapPin, IconSearch, IconSend } from "@tabler/icons-react";
+import { IconCheck, IconFilter, IconHeart, IconHeartFilled, IconMapPin, IconSearch, IconSend } from "@tabler/icons-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
@@ -27,6 +28,7 @@ import {
   trackSitePageView,
   type ProOut,
 } from "../api/endpoints";
+import { useFavorites } from "../hooks/useFavorites";
 
 // ── Trade taxonomy ────────────────────────────────────────────────────────────
 
@@ -109,7 +111,19 @@ function proGradient(pro: ProOut): string {
 
 // ── Pro card ──────────────────────────────────────────────────────────────────
 
-function ProCard({ pro, onClick }: { pro: ProOut; onClick: () => void }) {
+function ProCard({
+  pro,
+  onClick,
+  isFavorited,
+  onToggleFavorite,
+  isAuthenticated,
+}: {
+  pro: ProOut;
+  onClick: () => void;
+  isFavorited: boolean;
+  onToggleFavorite: (id: number) => void;
+  isAuthenticated: boolean;
+}) {
   const gradient = proGradient(pro);
   const isPro = pro.role !== "member";
   const initials = pro.name
@@ -147,7 +161,7 @@ function ProCard({ pro, onClick }: { pro: ProOut; onClick: () => void }) {
           style={{
             position: "absolute",
             top: 10,
-            right: 12,
+            right: 44,
             padding: "3px 10px",
             borderRadius: 20,
             background: isPro ? "#00C8FF" : "rgba(255,255,255,0.92)",
@@ -160,6 +174,36 @@ function ProCard({ pro, onClick }: { pro: ProOut; onClick: () => void }) {
         >
           {isPro ? "⚡ Pro" : "Member"}
         </Box>
+
+        {/* Favorite heart button */}
+        <Tooltip
+          label={isAuthenticated ? (isFavorited ? "Remove from favorites" : "Save to favorites") : "Sign in to save favorites"}
+          position="top"
+          withArrow
+        >
+          <Box
+            onClick={(e) => { e.stopPropagation(); onToggleFavorite(pro.id); }}
+            style={{
+              position: "absolute",
+              top: 8,
+              right: 10,
+              width: 28,
+              height: 28,
+              borderRadius: "50%",
+              background: "rgba(255,255,255,0.9)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              boxShadow: "0 1px 4px rgba(0,0,0,.2)",
+              transition: "transform .12s",
+            }}
+          >
+            {isFavorited
+              ? <IconHeartFilled size={15} color="#FF0055" />
+              : <IconHeart size={15} color="#999" />}
+          </Box>
+        </Tooltip>
       </Box>
 
       {/* Avatar overlapping the strip */}
@@ -510,6 +554,8 @@ export function SearchPage() {
   const [filterMinRecs, setFilterMinRecs] = useState<number | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
+  const { favIds, toggle: toggleFavorite, isAuthenticated } = useFavorites();
+
   const [pros, setPros] = useState<ProOut[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasLoaded, setHasLoaded] = useState(false);
@@ -817,6 +863,9 @@ export function SearchPage() {
                         key={pro.id}
                         pro={pro}
                         onClick={() => pro.handle && navigate(`/pros/${pro.handle}`)}
+                        isFavorited={favIds.has(pro.id)}
+                        onToggleFavorite={toggleFavorite}
+                        isAuthenticated={isAuthenticated}
                       />
                     ))}
                   </SimpleGrid>

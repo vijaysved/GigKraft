@@ -264,3 +264,20 @@ class NotificationPref(models.Model):
 
     def __str__(self):
         return f"NotificationPref<{self.user}>"
+
+
+class FavoritePro(models.Model):
+    user = models.ForeignKey(
+        "accounts.User", on_delete=models.CASCADE, related_name="favorite_pros"
+    )
+    pro = models.ForeignKey(
+        "accounts.ProProfile", on_delete=models.CASCADE, related_name="favorited_by"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [("user", "pro")]
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"FavoritePro<{self.user} → {self.pro}>"
