@@ -89,6 +89,8 @@ export function ProPublicProfilePage() {
   const [exporting, setExporting] = useState(false);
   const [pdfGenerating, setPdfGenerating] = useState(false);
   const profileContentRef = useRef<HTMLDivElement>(null);
+  const headerUrlRef = useRef<HTMLSpanElement>(null);
+  const footerUrlRef = useRef<HTMLSpanElement>(null);
   // Inject OG meta tags so sharing picks up name / avatar / description
   useEffect(() => {
     if (!pro) return;
@@ -292,9 +294,10 @@ export function ProPublicProfilePage() {
     try {
       const el = profileContentRef.current;
       if (!el) throw new Error("Profile content not found.");
+      const pixelRatio = 2;
       const canvas = await toCanvas(el, {
         backgroundColor: "#ffffff",
-        pixelRatio: 2,
+        pixelRatio,
         filter: (node) =>
           !(node instanceof HTMLElement && (
             node.tagName === "BUTTON" ||
@@ -325,7 +328,28 @@ export function ProPublicProfilePage() {
           doc.addImage(tmp, "JPEG", margin, margin, usableW, srcH * ratio);
         }
       }
-      const safeName = (pro?.name ?? "pro").replace(/\s+/g, "-").toLowerCase();
+
+      // Overlay invisible clickable link annotations on both URL spans
+      const elRect = el.getBoundingClientRect();
+      function addLinkAnnotation(spanEl: HTMLSpanElement | null) {
+        if (!spanEl) return;
+        const r = spanEl.getBoundingClientRect();
+        const relX = r.left - elRect.left;
+        const relY = r.top  - elRect.top;
+        const pdfX = margin + relX * pixelRatio * ratio;
+        const pdfLinkW = r.width  * pixelRatio * ratio;
+        const pdfLinkH = r.height * pixelRatio * ratio;
+        // Determine which PDF page the element falls on
+        const pdfYfromTop = relY * pixelRatio * ratio;
+        const page = Math.floor(pdfYfromTop / pageH);
+        const pdfY  = margin + pdfYfromTop - page * pageH;
+        doc.setPage(page + 1);
+        doc.link(pdfX, pdfY, pdfLinkW, pdfLinkH, { url: profileUrl });
+      }
+      addLinkAnnotation(headerUrlRef.current);
+      addLinkAnnotation(footerUrlRef.current);
+
+      const safeName  = (pro?.name          ?? "pro").replace(/\s+/g, "-").toLowerCase();
       const safeTrade = (pro?.primary_trade ?? "profile").replace(/\s+/g, "-").toLowerCase();
       doc.save(`${safeName}-${safeTrade}.pdf`);
     } catch (err) {
@@ -402,16 +426,17 @@ export function ProPublicProfilePage() {
                     </Text>
                   </Stack>
                   {pdfGenerating ? (
-                    <Text
-                      size="xs"
+                    <span
+                      ref={headerUrlRef}
                       style={{
                         fontFamily: "var(--mantine-font-family-monospace)",
                         color: "var(--gk-accent-primary)",
+                        fontSize: "var(--mantine-font-size-xs)",
                         flexShrink: 0,
                       }}
                     >
                       {profileUrl}
-                    </Text>
+                    </span>
                   ) : (
                     <Group gap={4} wrap="nowrap">
                       <Tooltip label="Recommend" withArrow>
@@ -653,15 +678,16 @@ export function ProPublicProfilePage() {
                     </Avatar>
                     <Stack gap={2}>
                       <Text fw={700} size="sm">{pro.name}</Text>
-                      <Text
-                        size="xs"
+                      <span
+                        ref={footerUrlRef}
                         style={{
                           fontFamily: "var(--mantine-font-family-monospace)",
                           color: "var(--gk-accent-primary)",
+                          fontSize: "var(--mantine-font-size-xs)",
                         }}
                       >
                         {profileUrl}
-                      </Text>
+                      </span>
                     </Stack>
                   </Group>
                   <Stack align="flex-end" gap={4}>
