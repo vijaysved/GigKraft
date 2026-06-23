@@ -261,6 +261,8 @@ def create_prospect(request, payload: ProspectIn):
     require_gk_admin(request)
     if not payload.name.strip():
         return 400, {"detail": "name is required."}
+    if not payload.email.strip() and not payload.phone.strip():
+        return 400, {"detail": "email or phone is required."}
     p = Prospect.objects.create(**payload.dict())
     _attach_logs(p)
     return 201, _serialize(p)

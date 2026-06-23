@@ -41,6 +41,7 @@ import {
   IconTrash,
   IconUserCheck,
   IconUsers,
+  IconFileText,
 } from "@tabler/icons-react";
 import { useEffect, useMemo, useState } from "react";
 
@@ -52,6 +53,9 @@ import {
   listProspects,
   startProspectSequence,
   updateProspect,
+  listTemplates,
+  createTemplate,
+  updateTemplate,
   ApiError,
 } from "../../api/endpoints";
 import type {
@@ -59,6 +63,8 @@ import type {
   ProspectAnalytics,
   ProspectIn,
   StepJourney,
+  MessageTemplate,
+  TemplateIn,
 } from "../../api/endpoints";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -110,10 +116,74 @@ const CHAT_TEMPLATES: Record<number, (p: Prospect) => string> = {
     `Hi ${p.name}, closing out your pending invite for now so I don't bug you. If you ever want to stand out to nearby homeowners with a clean profile for *$24.99/mo*, you can unlock it anytime here: ${buildSignupUrl(p)}. Wish you all the best!`,
 };
 
-function buildSignupUrl(p: Prospect): string {
-  const base = import.meta.env.VITE_API_BASE_URL ?? "";
-  return `${base}/api/prospects/track/${p.signup_link_token}`;
+function buildSignupUrl(_p: Prospect): string {
+  return "https://www.gigkraft.com/for-pros";
 }
+
+function renderTemplate(body: string, p: Prospect): string {
+  return body
+    .replace(/\{\{name\}\}/g, p.name)
+    .replace(/\{\{source\}\}/g, p.source)
+    .replace(/\{\{neighborhood\}\}/g, p.neighborhood || p.primary_zip || "")
+    .replace(/\{\{primaryZip\}\}/g, p.primary_zip || "")
+    .replace(/\{\{signup_link\}\}/g, buildSignupUrl(p))
+    .replace(/\{\{contact_person\}\}/g, "Vijay")
+    .replace(/\{\{business_name\}\}/g, "GigKraft")
+    .replace(/\{\{prospect_id\}\}/g, p.prospect_id);
+}
+
+const TEMPLATE_STEP_LABELS = ["Check Out the Site", "Share Pricing", "Offer a Call"];
+
+const DEFAULT_TEMPLATES: TemplateIn[] = [
+  {
+    name: "Email — Step 1",
+    channel: "email",
+    kind: "sequence_1",
+    subject: "Your GigKraft Profile Invite — {{name}}",
+    body: "Hi {{name}},\n\nI came across your work on {{source}} and wanted to personally invite you to check out GigKraft.com — a local trust network for pros in {{neighborhood}}.\n\nWe help independent contractors build sovereign digital portfolios. No lead fees, no hidden cuts — just your own verified profile link for a flat $24.99/mo or $249.99/yr.\n\nCheck it out here: {{signup_link}}\n\nAny questions? Just reply to this email or reach out to Vijay directly.\n\nBest,\nVijay\ngigKraft.com",
+    is_default: true,
+  },
+  {
+    name: "Email — Step 2",
+    channel: "email",
+    kind: "sequence_2",
+    subject: "GigKraft Pricing Breakdown — {{name}}",
+    body: "Hi {{name}},\n\nFollowing up on your GigKraft invite! Here's a quick pricing breakdown:\n\n• $24.99/month — cancel anytime\n• $249.99/year — save ~17%\n• Your own verified profile link you fully own\n• No platform fees or lead cuts\n• Reviews you control\n\nSet up your profile in minutes: {{signup_link}}\n\nBest,\nVijay\ngigKraft.com",
+    is_default: true,
+  },
+  {
+    name: "Email — Step 3",
+    channel: "email",
+    kind: "sequence_3",
+    subject: "Quick call about GigKraft? — {{name}}",
+    body: "Hi {{name}},\n\nOne last follow-up! I'd love to hop on a quick call to answer any questions about GigKraft and how it could help your business in {{neighborhood}}.\n\nYour invite is still active: {{signup_link}}\n\nFeel free to reply anytime or reach out to Vijay — no pressure at all.\n\nBest,\nVijay\ngigKraft.com",
+    is_default: true,
+  },
+  {
+    name: "WhatsApp — Step 1",
+    channel: "whatsapp",
+    kind: "sequence_1",
+    subject: "",
+    body: "Hi {{name}}! Noticed your excellent work on {{source}}. I'm Vijay, admin for *gigKraft.com* — a local trust network for pros in {{neighborhood}}. We build sovereign digital portfolios for independent contractors. No lead fees or hidden cuts — just your own verified link for $24.99/mo or $249.99/yr.\n\nCheck it out and reach out if you have any questions: {{signup_link}}",
+    is_default: true,
+  },
+  {
+    name: "WhatsApp — Step 2",
+    channel: "whatsapp",
+    kind: "sequence_2",
+    subject: "",
+    body: "Hey {{name}}, just sharing a quick pricing breakdown for *GigKraft.com*:\n\n• $24.99/month or $249.99/year\n• Your own verified local profile link\n• No lead fees or platform cuts\n\nLocal pros love dropping their GigKraft link in WhatsApp groups or Nextdoor replies. Set up in 2 mins: {{signup_link}}",
+    is_default: true,
+  },
+  {
+    name: "WhatsApp — Step 3",
+    channel: "whatsapp",
+    kind: "sequence_3",
+    subject: "",
+    body: "Hi {{name}}, closing out your pending invite so I don't keep bugging you! If you ever want to stand out to nearby homeowners with a clean verified profile, you can unlock it anytime: {{signup_link}}\n\nFeel free to reach out to Vijay if you have any questions. Wishing you all the best!",
+    is_default: true,
+  },
+];
 
 function daysSince(iso: string | null): number | null {
   if (!iso) return null;
@@ -424,16 +494,19 @@ function ChatStepModal({
   opened,
   onClose,
   onSent,
+  templateBody,
 }: {
   prospect: Prospect;
   opened: boolean;
   onClose: () => void;
   onSent: (updated: Prospect) => void;
+  templateBody?: string;
 }) {
   const nextStep =
     prospect.current_sequence_step === 0 ? 1 : Math.min(prospect.current_sequence_step + 1, 3);
-  const templateFn = CHAT_TEMPLATES[nextStep];
-  const text = templateFn ? templateFn(prospect) : "";
+  const text = templateBody
+    ? renderTemplate(templateBody, prospect)
+    : (CHAT_TEMPLATES[nextStep]?.(prospect) ?? "");
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -501,6 +574,7 @@ function ActionQueueTab() {
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [debouncedSearch] = useDebouncedValue(search, 300);
+  const [waTemplates, setWaTemplates] = useState<MessageTemplate[]>([]);
 
   const { sorted, sortBy, sortDir, toggle } = useSort(prospects, "name");
 
@@ -519,7 +593,10 @@ function ActionQueueTab() {
     }
   };
 
-  useEffect(() => { void load(); }, []);
+  useEffect(() => {
+    void load();
+    listTemplates({ channel: "whatsapp" }).then(setWaTemplates).catch(() => {});
+  }, []);
 
   const displayed = useMemo(() => {
     let rows = sorted;
@@ -556,12 +633,18 @@ function ActionQueueTab() {
   if (loading) return <Loader size="sm" />;
   if (error) return <Alert color="red">{error}</Alert>;
 
+  const chatNextStep = chatTarget
+    ? (chatTarget.current_sequence_step === 0 ? 1 : Math.min(chatTarget.current_sequence_step + 1, 3))
+    : 1;
+  const chatWaTemplate = waTemplates.find(t => t.kind === `sequence_${chatNextStep}`);
+
   return (
     <>
       {chatTarget && (
         <ChatStepModal
           prospect={chatTarget}
           opened
+          templateBody={chatWaTemplate?.body}
           onClose={() => setChatTarget(null)}
           onSent={(updated) => {
             setProspects((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
@@ -641,9 +724,16 @@ function ActionQueueTab() {
                         <JourneyBlocks journey={p.journey ?? []} currentStep={p.current_sequence_step} />
                       </Table.Td>
                       <Table.Td>
-                        <Text size="sm" c={days !== null && days >= 3 ? "orange" : undefined} fw={days !== null && days >= 3 ? 600 : undefined}>
-                          {days !== null ? `${days}d` : "—"}
-                        </Text>
+                        <Stack gap={0}>
+                          <Text size="sm" c={days !== null && days >= 3 ? "orange" : undefined} fw={days !== null && days >= 3 ? 600 : undefined}>
+                            {days !== null ? `${days}d` : "—"}
+                          </Text>
+                          {p.last_contacted_at && (
+                            <Text size="xs" c="dimmed">
+                              {new Date(p.last_contacted_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                            </Text>
+                          )}
+                        </Stack>
                       </Table.Td>
                       <Table.Td>
                         {p.link_clicked_at ? (
@@ -757,6 +847,10 @@ function ProspectDrawer({
 
   const handleSave = async () => {
     if (!form.name?.trim()) { setError("Name is required."); return; }
+    if (!form.email?.trim() && !form.phone?.trim()) {
+      setError("Email or phone is required.");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -777,7 +871,7 @@ function ProspectDrawer({
       <Stack>
         <TextInput label="Name" required value={form.name ?? ""} onChange={(e) => f("name")(e.target.value)} />
         <TextInput label="Email" value={form.email ?? ""} onChange={(e) => f("email")(e.target.value)} />
-        <TextInput label="Phone" value={form.phone ?? ""} onChange={(e) => f("phone")(e.target.value)} />
+        <TextInput label="Phone" placeholder="e.g. (555) 123-4567 or +1 555 123 4567" value={form.phone ?? ""} onChange={(e) => f("phone")(e.target.value)} />
         <TextInput label="Primary ZIP" value={form.primary_zip ?? ""} onChange={(e) => f("primary_zip")(e.target.value)} />
         <TextInput label="Neighborhood" value={form.neighborhood ?? ""} onChange={(e) => f("neighborhood")(e.target.value)} />
         <Select label="Source" data={SOURCE_OPTIONS} value={form.source ?? "nextdoor"} onChange={f("source")} />
@@ -985,6 +1079,246 @@ function AllProspectsTab() {
   );
 }
 
+// ── Templates Tab ─────────────────────────────────────────────────────────────
+
+const TEMPLATE_STEP_KINDS = ["sequence_1", "sequence_2", "sequence_3"] as const;
+const TEMPLATE_CHANNELS = ["email", "whatsapp"] as const;
+
+function TemplatesTab() {
+  const [templates, setTemplates] = useState<MessageTemplate[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [seeding, setSeeding] = useState(false);
+  const [editing, setEditing] = useState<MessageTemplate | null>(null);
+  const [editForm, setEditForm] = useState({ name: "", subject: "", body: "" });
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [drawerOpened, { open: openDrawer, close: closeDrawer }] = useDisclosure(false);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const all = await listTemplates();
+      setTemplates(all.filter(t => (TEMPLATE_STEP_KINDS as readonly string[]).includes(t.kind)));
+    } catch {
+      /* silently fail */
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { void load(); }, []);
+
+  const getTemplate = (channel: string, kind: string) =>
+    templates.find(t => t.channel === channel && t.kind === kind) ?? null;
+
+  const needsSeed = TEMPLATE_STEP_KINDS.some(k =>
+    TEMPLATE_CHANNELS.some(ch => !getTemplate(ch, k))
+  );
+
+  const seedDefaults = async () => {
+    setSeeding(true);
+    try {
+      for (const t of DEFAULT_TEMPLATES) {
+        if (!getTemplate(t.channel, t.kind)) {
+          await createTemplate(t);
+        }
+      }
+      await load();
+    } catch {
+      /* ignore */
+    } finally {
+      setSeeding(false);
+    }
+  };
+
+  const openEdit = (t: MessageTemplate) => {
+    setEditing(t);
+    setEditForm({ name: t.name, subject: t.subject, body: t.body });
+    setSaveError(null);
+    openDrawer();
+  };
+
+  const handleSave = async () => {
+    if (!editing) return;
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const updated = await updateTemplate(editing.id, editForm);
+      setTemplates(prev => prev.map(t => t.id === updated.id ? updated : t));
+      closeDrawer();
+    } catch (e) {
+      setSaveError(e instanceof ApiError ? e.message : "Failed to save.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return <Loader size="sm" />;
+
+  return (
+    <>
+      <Drawer
+        opened={drawerOpened}
+        onClose={closeDrawer}
+        title={editing ? `Edit: ${editing.name}` : "Edit Template"}
+        position="right"
+        size="lg"
+      >
+        <Stack gap="md">
+          <TextInput
+            label="Template Name"
+            value={editForm.name}
+            onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))}
+          />
+          {editing?.channel === "email" && (
+            <TextInput
+              label="Subject"
+              value={editForm.subject}
+              onChange={e => setEditForm(p => ({ ...p, subject: e.target.value }))}
+            />
+          )}
+          <Textarea
+            label="Body"
+            value={editForm.body}
+            onChange={e => setEditForm(p => ({ ...p, body: e.target.value }))}
+            autosize
+            minRows={10}
+            styles={{ input: { fontFamily: "monospace", fontSize: 13 } }}
+          />
+          <Box
+            p="xs"
+            style={{
+              background: "color-mix(in srgb, var(--gk-accent-primary) 8%, transparent)",
+              borderRadius: 8,
+              border: "1px solid var(--gk-border)",
+            }}
+          >
+            <Text size="xs" fw={600} mb={4}>Available Variables</Text>
+            <Text size="xs" ff="monospace" c="dimmed">
+              {"{{name}}  {{source}}  {{neighborhood}}  {{primaryZip}}  {{signup_link}}"}
+            </Text>
+          </Box>
+          {saveError && <Alert color="red">{saveError}</Alert>}
+          <Group justify="flex-end">
+            <Button variant="default" onClick={closeDrawer}>Cancel</Button>
+            <Button
+              onClick={handleSave}
+              loading={saving}
+              style={{ background: "var(--gk-accent-primary)", color: "#000" }}
+            >
+              Save Changes
+            </Button>
+          </Group>
+        </Stack>
+      </Drawer>
+
+      <Stack gap="lg">
+        {needsSeed && (
+          <Alert color="yellow" title="Default Templates Missing">
+            <Stack gap="xs">
+              <Text size="sm">Set up the 6 default outreach templates (email + WhatsApp for each of the 3 steps).</Text>
+              <Button size="xs" onClick={seedDefaults} loading={seeding} w="fit-content">
+                Seed Defaults
+              </Button>
+            </Stack>
+          </Alert>
+        )}
+
+        <SimpleGrid cols={2} spacing="md">
+          <Card
+            withBorder
+            radius="md"
+            p="sm"
+            style={{ background: "color-mix(in srgb, var(--gk-accent-primary) 8%, var(--gk-bg-surface))" }}
+          >
+            <Group gap="xs">
+              <IconMail size={16} />
+              <Text fw={600} size="sm">Email</Text>
+            </Group>
+          </Card>
+          <Card
+            withBorder
+            radius="md"
+            p="sm"
+            style={{ background: "color-mix(in srgb, var(--mantine-color-teal-5) 12%, var(--gk-bg-surface))" }}
+          >
+            <Group gap="xs">
+              <IconBrandWhatsapp size={16} color="var(--mantine-color-teal-6)" />
+              <Text fw={600} size="sm">WhatsApp / SMS</Text>
+            </Group>
+          </Card>
+        </SimpleGrid>
+
+        {TEMPLATE_STEP_KINDS.map((kind, idx) => (
+          <Stack key={kind} gap="xs">
+            <Group gap="xs">
+              <Badge
+                size="sm"
+                variant="filled"
+                style={{ background: "var(--gk-accent-primary)", color: "#000" }}
+              >
+                Step {idx + 1}
+              </Badge>
+              <Text size="sm" fw={600} c="dimmed">{TEMPLATE_STEP_LABELS[idx]}</Text>
+            </Group>
+            <SimpleGrid cols={2} spacing="md">
+              {TEMPLATE_CHANNELS.map(channel => {
+                const tmpl = getTemplate(channel, kind);
+                return (
+                  <Card
+                    key={channel}
+                    withBorder
+                    radius="md"
+                    p="md"
+                    style={{ background: "var(--gk-bg-surface)" }}
+                  >
+                    {tmpl ? (
+                      <Stack gap="xs">
+                        <Group justify="space-between" align="flex-start" wrap="nowrap">
+                          <Text size="xs" fw={600} c="dimmed">{tmpl.name}</Text>
+                          <ActionIcon
+                            size="xs"
+                            variant="subtle"
+                            color="gray"
+                            onClick={() => openEdit(tmpl)}
+                            style={{ flexShrink: 0 }}
+                          >
+                            <IconEdit size={12} />
+                          </ActionIcon>
+                        </Group>
+                        {channel === "email" && tmpl.subject && (
+                          <Text size="xs" c="dimmed" style={{ fontStyle: "italic" }}>
+                            Subject: {tmpl.subject}
+                          </Text>
+                        )}
+                        <Box
+                          style={{
+                            maxHeight: 130,
+                            overflow: "hidden",
+                            maskImage: "linear-gradient(to bottom, black 60%, transparent 100%)",
+                          }}
+                        >
+                          <Text size="xs" style={{ whiteSpace: "pre-wrap" }}>
+                            {tmpl.body}
+                          </Text>
+                        </Box>
+                      </Stack>
+                    ) : (
+                      <Text size="xs" c="dimmed" ta="center" py="md">
+                        No template set.
+                      </Text>
+                    )}
+                  </Card>
+                );
+              })}
+            </SimpleGrid>
+          </Stack>
+        ))}
+      </Stack>
+    </>
+  );
+}
+
 // ── Page Root ─────────────────────────────────────────────────────────────────
 
 export function GkAdminProspectsPage() {
@@ -1007,11 +1341,13 @@ export function GkAdminProspectsPage() {
           <Tabs.Tab value="dashboard" leftSection={<IconChartBar size={14} />}>Dashboard</Tabs.Tab>
           <Tabs.Tab value="queue" leftSection={<IconClockHour4 size={14} />}>Action Queue</Tabs.Tab>
           <Tabs.Tab value="all" leftSection={<IconUsers size={14} />}>All Prospects</Tabs.Tab>
+          <Tabs.Tab value="templates" leftSection={<IconFileText size={14} />}>Templates</Tabs.Tab>
         </Tabs.List>
 
         <Tabs.Panel value="dashboard" pt="md"><DashboardTab /></Tabs.Panel>
         <Tabs.Panel value="queue" pt="md"><ActionQueueTab /></Tabs.Panel>
         <Tabs.Panel value="all" pt="md"><AllProspectsTab /></Tabs.Panel>
+        <Tabs.Panel value="templates" pt="md"><TemplatesTab /></Tabs.Panel>
       </Tabs>
     </Stack>
   );
