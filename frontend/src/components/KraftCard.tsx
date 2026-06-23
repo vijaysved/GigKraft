@@ -103,29 +103,30 @@ export function KraftCard({
 
           <GradientLine />
 
-          {/* Before + After: photos stacked left, description right */}
+          {/* Before + After: row 1 = photos side-by-side, row 2 = description */}
           {beforeUrl && afterUrl && (
-            <Group align="flex-start" gap="md" wrap="nowrap">
-              <Stack gap={6} style={{ width: 200, flexShrink: 0 }}>
-                <Stack gap={4}>
+            <Stack gap="md">
+              <Group align="flex-start" gap="md" wrap="nowrap">
+                <Stack gap={4} style={{ flex: 1, minWidth: 0 }}>
                   <Text size="xs" c="dimmed" fw={600} tt="uppercase">Before</Text>
-                  <div style={{ height: 140, borderRadius: 8, overflow: "hidden", background: "var(--gk-bg-canvas)", border: "1px solid var(--gk-border)" }}>
+                  <div style={{ height: 200, borderRadius: 8, overflow: "hidden", background: "var(--gk-bg-canvas)", border: "1px solid var(--gk-border)" }}>
                     <img src={beforeUrl} alt="Before" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "grayscale(40%)" }} />
                   </div>
                 </Stack>
-                <Stack gap={4}>
+                <Stack gap={4} style={{ flex: 1, minWidth: 0 }}>
                   <Text size="xs" fw={600} tt="uppercase" c="green">After</Text>
-                  <div style={{ height: 140, borderRadius: 8, overflow: "hidden", background: "var(--gk-bg-canvas)", border: "1px solid var(--gk-border)" }}>
+                  <div style={{ height: 200, borderRadius: 8, overflow: "hidden", background: "var(--gk-bg-canvas)", border: "1px solid var(--gk-border)" }}>
                     <img src={afterUrl} alt="After" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   </div>
                 </Stack>
-              </Stack>
+              </Group>
               {description && (
-                <Box style={{ flex: 1, minWidth: 0 }}>
+                <>
+                  <GradientLine />
                   <DescriptionBlock description={description} />
-                </Box>
+                </>
               )}
-            </Group>
+            </Stack>
           )}
 
           {/* Single photo: image right, description left (always side-by-side when description exists) */}

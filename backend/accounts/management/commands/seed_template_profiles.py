@@ -33,7 +33,7 @@ KRAFTS = [
         "start_month": 2, "start_year": 2024,
         "end_month": 3,   "end_year": 2024,
         "before_url": "https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?w=800&h=600&fit=crop&auto=format",
-        "after_url":  "https://images.unsplash.com/photo-1552177816-d7c7fb6dbdc2?w=800&h=600&fit=crop&auto=format",
+        "after_url":  "https://images.unsplash.com/photo-1540518614846-7eded433c457?w=800&h=600&fit=crop&auto=format",
     },
     {
         "title": "Tankless Water Heater Swap",
