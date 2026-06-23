@@ -5,6 +5,7 @@ import {
   Box,
   Button,
   Card,
+  Checkbox,
   CopyButton,
   Drawer,
   Group,
@@ -42,6 +43,8 @@ import {
   IconUserCheck,
   IconUsers,
   IconFileText,
+  IconUpload,
+  IconWorld,
 } from "@tabler/icons-react";
 import { useEffect, useMemo, useState } from "react";
 
@@ -118,6 +121,13 @@ const CHAT_TEMPLATES: Record<number, (p: Prospect) => string> = {
 
 function buildSignupUrl(_p: Prospect): string {
   return "https://www.gigkraft.com/for-pros";
+}
+
+function buildWaUrl(phone: string, text?: string | null): string {
+  const digits = phone.replace(/\D/g, "");
+  const num = digits.length === 10 ? `1${digits}` : digits;
+  const base = `https://wa.me/${num}`;
+  return text ? `${base}?text=${encodeURIComponent(text)}` : base;
 }
 
 function renderTemplate(body: string, p: Prospect): string {
@@ -633,6 +643,228 @@ function parseProspectText(text: string): Partial<ProspectIn> {
   return out;
 }
 
+interface BulkProspect {
+  name: string;
+  email: string;
+  phone: string;
+  url: string;
+}
+
+const _BULK_PHONE = /(?:\+?1[-.\s]?)?\(?([2-9]\d{2})\)?[-.\s]?\d{3}[-.\s]?\d{4}/;
+const _BULK_EMAIL = /[\w.+\-]+@[\w\-]+(?:\.[\w\-]+)+/;
+const _BULK_URL = /https?:\/\/[^\s\)\]>"]+/;
+
+function extractLineProspect(line: string): BulkProspect {
+  const phoneM = line.match(_BULK_PHONE);
+  const emailM = line.match(_BULK_EMAIL);
+  const urlM = line.match(_BULK_URL);
+  const name = line
+    .replace(_BULK_PHONE, "")
+    .replace(_BULK_EMAIL, "")
+    .replace(_BULK_URL, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/^[-·,\s]+|[-·,\s]+$/g, "")
+    .trim();
+  return { name, email: emailM?.[0] ?? "", phone: phoneM?.[0] ?? "", url: urlM?.[0] ?? "" };
+}
+
+function parseBulkText(text: string): BulkProspect[] {
+  if (!text.trim()) return [];
+
+  const nonEmptyLines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+
+  // Detect "one prospect per line" format: no blank-line separators and most
+  // lines carry a phone or email directly on the same line as the name.
+  let blocks = text.split(/\n\s*\n/).map((b) => b.trim()).filter(Boolean);
+  if (blocks.length <= 1 && nonEmptyLines.length >= 2) {
+    const contactLines = nonEmptyLines.filter((l) => _BULK_PHONE.test(l) || _BULK_EMAIL.test(l));
+    if (contactLines.length >= Math.ceil(nonEmptyLines.length / 2)) {
+      return nonEmptyLines
+        .map(extractLineProspect)
+        .filter((p) => p.name || p.email || p.phone);
+    }
+  }
+
+  // Numbered list fallback
+  if (blocks.length <= 1) {
+    const numbered = text.split(/(?=(?:^|\n)\d+[\.\)]\s)/m).map((b) => b.trim()).filter(Boolean);
+    if (numbered.length > 1) blocks = numbered;
+  }
+
+  // Paragraph-block parsing (multi-line entries separated by blank lines)
+  return blocks
+    .map((block) => {
+      const emailM = block.match(_BULK_EMAIL);
+      const phoneM = block.match(_BULK_PHONE);
+      const urlM = block.match(_BULK_URL);
+
+      let name = "";
+
+      const labelM = block.match(/(?:^|\n)(?:name|contact|from)[:\s]+([A-Z][a-z]+(?:\s[A-Z][a-z]+)+)/im);
+      if (labelM) name = labelM[1].trim();
+
+      if (!name) {
+        const introM = block.match(/(?:i'?m|i am|my name is)\s+([A-Z][a-z]+(?:\s[A-Z][a-z]+)+)/i);
+        if (introM) name = introM[1].trim();
+      }
+
+      if (!name) {
+        const firstLine = block.split("\n")[0].trim().replace(/^\d+[\.\)]\s+/, "");
+        const namePart = firstLine.split(/\s*[-·|,]\s*/)[0].trim();
+        if (/^[A-Z][a-z]{1,25}(?:\s[A-Z][a-z]{1,25}){1,2}$/.test(namePart)) {
+          name = namePart;
+        } else if (/^[A-Z][a-z]{1,25}(?:\s[A-Z][a-z]{1,25}){1,2}$/.test(firstLine)) {
+          name = firstLine;
+        }
+      }
+
+      if (!name) {
+        for (const line of block.split("\n").slice(1)) {
+          const t = line.trim();
+          if (/^[A-Z][a-z]{1,25}(?:\s[A-Z][a-z]{1,25}){1,2}$/.test(t)) {
+            name = t;
+            break;
+          }
+        }
+      }
+
+      if (!name) {
+        const anyM = block.match(/\b([A-Z][a-z]{2,15}\s[A-Z][a-z]{2,15})\b/);
+        if (anyM) name = anyM[1];
+      }
+
+      return { name, email: emailM?.[0] ?? "", phone: phoneM?.[0] ?? "", url: urlM?.[0] ?? "" };
+    })
+    .filter((p) => p.name || p.email || p.phone);
+}
+
+// ── Bulk Upload Panel ─────────────────────────────────────────────────────────
+
+function BulkUploadPanel({
+  onSaved,
+  onClose,
+}: {
+  onSaved: (p: Prospect) => void;
+  onClose: () => void;
+}) {
+  const [rawText, setRawText] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [source, setSource] = useState("nextdoor");
+
+  const parsed = useMemo(() => parseBulkText(rawText), [rawText]);
+
+  const handleSaveAll = async () => {
+    if (parsed.length === 0) return;
+    setSaving(true);
+    setError(null);
+    const failed: string[] = [];
+    try {
+      for (const p of parsed) {
+        try {
+          const result = await createProspect({
+            name: p.name || "Unknown",
+            email: p.email || undefined,
+            phone: p.phone || undefined,
+            source,
+            role: "pro",
+            notes: p.url ? `URL: ${p.url}` : undefined,
+          } as ProspectIn);
+          onSaved(result);
+        } catch {
+          failed.push(p.name || p.email || p.phone || "unknown");
+        }
+      }
+      if (failed.length > 0) {
+        setError(`Failed to save: ${failed.join(", ")}`);
+      } else {
+        onClose();
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Stack>
+      {parsed.length > 0 && (
+        <TableBox>
+          <Table fz="xs" verticalSpacing={4}>
+            <Table.Thead
+              style={{ background: "color-mix(in srgb, var(--gk-accent-primary) 8%, var(--gk-bg-surface))" }}
+            >
+              <Table.Tr>
+                <Table.Th>Name</Table.Th>
+                <Table.Th>Email</Table.Th>
+                <Table.Th>Phone</Table.Th>
+                <Table.Th>URL</Table.Th>
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
+              {parsed.map((p, i) => (
+                <Table.Tr key={i}>
+                  <Table.Td>
+                    <Text size="xs" fw={p.name ? 500 : undefined} c={p.name ? undefined : "dimmed"}>
+                      {p.name || "—"}
+                    </Text>
+                  </Table.Td>
+                  <Table.Td>
+                    <Text size="xs" c={p.email ? undefined : "dimmed"}>{p.email || "—"}</Text>
+                  </Table.Td>
+                  <Table.Td>
+                    <Text size="xs" c={p.phone ? undefined : "dimmed"}>{p.phone || "—"}</Text>
+                  </Table.Td>
+                  <Table.Td>
+                    {p.url ? (
+                      <Text size="xs" truncate style={{ maxWidth: 110 }} title={p.url}>
+                        {p.url}
+                      </Text>
+                    ) : (
+                      <Text size="xs" c="dimmed">—</Text>
+                    )}
+                  </Table.Td>
+                </Table.Tr>
+              ))}
+            </Table.Tbody>
+          </Table>
+        </TableBox>
+      )}
+      <Textarea
+        placeholder={
+          "Paste multiple contacts — one blank line between each.\n\nJohn Smith\n(555) 123-4567\njohn@example.com\nhttps://johnpainting.com\n\nJane Doe\n(555) 987-6543\njane@example.com"
+        }
+        value={rawText}
+        onChange={(e) => setRawText(e.target.value)}
+        autosize
+        minRows={parsed.length > 0 ? 5 : 12}
+        styles={{ input: { fontFamily: "monospace", fontSize: 13 } }}
+      />
+      <Select
+        label="Source"
+        data={SOURCE_OPTIONS}
+        value={source}
+        onChange={(v) => setSource(v ?? "nextdoor")}
+        size="xs"
+      />
+      {error && <Alert color="red">{error}</Alert>}
+      <Group justify="flex-end">
+        <Button variant="default" onClick={onClose}>Cancel</Button>
+        <Button
+          onClick={handleSaveAll}
+          loading={saving}
+          disabled={parsed.length === 0}
+          style={parsed.length > 0 ? { background: "var(--gk-accent-primary)", color: "#000" } : undefined}
+        >
+          {parsed.length > 0
+            ? `Add ${parsed.length} Prospect${parsed.length !== 1 ? "s" : ""}`
+            : "Add Prospects"}
+        </Button>
+      </Group>
+    </Stack>
+  );
+}
+
 function ProspectDrawer({
   opened,
   onClose,
@@ -737,7 +969,7 @@ function ProspectDrawer({
       onClose={onClose}
       title={prospect ? `Edit — ${prospect.name}` : "Add Prospect"}
       position="right"
-      size="md"
+      size="calc(100vw - 240px)"
     >
       {prospect ? (
         formFields
@@ -757,6 +989,7 @@ function ProspectDrawer({
           <Tabs.List style={{ borderColor: "var(--gk-border)", marginBottom: 16 }}>
             <Tabs.Tab value="paste">Paste Text</Tabs.Tab>
             <Tabs.Tab value="form">Details</Tabs.Tab>
+            <Tabs.Tab value="bulk" leftSection={<IconUpload size={12} />}>Bulk Upload</Tabs.Tab>
           </Tabs.List>
 
           <Tabs.Panel value="paste">
@@ -785,6 +1018,10 @@ function ProspectDrawer({
           <Tabs.Panel value="form">
             {formFields}
           </Tabs.Panel>
+
+          <Tabs.Panel value="bulk">
+            <BulkUploadPanel onSaved={onSaved} onClose={onClose} />
+          </Tabs.Panel>
         </Tabs>
       )}
     </Drawer>
@@ -806,6 +1043,8 @@ function ProspectsTab() {
   const [deleting, setDeleting] = useState<number | null>(null);
   const [chatTarget, setChatTarget] = useState<Prospect | null>(null);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [bulkLoading, setBulkLoading] = useState(false);
   const [waTemplates, setWaTemplates] = useState<MessageTemplate[]>([]);
   const [emailTemplates, setEmailTemplates] = useState<MessageTemplate[]>([]);
 
@@ -871,6 +1110,31 @@ function ProspectsTab() {
   const openEdit = (p: Prospect) => { setEditing(p); openDrawer(); };
   const openAdd = () => { setEditing(null); openDrawer(); };
 
+  const allSelected = sorted.length > 0 && sorted.every((p) => selectedIds.has(p.id));
+  const someSelected = !allSelected && sorted.some((p) => selectedIds.has(p.id));
+
+  const handleToggleSelect = (id: number) =>
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  const handleToggleAll = () =>
+    setSelectedIds(allSelected ? new Set() : new Set(sorted.map((p) => p.id)));
+
+  const handleBulkAdvance = async () => {
+    setBulkLoading(true);
+    const ids = [...selectedIds];
+    const results = await Promise.allSettled(ids.map((id) => advanceProspectStep(id)));
+    results.forEach((r, i) => {
+      if (r.status === "fulfilled")
+        setProspects((prev) => prev.map((p) => (p.id === ids[i] ? r.value : p)));
+    });
+    setSelectedIds(new Set());
+    setBulkLoading(false);
+  };
+
   const chatNextStep = chatTarget
     ? (chatTarget.current_sequence_step === 0 ? 1 : Math.min(chatTarget.current_sequence_step + 1, 3))
     : 1;
@@ -928,6 +1192,32 @@ function ProspectsTab() {
 
         {error && <Alert color="red">{error}</Alert>}
 
+        {selectedIds.size > 0 && (
+          <Group
+            p="xs"
+            gap="sm"
+            style={{
+              background: "color-mix(in srgb, var(--mantine-color-teal-5) 10%, var(--gk-bg-surface))",
+              border: "1px solid color-mix(in srgb, var(--mantine-color-teal-5) 30%, transparent)",
+              borderRadius: 8,
+            }}
+          >
+            <Text size="sm" fw={500}>{selectedIds.size} selected</Text>
+            <Button
+              size="xs"
+              color="teal"
+              leftSection={<IconBrandWhatsapp size={12} />}
+              loading={bulkLoading}
+              onClick={handleBulkAdvance}
+            >
+              Mark WhatsApp Sent
+            </Button>
+            <Button size="xs" variant="subtle" color="gray" onClick={() => setSelectedIds(new Set())}>
+              Clear
+            </Button>
+          </Group>
+        )}
+
         {loading ? (
           <Loader size="sm" />
         ) : sorted.length === 0 ? (
@@ -937,7 +1227,16 @@ function ProspectsTab() {
             <Table highlightOnHover fz="xs" verticalSpacing={4}>
               <Table.Thead style={{ background: "color-mix(in srgb, var(--gk-accent-primary) 8%, var(--gk-bg-surface))" }}>
                 <Table.Tr>
+                  <Table.Th style={{ width: 32 }}>
+                    <Checkbox
+                      size="xs"
+                      checked={allSelected}
+                      indeterminate={someSelected}
+                      onChange={handleToggleAll}
+                    />
+                  </Table.Th>
                   <SortTh col="name" sortBy={sortBy} sortDir={sortDir} onSort={toggle} minWidth={120}>Name</SortTh>
+                  <Table.Th style={{ minWidth: 130 }}>Actions</Table.Th>
                   <Table.Th style={{ minWidth: 170 }}>Contact</Table.Th>
                   <SortTh col="primary_zip" sortBy={sortBy} sortDir={sortDir} onSort={toggle} minWidth={55}>ZIP</SortTh>
                   <SortTh col="source" sortBy={sortBy} sortDir={sortDir} onSort={toggle} minWidth={80}>Source</SortTh>
@@ -946,7 +1245,6 @@ function ProspectsTab() {
                   <SortTh col="created_at" sortBy={sortBy} sortDir={sortDir} onSort={toggle} minWidth={80}>Added</SortTh>
                   <SortTh col="last_contacted_at" sortBy={sortBy} sortDir={sortDir} onSort={toggle} minWidth={95}>Last Contact</SortTh>
                   <Table.Th style={{ minWidth: 55 }}>Link</Table.Th>
-                  <Table.Th style={{ minWidth: 130 }}>Actions</Table.Th>
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
@@ -964,10 +1262,85 @@ function ProspectsTab() {
                   return (
                     <Table.Tr key={p.id}>
                       <Table.Td>
+                        <Checkbox
+                          size="xs"
+                          checked={selectedIds.has(p.id)}
+                          onChange={() => handleToggleSelect(p.id)}
+                        />
+                      </Table.Td>
+                      <Table.Td>
                         <Stack gap={0}>
                           <Text size="xs" fw={600}>{p.name}</Text>
                           <Text c="dimmed" ff="monospace" style={{ fontSize: 10 }}>{p.prospect_id}</Text>
                         </Stack>
+                      </Table.Td>
+                      <Table.Td>
+                        <Group gap={3} wrap="nowrap">
+                          {isActionable && p.status === "prospect" && p.email && (
+                            <Tooltip label="Start email sequence">
+                              <ActionIcon
+                                size="xs"
+                                variant="light"
+                                style={{ background: "color-mix(in srgb, var(--gk-accent-primary) 15%, transparent)", color: "var(--gk-accent-primary)" }}
+                                loading={isActionLoading}
+                                onClick={() => handleStartSequence(p)}
+                              >
+                                <IconPlayerPlay size={10} />
+                              </ActionIcon>
+                            </Tooltip>
+                          )}
+                          {p.phone && (
+                            <Tooltip label="Open WhatsApp chat">
+                              <ActionIcon
+                                size="xs"
+                                variant="subtle"
+                                color="teal"
+                                component="a"
+                                href={buildWaUrl(p.phone, waMsg)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                <IconWorld size={10} />
+                              </ActionIcon>
+                            </Tooltip>
+                          )}
+                          {isActionable && p.current_sequence_step < 3 && (
+                            <Tooltip label="Send chat step">
+                              <ActionIcon color="teal" variant="light" size="xs" onClick={() => setChatTarget(p)}>
+                                <IconBrandWhatsapp size={10} />
+                              </ActionIcon>
+                            </Tooltip>
+                          )}
+                          {isActionable && (
+                            <>
+                              <Tooltip label="Mark Converted">
+                                <ActionIcon color="green" variant="subtle" size="xs" loading={isActionLoading} onClick={() => updateStatus(p.id, "converted")}>
+                                  <IconUserCheck size={10} />
+                                </ActionIcon>
+                              </Tooltip>
+                              <Tooltip label="Put On Hold">
+                                <ActionIcon color="orange" variant="subtle" size="xs" loading={isActionLoading} onClick={() => updateStatus(p.id, "on_hold")}>
+                                  <IconClockHour4 size={10} />
+                                </ActionIcon>
+                              </Tooltip>
+                              <Tooltip label="Abandon">
+                                <ActionIcon color="gray" variant="subtle" size="xs" loading={isActionLoading} onClick={() => updateStatus(p.id, "abandoned")}>
+                                  <IconTrash size={10} />
+                                </ActionIcon>
+                              </Tooltip>
+                            </>
+                          )}
+                          <Tooltip label="Edit">
+                            <ActionIcon size="xs" variant="subtle" onClick={() => openEdit(p)}>
+                              <IconEdit size={10} />
+                            </ActionIcon>
+                          </Tooltip>
+                          <Tooltip label="Delete">
+                            <ActionIcon size="xs" variant="subtle" color="red" loading={isDeleting} onClick={() => handleDelete(p.id)}>
+                              <IconTrash size={10} />
+                            </ActionIcon>
+                          </Tooltip>
+                        </Group>
                       </Table.Td>
                       <Table.Td style={{ minWidth: 170 }}>
                         <Stack gap={2}>
@@ -1079,59 +1452,6 @@ function ProspectsTab() {
                             )}
                           </CopyButton>
                         )}
-                      </Table.Td>
-                      <Table.Td>
-                        <Group gap={3} wrap="nowrap">
-                          {isActionable && p.status === "prospect" && p.email && (
-                            <Tooltip label="Start email sequence">
-                              <ActionIcon
-                                size="xs"
-                                variant="light"
-                                style={{ background: "color-mix(in srgb, var(--gk-accent-primary) 15%, transparent)", color: "var(--gk-accent-primary)" }}
-                                loading={isActionLoading}
-                                onClick={() => handleStartSequence(p)}
-                              >
-                                <IconPlayerPlay size={10} />
-                              </ActionIcon>
-                            </Tooltip>
-                          )}
-                          {isActionable && p.current_sequence_step < 3 && (
-                            <Tooltip label="Send chat step">
-                              <ActionIcon color="teal" variant="light" size="xs" onClick={() => setChatTarget(p)}>
-                                <IconBrandWhatsapp size={10} />
-                              </ActionIcon>
-                            </Tooltip>
-                          )}
-                          {isActionable && (
-                            <>
-                              <Tooltip label="Mark Converted">
-                                <ActionIcon color="green" variant="subtle" size="xs" loading={isActionLoading} onClick={() => updateStatus(p.id, "converted")}>
-                                  <IconUserCheck size={10} />
-                                </ActionIcon>
-                              </Tooltip>
-                              <Tooltip label="Put On Hold">
-                                <ActionIcon color="orange" variant="subtle" size="xs" loading={isActionLoading} onClick={() => updateStatus(p.id, "on_hold")}>
-                                  <IconClockHour4 size={10} />
-                                </ActionIcon>
-                              </Tooltip>
-                              <Tooltip label="Abandon">
-                                <ActionIcon color="gray" variant="subtle" size="xs" loading={isActionLoading} onClick={() => updateStatus(p.id, "abandoned")}>
-                                  <IconTrash size={10} />
-                                </ActionIcon>
-                              </Tooltip>
-                            </>
-                          )}
-                          <Tooltip label="Edit">
-                            <ActionIcon size="xs" variant="subtle" onClick={() => openEdit(p)}>
-                              <IconEdit size={10} />
-                            </ActionIcon>
-                          </Tooltip>
-                          <Tooltip label="Delete">
-                            <ActionIcon size="xs" variant="subtle" color="red" loading={isDeleting} onClick={() => handleDelete(p.id)}>
-                              <IconTrash size={10} />
-                            </ActionIcon>
-                          </Tooltip>
-                        </Group>
                       </Table.Td>
                     </Table.Tr>
                   );
