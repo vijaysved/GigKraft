@@ -9,7 +9,7 @@ const LINKS = [
   { label: "Careers", to: "/careers" },
   { label: "Contact", to: "/contact" },
   { label: "Privacy", to: "/contact" },
-  { label: "Terms", to: "/contact" },
+  { label: "Terms", to: "/terms" },
 ];
 
 export function MarketingFooter() {

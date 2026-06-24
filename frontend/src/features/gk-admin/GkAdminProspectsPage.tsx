@@ -1281,6 +1281,9 @@ function ProspectsTab() {
 
   const displayed = useMemo(() => {
     let result = sorted;
+    if (!statusFilter) {
+      result = result.filter((p) => p.status !== "abandoned");
+    }
     if (stepFilters.length > 0) {
       result = result.filter((p) => stepFilters.includes(String(p.current_sequence_step)));
     }
@@ -1292,7 +1295,7 @@ function ProspectsTab() {
       );
     }
     return result;
-  }, [sorted, stepFilters, channelFilters]);
+  }, [sorted, statusFilter, stepFilters, channelFilters]);
 
   const stepCounts = useMemo(() => ({
     "0": sorted.filter((p) => p.current_sequence_step === 0).length,

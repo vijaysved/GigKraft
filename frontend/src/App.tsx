@@ -22,6 +22,7 @@ import { PricingPage } from "./pages/marketing/PricingPage";
 import { AboutPage } from "./pages/marketing/AboutPage";
 import { CareersPage } from "./pages/marketing/CareersPage";
 import { ContactPage } from "./pages/marketing/ContactPage";
+import { TermsPage } from "./pages/marketing/TermsPage";
 
 // Public pages
 import { LoginPage } from "./pages/LoginPage";
@@ -112,6 +113,7 @@ export default function App() {
       <Route path="/about" element={<MarketingLayout><AboutPage /></MarketingLayout>} />
       <Route path="/careers" element={<MarketingLayout><CareersPage /></MarketingLayout>} />
       <Route path="/contact" element={<MarketingLayout><ContactPage /></MarketingLayout>} />
+      <Route path="/terms" element={<MarketingLayout><TermsPage /></MarketingLayout>} />
 
       {/* Public app pages */}
       <Route path="/login" element={<LoginPage />} />

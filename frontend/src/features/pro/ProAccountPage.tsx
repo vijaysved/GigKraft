@@ -45,6 +45,7 @@ import {
 } from "@tabler/icons-react";
 
 import { BillingTab } from "./BillingTab";
+import { TermsContent } from "../../components/marketing/TermsContent";
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
@@ -491,6 +492,10 @@ export function ProAccountPage() {
             style={{ color: activeTab === "billing" ? "var(--gk-accent-primary)" : "var(--gk-accent-secondary)" }}>
             Billing
           </Tabs.Tab>
+          <Tabs.Tab value="terms"
+            style={{ color: activeTab === "terms" ? "var(--gk-accent-primary)" : "var(--gk-accent-secondary)" }}>
+            Terms
+          </Tabs.Tab>
         </Tabs.List>
 
         {/* ══════════════════════════ PUBLIC PAGE TAB ══════════════════════════ */}
@@ -913,6 +918,11 @@ export function ProAccountPage() {
             </Card>
           </Stack>
         </Tabs.Panel>
+        {/* ══════════════════════════ TERMS TAB ══════════════════════════ */}
+        <Tabs.Panel value="terms" pt="md">
+          <TermsContent />
+        </Tabs.Panel>
+
       </Tabs>
 
       {/* ══════════════════════════ MODALS ══════════════════════════ */}
