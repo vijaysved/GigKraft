@@ -65,6 +65,7 @@ import {
   sendProspectStep,
   ApiError,
 } from "../../api/endpoints";
+import { notifications } from "@mantine/notifications";
 import type {
   Prospect,
   ProspectAnalytics,
@@ -1222,8 +1223,12 @@ function ProspectsTab() {
     try {
       const updated = await sendProspectStep(p.id, step, channel, isResend);
       setProspects((prev) => prev.map((x) => (x.id === updated.id ? updated : x)));
-    } catch { /* ignore */ }
-    finally { setActionLoading(null); }
+      console.log("[GK] send-step success", { prospectId: p.id, step, channel, updated });
+      notifications.show({ color: "green", title: "Sent", message: `Step ${step} ${channel} sent to ${p.email || p.name}.` });
+    } catch (err) {
+      console.error("[GK] send-step error", { prospectId: p.id, step, channel, err });
+      notifications.show({ color: "red", title: "Send failed", message: err instanceof Error ? err.message : "Unknown error — check Railway logs." });
+    } finally { setActionLoading(null); }
   };
 
   const openEdit = (p: Prospect) => { setEditing(p); openDrawer(); };
