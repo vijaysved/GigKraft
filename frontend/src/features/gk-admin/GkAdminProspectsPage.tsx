@@ -1281,7 +1281,7 @@ function ProspectsTab() {
       <Stack gap="sm">
         <Group>
           <TextInput
-            placeholder="Search name or email…"
+            placeholder="Search name, email or phone…"
             leftSection={<IconSearch size={14} />}
             value={search}
             onChange={(e) => setSearch(e.target.value)}

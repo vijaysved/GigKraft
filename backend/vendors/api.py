@@ -261,7 +261,7 @@ def list_prospects(
     if source:
         qs = qs.filter(source=source)
     if search:
-        qs = qs.filter(name__icontains=search) | qs.filter(email__icontains=search)
+        qs = qs.filter(name__icontains=search) | qs.filter(email__icontains=search) | qs.filter(phone__icontains=search)
     return [_serialize(p) for p in qs[:500]]
 
 

@@ -488,7 +488,6 @@ export function GkAdminProspectDetailPage() {
       setProspect(updated);
       const refreshed = await listOutreachLogs(prospect.id);
       setLogs(refreshed);
-      const latest = refreshed[0];
       notifications.show({
         color: "green",
         title: "Sent",
