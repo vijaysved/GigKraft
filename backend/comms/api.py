@@ -162,17 +162,12 @@ def send_email_endpoint(request, payload: SendEmailIn):
     if payload.template_id:
         template = MessageTemplate.objects.filter(pk=payload.template_id).first()
 
-    from comms.services import DEFAULT_CC
-    cc_final = list(payload.cc or [])
-    if DEFAULT_CC[0] not in cc_final:
-        cc_final.append(DEFAULT_CC[0])
-
     log = OutreachLog.objects.create(
         prospect=prospect,
         template=template,
         channel="email",
         to_address=payload.to,
-        cc_addresses=", ".join(cc_final),
+        cc_addresses=", ".join(payload.cc or []),
         subject_sent=payload.subject,
         body_sent=payload.body,
         resend_id=resend_id,
