@@ -61,12 +61,8 @@ class TrackPageViewIn(Schema):
 
 @public_router.post("/track/page-view", response={200: dict}, auth=None)
 def track_site_page_view(request, payload: TrackPageViewIn):
-    """Records a visit to a site-config demo/marketing page.
-
-    Only logged by unauthenticated visitors — authenticated requests are ignored
-    so internal admin visits don't skew the numbers.
-    """
-    if request.auth:
+    """Records a visit to a site-config demo/marketing page."""
+    if getattr(request, "auth", None):
         return {"ok": True, "skipped": True}
     SitePageView.objects.create(
         url=payload.url,

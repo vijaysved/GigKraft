@@ -1146,6 +1146,7 @@ export async function claimAnonymousLead(leadId: number): Promise<InboxLead> {
 
 export function trackSitePageView(url: string): void {
   const referrer = document.referrer || "";
-  void _post("/api/track/page-view", { body: { url, referrer } });
+  const cleanUrl = url.split("?")[0].split("#")[0];
+  void _post("/api/track/page-view", { body: { url: cleanUrl, referrer } });
 }
 
