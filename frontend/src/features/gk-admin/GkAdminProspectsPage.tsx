@@ -23,7 +23,12 @@ import {
   Title,
   Tooltip,
 } from "@mantine/core";
-import { PieChart } from "@mantine/charts";
+import {
+  PieChart as RechartsPieChart,
+  Pie,
+  Cell,
+  Tooltip as RechartsTooltip,
+} from "recharts";
 import { useDebouncedValue, useDisclosure } from "@mantine/hooks";
 import {
   IconArrowsSort,
@@ -454,13 +459,22 @@ function PieChartCard({ title, data }: {
         <Text size="sm" c="dimmed">No data yet.</Text>
       ) : (
         <Group gap="lg" align="flex-start" wrap="nowrap">
-          <PieChart
-            data={filtered}
-            withTooltip
-            tooltipDataSource="segment"
-            size={130}
-            style={{ flexShrink: 0 }}
-          />
+          <RechartsPieChart width={130} height={130} style={{ flexShrink: 0 }}>
+            <Pie
+              data={filtered}
+              cx={60}
+              cy={60}
+              innerRadius={34}
+              outerRadius={58}
+              dataKey="value"
+              strokeWidth={0}
+            >
+              {filtered.map((d) => (
+                <Cell key={d.name} fill={d.color} />
+              ))}
+            </Pie>
+            <RechartsTooltip />
+          </RechartsPieChart>
           <Stack gap={6} style={{ flex: 1 }}>
             {filtered.map((d) => {
               const pct = total > 0 ? ((d.value / total) * 100).toFixed(1) : "0";
