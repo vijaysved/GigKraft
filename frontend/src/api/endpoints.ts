@@ -543,6 +543,7 @@ export interface ProspectAnalytics {
   by_status: Record<string, number>;
   by_source: Record<string, number>;
   by_sequence_step: Record<string, number>;
+  by_channel: Record<string, number>;
   recent_conversions: Array<{
     id: number;
     name: string;

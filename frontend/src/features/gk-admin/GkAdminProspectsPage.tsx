@@ -12,7 +12,6 @@ import {
   Group,
   Loader,
   Modal,
-  Progress,
   Select,
   SimpleGrid,
   Stack,
@@ -24,6 +23,7 @@ import {
   Title,
   Tooltip,
 } from "@mantine/core";
+import { PieChart } from "@mantine/charts";
 import { useDebouncedValue, useDisclosure } from "@mantine/hooks";
 import {
   IconArrowsSort,
@@ -419,6 +419,71 @@ function TableBox({ children }: { children: React.ReactNode }) {
 
 // ── Dashboard Tab ─────────────────────────────────────────────────────────────
 
+const STATUS_PIE: Record<string, { label: string; color: string }> = {
+  prospect:    { label: "Prospect",    color: "#4DABF7" },
+  interested:  { label: "Interested",  color: "#22B8CF" },
+  in_progress: { label: "In Progress", color: "#FFD43B" },
+  converted:   { label: "Converted",   color: "#69DB7C" },
+  on_hold:     { label: "On Hold",     color: "#FFA94D" },
+  abandoned:   { label: "Abandoned",   color: "#ADB5BD" },
+};
+
+const SOURCE_PIE: Record<string, { label: string; color: string }> = {
+  nextdoor:   { label: "Nextdoor",   color: "#20C997" },
+  craigslist: { label: "Craigslist", color: "#9775FA" },
+  whatsapp:   { label: "WhatsApp",   color: "#51CF66" },
+  direct:     { label: "Direct",     color: "#4DABF7" },
+};
+
+const CHANNEL_PIE: Record<string, { label: string; color: string }> = {
+  email:    { label: "Email",    color: "#4DABF7" },
+  whatsapp: { label: "WhatsApp", color: "#20C997" },
+  sms:      { label: "Text",     color: "#748FFC" },
+};
+
+function PieChartCard({ title, data }: {
+  title: string;
+  data: Array<{ name: string; value: number; color: string }>;
+}) {
+  const filtered = data.filter((d) => d.value > 0);
+  const total = filtered.reduce((sum, d) => sum + d.value, 0);
+  return (
+    <Card withBorder radius="md" p="lg" style={{ background: "var(--gk-bg-surface)" }}>
+      <Text fw={600} mb="md">{title}</Text>
+      {filtered.length === 0 ? (
+        <Text size="sm" c="dimmed">No data yet.</Text>
+      ) : (
+        <Group gap="lg" align="flex-start" wrap="nowrap">
+          <PieChart
+            data={filtered}
+            withTooltip
+            tooltipDataSource="segment"
+            size={130}
+            style={{ flexShrink: 0 }}
+          />
+          <Stack gap={6} style={{ flex: 1 }}>
+            {filtered.map((d) => {
+              const pct = total > 0 ? ((d.value / total) * 100).toFixed(1) : "0";
+              return (
+                <Group key={d.name} justify="space-between" wrap="nowrap">
+                  <Group gap={6} wrap="nowrap">
+                    <Box style={{ width: 10, height: 10, borderRadius: 3, background: d.color, flexShrink: 0 }} />
+                    <Text size="xs">{d.name}</Text>
+                  </Group>
+                  <Group gap={4} wrap="nowrap">
+                    <Text size="xs" fw={600}>{d.value}</Text>
+                    <Text size="xs" c="dimmed">({pct}%)</Text>
+                  </Group>
+                </Group>
+              );
+            })}
+          </Stack>
+        </Group>
+      )}
+    </Card>
+  );
+}
+
 function KpiCard({ label, value, accent }: { label: string; value: string | number; accent?: boolean }) {
   return (
     <Card withBorder radius="md" p="lg" style={{ background: "var(--gk-bg-surface)" }}>
@@ -447,8 +512,23 @@ function DashboardTab() {
   if (error) return <Alert color="red">{error}</Alert>;
   if (!analytics) return <Loader size="sm" />;
 
-  const statuses = Object.entries(analytics.by_status);
-  const total = analytics.total || 1;
+  const statusData = Object.entries(analytics.by_status).map(([s, count]) => ({
+    name: STATUS_PIE[s]?.label ?? s,
+    value: count,
+    color: STATUS_PIE[s]?.color ?? "#ADB5BD",
+  }));
+
+  const sourceData = Object.entries(analytics.by_source).map(([src, count]) => ({
+    name: SOURCE_PIE[src]?.label ?? src,
+    value: count,
+    color: SOURCE_PIE[src]?.color ?? "#ADB5BD",
+  }));
+
+  const channelData = Object.entries(analytics.by_channel ?? {}).map(([ch, count]) => ({
+    name: CHANNEL_PIE[ch]?.label ?? ch,
+    value: count,
+    color: CHANNEL_PIE[ch]?.color ?? "#ADB5BD",
+  }));
 
   return (
     <Stack gap="xl">
@@ -459,44 +539,13 @@ function DashboardTab() {
         <KpiCard label="Link CTR" value={`${analytics.link_ctr}%`} />
       </SimpleGrid>
 
+      <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
+        <PieChartCard title="Status Funnel" data={statusData} />
+        <PieChartCard title="Source Breakdown" data={sourceData} />
+        <PieChartCard title="Channel Mix" data={channelData} />
+      </SimpleGrid>
+
       <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
-        <Card withBorder radius="md" p="lg" style={{ background: "var(--gk-bg-surface)" }}>
-          <Text fw={600} mb="md">Status Funnel</Text>
-          <Stack gap="xs">
-            {statuses.map(([s, count]) => (
-              <div key={s}>
-                <Group justify="space-between" mb={2}>
-                  <Badge color={STATUS_COLORS[s]} size="xs" variant="dot">{STATUS_LABELS[s]}</Badge>
-                  <Text size="sm" fw={500}>{count}</Text>
-                </Group>
-                <Progress
-                  value={(count / total) * 100}
-                  color={s === "converted" ? "var(--gk-accent-primary)" : STATUS_COLORS[s]}
-                  size="sm"
-                  radius="xl"
-                />
-              </div>
-            ))}
-          </Stack>
-        </Card>
-
-        <Card withBorder radius="md" p="lg" style={{ background: "var(--gk-bg-surface)" }}>
-          <Text fw={600} mb="md">Source Breakdown</Text>
-          <Stack gap="xs">
-            {Object.entries(analytics.by_source).map(([src, count]) => (
-              <div key={src}>
-                <Group justify="space-between" mb={2}>
-                  <Badge color={SOURCE_COLORS[src] ?? "gray"} size="xs" variant="light">
-                    {src.charAt(0).toUpperCase() + src.slice(1)}
-                  </Badge>
-                  <Text size="sm" fw={500}>{count}</Text>
-                </Group>
-                <Progress value={(count / total) * 100} color={SOURCE_COLORS[src] ?? "gray"} size="sm" radius="xl" />
-              </div>
-            ))}
-          </Stack>
-        </Card>
-
         <Card withBorder radius="md" p="lg" style={{ background: "var(--gk-bg-surface)" }}>
           <Text fw={600} mb="md">Active Sequence Steps</Text>
           <Stack gap="xs">

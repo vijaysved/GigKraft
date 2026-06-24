@@ -120,6 +120,7 @@ class AnalyticsOut(Schema):
     by_status: dict
     by_source: dict
     by_sequence_step: dict
+    by_channel: dict
     recent_conversions: list[dict]
 
 
@@ -212,6 +213,10 @@ def get_analytics(request):
         str(i): Prospect.objects.filter(status=Prospect.Status.IN_PROGRESS, current_sequence_step=i).count()
         for i in range(4)
     }
+    by_channel = {
+        ch: OutreachLog.objects.filter(channel=ch).count()
+        for ch in ("email", "whatsapp", "sms")
+    }
     recent = list(
         Prospect.objects.filter(status=Prospect.Status.CONVERTED)
         .select_related("converted_user")
@@ -226,6 +231,7 @@ def get_analytics(request):
         "by_status": by_status,
         "by_source": by_source,
         "by_sequence_step": by_step,
+        "by_channel": by_channel,
         "recent_conversions": [
             {"id": p.id, "name": p.name, "source": p.source,
              "converted_user_id": p.converted_user_id, "updated_at": p.updated_at.isoformat()}
