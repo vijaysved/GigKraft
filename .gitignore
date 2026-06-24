@@ -4,6 +4,7 @@
 !.env.example
 *.pem
 *.key
+migration script.md
 
 # --- Python / Django ---
 __pycache__/
