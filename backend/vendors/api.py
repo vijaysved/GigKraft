@@ -3,6 +3,7 @@
 Routes (all under /prospects):
   GET    /analytics     ← must be before /{id}
   POST   /bulk-status   ← must be before /{id}
+  POST   /bulk-preview  ← must be before /{id}
   GET    /
   POST   /
   GET    /{id}
@@ -109,6 +110,32 @@ class ProspectPatchIn(Schema):
 class BulkStatusIn(Schema):
     ids: list[int]
     status: str
+
+
+class BulkPreviewItem(Schema):
+    name: str
+    email: str = ""
+    phone: str = ""
+
+
+class BulkPreviewResult(Schema):
+    index: int
+    name: str
+    email: str
+    phone: str
+    is_duplicate: bool
+    existing_id: Optional[int] = None
+
+
+class BulkPreviewOut(Schema):
+    total: int
+    new_count: int
+    existing_count: int
+    results: list[BulkPreviewResult]
+
+
+class BulkPreviewIn(Schema):
+    prospects: list[BulkPreviewItem]
 
 
 class AnalyticsOut(Schema):
@@ -249,6 +276,33 @@ def bulk_update_status(request, payload: BulkStatusIn):
     Prospect.objects.filter(pk__in=payload.ids).update(status=payload.status)
     updated = list(_qs_with_logs().filter(pk__in=payload.ids))
     return 200, [_serialize(p) for p in updated]
+
+
+@router.post("/bulk-preview", response={200: BulkPreviewOut})
+def bulk_preview(request, payload: BulkPreviewIn):
+    require_gk_admin(request)
+    results = []
+    for i, item in enumerate(payload.prospects):
+        dup = None
+        if item.email.strip():
+            dup = Prospect.objects.filter(email__iexact=item.email.strip()).first()
+        if dup is None and item.phone.strip():
+            dup = Prospect.objects.filter(phone=item.phone.strip()).first()
+        results.append(BulkPreviewResult(
+            index=i,
+            name=item.name,
+            email=item.email,
+            phone=item.phone,
+            is_duplicate=dup is not None,
+            existing_id=dup.pk if dup else None,
+        ))
+    new_count = sum(1 for r in results if not r.is_duplicate)
+    return 200, BulkPreviewOut(
+        total=len(results),
+        new_count=new_count,
+        existing_count=len(results) - new_count,
+        results=results,
+    )
 
 
 # ── Collection ────────────────────────────────────────────────────────────────

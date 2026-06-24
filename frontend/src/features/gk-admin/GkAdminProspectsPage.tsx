@@ -58,6 +58,7 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import {
   advanceProspectStep,
+  checkProspectDuplicates,
   createProspect,
   deleteProspect,
   getProspectAnalytics,
@@ -69,6 +70,8 @@ import {
   updateTemplate,
   sendProspectStep,
   ApiError,
+  type BulkPreviewOut,
+  type BulkPreviewResult,
 } from "../../api/endpoints";
 import { notifications } from "@mantine/notifications";
 import type {
@@ -906,18 +909,45 @@ function BulkUploadPanel({
 }) {
   const [rawText, setRawText] = useState("");
   const [saving, setSaving] = useState(false);
+  const [checking, setChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [source, setSource] = useState("nextdoor");
+  const [preview, setPreview] = useState<BulkPreviewOut | null>(null);
 
   const parsed = useMemo(() => parseBulkText(rawText), [rawText]);
 
-  const handleSaveAll = async () => {
+  // Reset preview whenever the pasted text changes
+  const handleTextChange = (text: string) => {
+    setRawText(text);
+    setPreview(null);
+    setError(null);
+  };
+
+  const handleCheck = async () => {
     if (parsed.length === 0) return;
+    setChecking(true);
+    setError(null);
+    try {
+      const result = await checkProspectDuplicates(
+        parsed.map((p) => ({ name: p.name || "Unknown", email: p.email || "", phone: p.phone || "" })),
+      );
+      setPreview(result);
+    } catch {
+      setError("Failed to check for duplicates. Try again.");
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  const handleSaveAll = async () => {
+    if (!preview) return;
+    const toAdd = parsed.filter((_, i) => !preview.results[i]?.is_duplicate);
+    if (toAdd.length === 0) return;
     setSaving(true);
     setError(null);
     const failed: string[] = [];
     try {
-      for (const p of parsed) {
+      for (const p of toAdd) {
         try {
           const result = await createProspect({
             name: p.name || "Unknown",
@@ -942,56 +972,83 @@ function BulkUploadPanel({
     }
   };
 
+  const dupSet = useMemo<Set<number>>(() => {
+    if (!preview) return new Set();
+    return new Set(preview.results.filter((r: BulkPreviewResult) => r.is_duplicate).map((r: BulkPreviewResult) => r.index));
+  }, [preview]);
+
   return (
     <Stack>
       {parsed.length > 0 && (
-        <TableBox>
-          <Table fz="xs" verticalSpacing={4}>
-            <Table.Thead
-              style={{ background: "color-mix(in srgb, var(--gk-accent-primary) 8%, var(--gk-bg-surface))" }}
-            >
-              <Table.Tr>
-                <Table.Th>Name</Table.Th>
-                <Table.Th>Email</Table.Th>
-                <Table.Th>Phone</Table.Th>
-                <Table.Th>URL</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {parsed.map((p, i) => (
-                <Table.Tr key={i}>
-                  <Table.Td>
-                    <Text size="xs" fw={p.name ? 500 : undefined} c={p.name ? undefined : "dimmed"}>
-                      {p.name || "—"}
-                    </Text>
-                  </Table.Td>
-                  <Table.Td>
-                    <Text size="xs" c={p.email ? undefined : "dimmed"}>{p.email || "—"}</Text>
-                  </Table.Td>
-                  <Table.Td>
-                    <Text size="xs" c={p.phone ? undefined : "dimmed"}>{p.phone || "—"}</Text>
-                  </Table.Td>
-                  <Table.Td>
-                    {p.url ? (
-                      <Text size="xs" truncate style={{ maxWidth: 110 }} title={p.url}>
-                        {p.url}
-                      </Text>
-                    ) : (
-                      <Text size="xs" c="dimmed">—</Text>
-                    )}
-                  </Table.Td>
+        <>
+          {preview && (
+            <Group gap="xs">
+              <Badge color="gray" variant="light">{preview.total} total</Badge>
+              <Badge color="green" variant="light">{preview.new_count} new</Badge>
+              {preview.existing_count > 0 && (
+                <Badge color="orange" variant="light">{preview.existing_count} already exist</Badge>
+              )}
+            </Group>
+          )}
+          <TableBox>
+            <Table fz="xs" verticalSpacing={4}>
+              <Table.Thead
+                style={{ background: "color-mix(in srgb, var(--gk-accent-primary) 8%, var(--gk-bg-surface))" }}
+              >
+                <Table.Tr>
+                  <Table.Th>Name</Table.Th>
+                  <Table.Th>Email</Table.Th>
+                  <Table.Th>Phone</Table.Th>
+                  <Table.Th>URL</Table.Th>
                 </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
-        </TableBox>
+              </Table.Thead>
+              <Table.Tbody>
+                {parsed.map((p, i) => {
+                  const isDup = dupSet.has(i);
+                  return (
+                    <Table.Tr
+                      key={i}
+                      style={isDup ? { opacity: 0.5, background: "color-mix(in srgb, orange 8%, transparent)" } : undefined}
+                    >
+                      <Table.Td>
+                        <Group gap={4} wrap="nowrap">
+                          <Text size="xs" fw={p.name ? 500 : undefined} c={p.name ? undefined : "dimmed"}>
+                            {p.name || "—"}
+                          </Text>
+                          {isDup && (
+                            <Badge size="xs" color="orange" variant="light">exists</Badge>
+                          )}
+                        </Group>
+                      </Table.Td>
+                      <Table.Td>
+                        <Text size="xs" c={p.email ? undefined : "dimmed"}>{p.email || "—"}</Text>
+                      </Table.Td>
+                      <Table.Td>
+                        <Text size="xs" c={p.phone ? undefined : "dimmed"}>{p.phone || "—"}</Text>
+                      </Table.Td>
+                      <Table.Td>
+                        {p.url ? (
+                          <Text size="xs" truncate style={{ maxWidth: 110 }} title={p.url}>
+                            {p.url}
+                          </Text>
+                        ) : (
+                          <Text size="xs" c="dimmed">—</Text>
+                        )}
+                      </Table.Td>
+                    </Table.Tr>
+                  );
+                })}
+              </Table.Tbody>
+            </Table>
+          </TableBox>
+        </>
       )}
       <Textarea
         placeholder={
           "Paste multiple contacts — one blank line between each.\n\nJohn Smith\n(555) 123-4567\njohn@example.com\nhttps://johnpainting.com\n\nJane Doe\n(555) 987-6543\njane@example.com"
         }
         value={rawText}
-        onChange={(e) => setRawText(e.target.value)}
+        onChange={(e) => handleTextChange(e.target.value)}
         autosize
         minRows={parsed.length > 0 ? 5 : 12}
         styles={{ input: { fontFamily: "monospace", fontSize: 13 } }}
@@ -1006,16 +1063,29 @@ function BulkUploadPanel({
       {error && <Alert color="red">{error}</Alert>}
       <Group justify="flex-end">
         <Button variant="default" onClick={onClose}>Cancel</Button>
-        <Button
-          onClick={handleSaveAll}
-          loading={saving}
-          disabled={parsed.length === 0}
-          style={parsed.length > 0 ? { background: "var(--gk-accent-primary)", color: "#000" } : undefined}
-        >
-          {parsed.length > 0
-            ? `Add ${parsed.length} Prospect${parsed.length !== 1 ? "s" : ""}`
-            : "Add Prospects"}
-        </Button>
+        {!preview ? (
+          <Button
+            onClick={handleCheck}
+            loading={checking}
+            disabled={parsed.length === 0}
+            style={parsed.length > 0 ? { background: "var(--gk-accent-primary)", color: "#000" } : undefined}
+          >
+            {parsed.length > 0
+              ? `Check ${parsed.length} Prospect${parsed.length !== 1 ? "s" : ""}`
+              : "Check Prospects"}
+          </Button>
+        ) : (
+          <Button
+            onClick={handleSaveAll}
+            loading={saving}
+            disabled={preview.new_count === 0}
+            style={preview.new_count > 0 ? { background: "var(--gk-accent-primary)", color: "#000" } : undefined}
+          >
+            {preview.new_count > 0
+              ? `Add ${preview.new_count} New Prospect${preview.new_count !== 1 ? "s" : ""}`
+              : "No New Prospects"}
+          </Button>
+        )}
       </Group>
     </Stack>
   );

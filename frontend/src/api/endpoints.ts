@@ -603,6 +603,32 @@ export async function deleteProspect(id: number): Promise<void> {
   if (response.status !== 204) throw new ApiError(response.status, "Failed to delete prospect.");
 }
 
+export interface BulkPreviewResult {
+  index: number;
+  name: string;
+  email: string;
+  phone: string;
+  is_duplicate: boolean;
+  existing_id: number | null;
+}
+
+export interface BulkPreviewOut {
+  total: number;
+  new_count: number;
+  existing_count: number;
+  results: BulkPreviewResult[];
+}
+
+export async function checkProspectDuplicates(
+  prospects: Array<{ name: string; email: string; phone: string }>,
+): Promise<BulkPreviewOut> {
+  const { data, error, response } = await client.POST("/api/prospects/bulk-preview" as never, {
+    body: { prospects },
+  } as never);
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to check duplicates."));
+  return data as BulkPreviewOut;
+}
+
 export async function bulkUpdateProspectStatus(ids: number[], status: string): Promise<Prospect[]> {
   const { data, error, response } = await client.POST(
     "/api/prospects/bulk-status" as never,
