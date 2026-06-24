@@ -1,4 +1,5 @@
 import "@mantine/core/styles.css";
+import "@mantine/notifications/styles.css";
 import "@mantine/tiptap/styles.css";
 import "./theme/theme.css";
 

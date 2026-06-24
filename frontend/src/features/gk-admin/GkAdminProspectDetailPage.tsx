@@ -14,6 +14,7 @@ import {
   Title,
   Tooltip,
 } from "@mantine/core";
+import { notifications } from "@mantine/notifications";
 import { IconArrowLeft, IconMail, IconBrandWhatsapp, IconRefresh } from "@tabler/icons-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -487,8 +488,18 @@ export function GkAdminProspectDetailPage() {
       setProspect(updated);
       const refreshed = await listOutreachLogs(prospect.id);
       setLogs(refreshed);
-    } catch { /* ignore */ }
-    finally { setResendLoading(null); }
+      notifications.show({
+        color: "green",
+        title: "Sent",
+        message: `Step ${step} ${channel} sent to ${prospect.email || prospect.name}.`,
+      });
+    } catch (err) {
+      notifications.show({
+        color: "red",
+        title: "Send failed",
+        message: err instanceof Error ? err.message : "Unknown error — check Railway logs.",
+      });
+    } finally { setResendLoading(null); }
   };
 
   if (loading) {

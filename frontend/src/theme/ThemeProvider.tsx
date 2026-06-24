@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { MantineProvider } from "@mantine/core";
+import { Notifications } from "@mantine/notifications";
 
 import {
   applyBrandTokens,
@@ -61,6 +62,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         theme={definition.theme}
         forceColorScheme={definition.colorScheme}
       >
+        <Notifications position="top-right" />
         {children}
       </MantineProvider>
     </ThemeContext.Provider>
