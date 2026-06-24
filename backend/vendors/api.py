@@ -55,6 +55,8 @@ class StepJourney(Schema):
     channel: Optional[str]
     read_at: Optional[str]
     link_clicked_at: Optional[str]
+    email_count: int = 0
+    whatsapp_count: int = 0
 
 
 class ProspectOut(Schema):
@@ -127,13 +129,18 @@ def _build_journey(sequence_logs) -> list[dict]:
     """Build 3-step journey list from prefetched/queried OutreachLog objects."""
     result = []
     for step_num in range(1, 4):
-        log = next((lg for lg in sequence_logs if lg.sequence_step == step_num), None)
+        step_logs = [lg for lg in sequence_logs if lg.sequence_step == step_num]
+        email_count = sum(1 for lg in step_logs if lg.channel == "email")
+        whatsapp_count = sum(1 for lg in step_logs if lg.channel in ("whatsapp", "sms"))
+        recent = max(step_logs, key=lambda lg: lg.sent_at) if step_logs else None
         result.append({
             "step": step_num,
-            "sent_at": log.sent_at.isoformat() if log else None,
-            "channel": log.channel if log else None,
-            "read_at": log.read_at.isoformat() if log and log.read_at else None,
-            "link_clicked_at": log.link_clicked_at.isoformat() if log and log.link_clicked_at else None,
+            "sent_at": recent.sent_at.isoformat() if recent else None,
+            "channel": recent.channel if recent else None,
+            "read_at": recent.read_at.isoformat() if recent and recent.read_at else None,
+            "link_clicked_at": recent.link_clicked_at.isoformat() if recent and recent.link_clicked_at else None,
+            "email_count": email_count,
+            "whatsapp_count": whatsapp_count,
         })
     return result
 
@@ -383,6 +390,73 @@ def advance_chat_step(request, prospect_id: int, data: AdvanceStepIn):
         sequence_step=p.current_sequence_step,
         link_click_token=_uuid.uuid4(),
     )
+    _attach_logs(p)
+    return 200, _serialize(p)
+
+
+class SendStepIn(Schema):
+    step: int
+    channel: str = "email"
+    is_resend: bool = False
+
+
+@router.post("/{prospect_id}/send-step", response={200: ProspectOut, 400: ErrorOut, 404: ErrorOut, 500: ErrorOut})
+def send_step(request, prospect_id: int, data: SendStepIn):
+    """Send or resend a specific sequence step via email or WhatsApp log."""
+    require_gk_admin(request)
+    from comms.models import MessageTemplate, OutreachLog
+    from comms.services import send_email as _send_email
+
+    if data.step not in (1, 2, 3):
+        return 400, {"detail": "step must be 1, 2, or 3."}
+
+    p = Prospect.objects.filter(pk=prospect_id).select_related("converted_user").first()
+    if p is None:
+        return 404, {"detail": "Prospect not found."}
+
+    now = timezone.now()
+    link_click_token = _uuid.uuid4()
+
+    if data.channel == "email":
+        if not p.email:
+            return 400, {"detail": "Prospect has no email address."}
+        template = MessageTemplate.objects.filter(
+            kind=f"sequence_{data.step}", channel="email", is_default=True
+        ).first()
+        if not template:
+            return 400, {"detail": f"No default email template found for step {data.step}."}
+        subject, body = template.render(p.template_vars_for_log(link_click_token))
+        email_track_token = _uuid.uuid4()
+        try:
+            resend_id = _send_email(
+                to=p.email, subject=subject, body=body, track_token=str(email_track_token)
+            )
+        except Exception as exc:
+            return 500, {"detail": f"Email send failed: {exc}"}
+        OutreachLog.objects.create(
+            prospect=p, template=template, channel="email",
+            to_address=p.email, subject_sent=subject, body_sent=body,
+            resend_id=resend_id, sequence_step=data.step,
+            email_track_token=email_track_token, link_click_token=link_click_token,
+        )
+    else:
+        OutreachLog.objects.create(
+            prospect=p, channel=data.channel,
+            to_address=p.phone or "",
+            notes=f"Step {data.step} sent via {data.channel}.",
+            sequence_step=data.step, link_click_token=link_click_token,
+        )
+
+    # Only advance current_sequence_step when this is a new (non-resend) send
+    if not data.is_resend:
+        if p.status == Prospect.Status.PROSPECT and data.step >= 1:
+            p.status = Prospect.Status.IN_PROGRESS
+            p.current_sequence_step = data.step
+        elif p.status == Prospect.Status.IN_PROGRESS and data.step > p.current_sequence_step:
+            p.current_sequence_step = data.step
+    p.last_contacted_at = now
+    p.save(update_fields=["status", "current_sequence_step", "last_contacted_at", "updated_at"])
+
     _attach_logs(p)
     return 200, _serialize(p)
 

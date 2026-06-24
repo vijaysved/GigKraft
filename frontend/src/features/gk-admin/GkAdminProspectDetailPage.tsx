@@ -12,8 +12,9 @@ import {
   Text,
   Textarea,
   Title,
+  Tooltip,
 } from "@mantine/core";
-import { IconArrowLeft } from "@tabler/icons-react";
+import { IconArrowLeft, IconMail, IconBrandWhatsapp, IconRefresh } from "@tabler/icons-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -24,6 +25,7 @@ import {
   listOutreachLogs,
   listTemplates,
   updateProspect,
+  sendProspectStep,
 } from "../../api/endpoints";
 import type {
   MessageTemplate,
@@ -427,9 +429,11 @@ export function GkAdminProspectDetailPage() {
   const [prospect, setProspect] = useState<Prospect | null>(null);
   const [logs, setLogs] = useState<OutreachLog[]>([]);
   const [waTemplates, setWaTemplates] = useState<MessageTemplate[]>([]);
+  const [emailTemplates, setEmailTemplates] = useState<MessageTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusSaving, setStatusSaving] = useState(false);
+  const [resendLoading, setResendLoading] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -440,11 +444,13 @@ export function GkAdminProspectDetailPage() {
       getProspect(numId),
       listOutreachLogs(numId),
       listTemplates({ channel: "whatsapp" }),
+      listTemplates({ channel: "email" }),
     ])
-      .then(([p, l, tmpl]) => {
+      .then(([p, l, waTmpl, emailTmpl]) => {
         setProspect(p);
         setLogs(l);
-        setWaTemplates(tmpl);
+        setWaTemplates(waTmpl);
+        setEmailTemplates(emailTmpl);
       })
       .catch((e) => setError(e instanceof ApiError ? e.message : "Failed to load."))
       .finally(() => setLoading(false));
@@ -470,6 +476,19 @@ export function GkAdminProspectDetailPage() {
       body_sent: text,
     });
     setLogs((prev) => [log, ...prev]);
+  };
+
+  const handleResendStep = async (step: number, channel: "email" | "whatsapp" | "sms", isResend: boolean) => {
+    if (!prospect) return;
+    const key = `${step}-${channel}`;
+    setResendLoading(key);
+    try {
+      const updated = await sendProspectStep(prospect.id, step, channel, isResend);
+      setProspect(updated);
+      const refreshed = await listOutreachLogs(prospect.id);
+      setLogs(refreshed);
+    } catch { /* ignore */ }
+    finally { setResendLoading(null); }
   };
 
   if (loading) {
@@ -543,6 +562,73 @@ export function GkAdminProspectDetailPage() {
             />
           </Box>
         </Group>
+      </Card>
+
+      {/* Sequence Steps */}
+      <Card withBorder padding="md" radius="md" style={{ background: "var(--gk-bg-surface)" }}>
+        <Text fw={600} mb="sm" size="sm">Sequence Steps</Text>
+        <Stack gap="xs">
+          {[1, 2, 3].map((step) => {
+            const journey = prospect.journey?.find((j) => j.step === step);
+            const emailCount = journey?.email_count ?? 0;
+            const waCount = journey?.whatsapp_count ?? 0;
+            const sent = !!journey?.sent_at;
+            const hasEmailTmpl = emailTemplates.some((t) => t.kind === `sequence_${step}`);
+            return (
+              <Group key={step} justify="space-between" wrap="nowrap">
+                <Group gap={8} wrap="nowrap">
+                  <Text size="xs" fw={600} c="dimmed" style={{ width: 44 }}>Step {step}</Text>
+                  {sent ? (
+                    <Group gap={4} wrap="nowrap">
+                      {emailCount > 0 && (
+                        <Badge size="xs" color="blue" variant="light">Email ×{emailCount}</Badge>
+                      )}
+                      {waCount > 0 && (
+                        <Badge size="xs" color="teal" variant="light">WA ×{waCount}</Badge>
+                      )}
+                      {!emailCount && !waCount && (
+                        <Badge size="xs" color="gray" variant="light">Sent</Badge>
+                      )}
+                      {journey?.read_at && (
+                        <Badge size="xs" color="grape" variant="dot">Opened</Badge>
+                      )}
+                    </Group>
+                  ) : (
+                    <Text size="xs" c="dimmed">Not sent</Text>
+                  )}
+                </Group>
+                <Group gap={4} wrap="nowrap">
+                  {prospect.email && hasEmailTmpl && (
+                    <Tooltip label={sent ? `Resend email step ${step}` : `Send email step ${step}`} withArrow>
+                      <ActionIcon
+                        size="xs"
+                        variant="light"
+                        color="blue"
+                        loading={resendLoading === `${step}-email`}
+                        onClick={() => handleResendStep(step, "email", sent)}
+                      >
+                        {sent ? <IconRefresh size={10} /> : <IconMail size={10} />}
+                      </ActionIcon>
+                    </Tooltip>
+                  )}
+                  {prospect.phone && (
+                    <Tooltip label={sent ? `Resend WhatsApp step ${step}` : `Mark WhatsApp step ${step} sent`} withArrow>
+                      <ActionIcon
+                        size="xs"
+                        variant="light"
+                        color="teal"
+                        loading={resendLoading === `${step}-whatsapp`}
+                        onClick={() => handleResendStep(step, "whatsapp", sent)}
+                      >
+                        {sent ? <IconRefresh size={10} /> : <IconBrandWhatsapp size={10} />}
+                      </ActionIcon>
+                    </Tooltip>
+                  )}
+                </Group>
+              </Group>
+            );
+          })}
+        </Stack>
       </Card>
 
       {/* Timeline */}

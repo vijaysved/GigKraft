@@ -62,6 +62,7 @@ import {
   listTemplates,
   createTemplate,
   updateTemplate,
+  sendProspectStep,
   ApiError,
 } from "../../api/endpoints";
 import type {
@@ -211,14 +212,16 @@ function daysSince(iso: string | null): number | null {
 function JourneyBlocks({
   journey,
   currentStep,
+  onResend,
 }: {
   journey: StepJourney[];
   currentStep: number;
+  onResend?: (step: number, channel: "email" | "whatsapp" | "sms") => void;
 }) {
-  const steps = journey.length === 3 ? journey : [
-    { step: 1, sent_at: null, channel: null, read_at: null },
-    { step: 2, sent_at: null, channel: null, read_at: null },
-    { step: 3, sent_at: null, channel: null, read_at: null },
+  const steps: StepJourney[] = journey.length === 3 ? journey : [
+    { step: 1, sent_at: null, channel: null, read_at: null, email_count: 0, whatsapp_count: 0 },
+    { step: 2, sent_at: null, channel: null, read_at: null, email_count: 0, whatsapp_count: 0 },
+    { step: 3, sent_at: null, channel: null, read_at: null, email_count: 0, whatsapp_count: 0 },
   ];
 
   return (
@@ -230,6 +233,7 @@ function JourneyBlocks({
         const waSent = sent && s.channel === "whatsapp";
         const smsSent = sent && s.channel === "sms";
         const isCurrent = s.step === currentStep && sent;
+        const totalSent = (s.email_count ?? 0) + (s.whatsapp_count ?? 0);
 
         let bg = "var(--mantine-color-default-border)";
         let iconColor = "var(--mantine-color-dimmed)";
@@ -247,19 +251,32 @@ function JourneyBlocks({
           iconColor = "#fff";
         }
 
+        const countParts: string[] = [];
+        if ((s.email_count ?? 0) > 0) countParts.push(`email ×${s.email_count}`);
+        if ((s.whatsapp_count ?? 0) > 0) countParts.push(`WA ×${s.whatsapp_count}`);
+        const countLabel = countParts.length > 0 ? ` (${countParts.join(", ")})` : "";
+        const resendHint = onResend && sent ? " · click to resend" : "";
+
         const tooltip = opened
-          ? `Step ${s.step}: Email opened ✓`
+          ? `Step ${s.step}: Email opened ✓${countLabel}${resendHint}`
           : emailSent
-          ? `Step ${s.step}: Email sent — not opened yet`
+          ? `Step ${s.step}: Email sent${countLabel}${resendHint}`
           : waSent
-          ? `Step ${s.step}: WhatsApp sent ✓`
+          ? `Step ${s.step}: WhatsApp sent ✓${countLabel}${resendHint}`
           : smsSent
-          ? `Step ${s.step}: Text sent ✓`
+          ? `Step ${s.step}: Text sent ✓${countLabel}${resendHint}`
           : `Step ${s.step}: Not started`;
+
+        const handleClick = () => {
+          if (!onResend || !sent) return;
+          const ch = s.channel === "sms" ? "sms" : s.channel === "whatsapp" ? "whatsapp" : "email";
+          onResend(s.step, ch as "email" | "whatsapp" | "sms");
+        };
 
         return (
           <Tooltip key={s.step} label={tooltip} withArrow>
             <Box
+              onClick={handleClick}
               style={{
                 width: 22,
                 height: 22,
@@ -272,6 +289,8 @@ function JourneyBlocks({
                 outline: isCurrent ? "2px solid var(--gk-accent-primary)" : "none",
                 outlineOffset: 2,
                 transition: "background 0.2s",
+                cursor: onResend && sent ? "pointer" : "default",
+                position: "relative",
               }}
             >
               {opened ? (
@@ -286,6 +305,22 @@ function JourneyBlocks({
                 <Text size="xs" fw={700} style={{ color: iconColor, lineHeight: 1, fontSize: 10 }}>
                   {s.step}
                 </Text>
+              )}
+              {onResend && sent && totalSent > 1 && (
+                <Box style={{
+                  position: "absolute",
+                  top: -5,
+                  right: -5,
+                  background: "var(--mantine-color-gray-6)",
+                  borderRadius: "50%",
+                  width: 11,
+                  height: 11,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}>
+                  <Text style={{ fontSize: 7, color: "#fff", lineHeight: 1, fontWeight: 700 }}>{totalSent}</Text>
+                </Box>
               )}
             </Box>
           </Tooltip>
@@ -470,9 +505,9 @@ function DashboardTab() {
                   <Text size="sm" c="dimmed">Step {step}</Text>
                   <JourneyBlocks
                     journey={[
-                      { step: 1, sent_at: Number(step) >= 1 ? "x" : null, channel: "email", read_at: null },
-                      { step: 2, sent_at: Number(step) >= 2 ? "x" : null, channel: "email", read_at: null },
-                      { step: 3, sent_at: Number(step) >= 3 ? "x" : null, channel: "email", read_at: null },
+                      { step: 1, sent_at: Number(step) >= 1 ? "x" : null, channel: "email", read_at: null, email_count: 0, whatsapp_count: 0 },
+                      { step: 2, sent_at: Number(step) >= 2 ? "x" : null, channel: "email", read_at: null, email_count: 0, whatsapp_count: 0 },
+                      { step: 3, sent_at: Number(step) >= 3 ? "x" : null, channel: "email", read_at: null, email_count: 0, whatsapp_count: 0 },
                     ]}
                     currentStep={Number(step)}
                   />
@@ -768,6 +803,11 @@ function parseBulkText(text: string): BulkProspect[] {
           name = namePart;
         } else if (/^[A-Z][a-z]{1,25}(?:\s[A-Z][a-z]{1,25}){1,2}$/.test(firstLine)) {
           name = firstLine;
+        } else {
+          const stripped = firstLine
+            .replace(_BULK_PHONE, "").replace(_BULK_EMAIL, "").replace(_BULK_URL, "")
+            .replace(/\s+/g, " ").trim().replace(/^[-·,\s]+|[-·,\s]+$/g, "").trim();
+          if (stripped && !/[@\d]/.test(stripped)) name = stripped;
         }
       }
 
@@ -1177,6 +1217,15 @@ function ProspectsTab() {
     finally { setActionLoading(null); }
   };
 
+  const handleSendStep = async (p: Prospect, step: number, channel: "email" | "whatsapp" | "sms", isResend = false) => {
+    setActionLoading(p.id);
+    try {
+      const updated = await sendProspectStep(p.id, step, channel, isResend);
+      setProspects((prev) => prev.map((x) => (x.id === updated.id ? updated : x)));
+    } catch { /* ignore */ }
+    finally { setActionLoading(null); }
+  };
+
   const openEdit = (p: Prospect) => { setEditing(p); openDrawer(); };
   const openAdd = () => { setEditing(null); openDrawer(); };
 
@@ -1347,7 +1396,6 @@ function ProspectsTab() {
                   const waTmpl = waTemplates.find(t => t.kind === `sequence_${ns}`);
                   const emailTmpl = emailTemplates.find(t => t.kind === `sequence_${ns}`);
                   const waMsg = waTmpl ? renderTemplate(waTmpl.body, p) : null;
-                  const emailBody = emailTmpl ? renderTemplate(emailTmpl.body, p) : null;
                   const isActionable = ["prospect", "in_progress"].includes(p.status);
                   const days = daysSince(p.last_contacted_at);
                   const lastJourneyChannel = [...(p.journey ?? [])]
@@ -1466,16 +1514,12 @@ function ProspectsTab() {
                                   </Tooltip>
                                 )}
                               </CopyButton>
-                              {emailBody && (
-                                <CopyButton value={emailBody} timeout={1200}>
-                                  {({ copied, copy }) => (
-                                    <Tooltip label={copied ? "Copied!" : `Copy email body (step ${ns})`} withArrow>
-                                      <ActionIcon size="xs" variant="subtle" color={copied ? "green" : "blue"} onClick={copy}>
-                                        <IconMail size={10} />
-                                      </ActionIcon>
-                                    </Tooltip>
-                                  )}
-                                </CopyButton>
+                              {emailTmpl && p.email && (
+                                <Tooltip label={`Send email (step ${ns})`} withArrow>
+                                  <ActionIcon size="xs" variant="subtle" color="blue" loading={isActionLoading} onClick={() => handleSendStep(p, ns, "email")}>
+                                    <IconMail size={10} />
+                                  </ActionIcon>
+                                </Tooltip>
                               )}
                             </Group>
                           )}
@@ -1521,7 +1565,11 @@ function ProspectsTab() {
                         </Badge>
                       </Table.Td>
                       <Table.Td>
-                        <JourneyBlocks journey={p.journey ?? []} currentStep={p.current_sequence_step} />
+                        <JourneyBlocks
+                          journey={p.journey ?? []}
+                          currentStep={p.current_sequence_step}
+                          onResend={(step, channel) => handleSendStep(p, step, channel, true)}
+                        />
                       </Table.Td>
                       <Table.Td>
                         <Text size="xs" c="dimmed">

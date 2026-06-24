@@ -495,6 +495,8 @@ export interface StepJourney {
   sent_at: string | null;
   channel: string | null;  // "email" | "whatsapp" | null
   read_at: string | null;  // non-null = email was opened (pixel fired)
+  email_count: number;
+  whatsapp_count: number;
 }
 
 export interface Prospect {
@@ -624,6 +626,20 @@ export async function advanceProspectStep(id: number, channel: "whatsapp" | "sms
     { body: { channel } } as never,
   );
   if (!data) throw new ApiError(response.status, detailOf(error, "Failed to advance step."));
+  return data as Prospect;
+}
+
+export async function sendProspectStep(
+  id: number,
+  step: number,
+  channel: "email" | "whatsapp" | "sms",
+  isResend = false,
+): Promise<Prospect> {
+  const { data, error, response } = await client.POST(
+    `/api/prospects/${id}/send-step` as never,
+    { body: { step, channel, is_resend: isResend } } as never,
+  );
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to send step."));
   return data as Prospect;
 }
 
