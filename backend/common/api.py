@@ -14,6 +14,7 @@ class HealthOut(Schema):
     debug: bool
     mocks: dict
     google_client_id_set: bool
+    settings_module: str
 
 
 @router.get("/health", response=HealthOut, auth=None)
@@ -28,8 +29,11 @@ def health(request):
             "s3": settings.MOCK_S3,
             "fcm": settings.MOCK_FCM,
             "whatsapp": settings.MOCK_WHATSAPP,
+            "resend": getattr(settings, "MOCK_RESEND", True),
+            "resend_api_key_set": bool(getattr(settings, "RESEND_API_KEY", "")),
         },
         "google_client_id_set": bool(settings.GOOGLE_CLIENT_ID),
+        "settings_module": settings.SETTINGS_MODULE if hasattr(settings, "SETTINGS_MODULE") else __import__("os").environ.get("DJANGO_SETTINGS_MODULE", "unknown"),
     }
 
 
