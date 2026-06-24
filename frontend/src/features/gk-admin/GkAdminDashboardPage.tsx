@@ -21,6 +21,7 @@ import {
   IconShieldCheck,
   IconStar,
   IconUser,
+  IconUserCheck,
   IconUsers,
 } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
@@ -28,10 +29,12 @@ import { useEffect, useState } from "react";
 import {
   ApiError,
   getGkPlatformMetrics,
+  getProspectAnalytics,
   listAnonymousLeads,
   type AnonLeadRow,
   type GkPlatformMetrics,
   type GkSiteTrafficRow,
+  type ProspectAnalytics,
 } from "../../api/endpoints";
 import { GkStatTile } from "../../components/GkStatTile";
 
@@ -39,17 +42,36 @@ function fmtDate(iso: string) {
   return new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
+const STATUS_COLORS: Record<string, string> = {
+  prospect: "blue",
+  interested: "cyan",
+  in_progress: "yellow",
+  converted: "green",
+  on_hold: "orange",
+  abandoned: "gray",
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  prospect: "Prospect",
+  interested: "Interested",
+  in_progress: "In Progress",
+  converted: "Converted",
+  on_hold: "On Hold",
+  abandoned: "Abandoned",
+};
+
 export function GkAdminDashboardPage() {
   const [metrics, setMetrics] = useState<GkPlatformMetrics | null>(null);
   const [anonLeads, setAnonLeads] = useState<AnonLeadRow[]>([]);
+  const [prospectAnalytics, setProspectAnalytics] = useState<ProspectAnalytics | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
       try {
-        const [m, al] = await Promise.all([getGkPlatformMetrics(), listAnonymousLeads()]);
-        if (!cancelled) { setMetrics(m); setAnonLeads(al); }
+        const [m, al, pa] = await Promise.all([getGkPlatformMetrics(), listAnonymousLeads(), getProspectAnalytics()]);
+        if (!cancelled) { setMetrics(m); setAnonLeads(al); setProspectAnalytics(pa); }
       } catch (err) {
         if (!cancelled) setError(err instanceof ApiError ? err.message : "Failed to load metrics.");
       }
@@ -399,6 +421,71 @@ export function GkAdminDashboardPage() {
                 tooltip="Total leads with a pending status"
               />
             </SimpleGrid>
+
+            <Text size="xs" fw={700} tt="uppercase" c="dimmed" style={{ letterSpacing: 1 }}>
+              Prospect Outreach
+            </Text>
+            <SimpleGrid cols={{ base: 2, sm: 4 }}>
+              <GkStatTile
+                compact
+                label="Total Prospects"
+                value={prospectAnalytics?.total}
+                icon={<IconUsers size={32} />}
+                tooltip="All prospects in the outreach pipeline"
+              />
+              <GkStatTile
+                compact
+                label="New (7 days)"
+                value={prospectAnalytics?.new_7_days}
+                icon={<IconUser size={32} />}
+                tooltip="Prospects added in the last 7 days"
+              />
+              <GkStatTile
+                compact
+                label="Conversion Rate"
+                value={prospectAnalytics ? `${prospectAnalytics.conversion_rate}%` : undefined}
+                icon={<IconUserCheck size={32} />}
+                accent={!!prospectAnalytics && prospectAnalytics.conversion_rate > 0}
+                tooltip="Percentage of prospects who converted to paid users"
+              />
+              <GkStatTile
+                compact
+                label="Link CTR"
+                value={prospectAnalytics ? `${prospectAnalytics.link_ctr}%` : undefined}
+                icon={<IconChartBar size={32} />}
+                tooltip="Percentage of prospects who clicked the signup link"
+              />
+            </SimpleGrid>
+
+            {prospectAnalytics && (
+              <Card withBorder radius="md" padding="md" style={{ background: "var(--gk-bg-surface)" }}>
+                <Stack gap="xs">
+                  <Text size="sm" fw={600}>Prospect Status Breakdown</Text>
+                  {Object.entries(prospectAnalytics.by_status).map(([status, count]) => {
+                    const total = prospectAnalytics.total || 1;
+                    return (
+                      <Group key={status} gap="sm" align="center" wrap="nowrap">
+                        <Badge
+                          color={STATUS_COLORS[status] ?? "gray"}
+                          size="xs"
+                          variant="dot"
+                          style={{ minWidth: 90, flexShrink: 0 }}
+                        >
+                          {STATUS_LABELS[status] ?? status}
+                        </Badge>
+                        <Progress
+                          value={(count / total) * 100}
+                          color={status === "converted" ? "var(--gk-accent-primary)" : (STATUS_COLORS[status] ?? "gray")}
+                          size="sm"
+                          style={{ flex: 1 }}
+                        />
+                        <Text size="xs" w={28} ta="right" fw={500}>{count}</Text>
+                      </Group>
+                    );
+                  })}
+                </Stack>
+              </Card>
+            )}
           </Stack>
         </Tabs.Panel>
       </Tabs>

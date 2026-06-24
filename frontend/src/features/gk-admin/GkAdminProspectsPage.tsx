@@ -1161,6 +1161,31 @@ function ProspectsTab() {
     return result;
   }, [sorted, stepFilters, channelFilters]);
 
+  const stepCounts = useMemo(() => ({
+    "0": sorted.filter((p) => p.current_sequence_step === 0).length,
+    "1": sorted.filter((p) => p.current_sequence_step === 1).length,
+    "2": sorted.filter((p) => p.current_sequence_step === 2).length,
+    "3": sorted.filter((p) => p.current_sequence_step === 3).length,
+  }), [sorted]);
+
+  const channelCounts = useMemo(() => ({
+    whatsapp: sorted.filter((p) => (p.journey ?? []).some((s) => s.channel === "whatsapp" && s.sent_at)).length,
+    email: sorted.filter((p) => (p.journey ?? []).some((s) => s.channel === "email" && s.sent_at)).length,
+    sms: sorted.filter((p) => (p.journey ?? []).some((s) => s.channel === "sms" && s.sent_at)).length,
+  }), [sorted]);
+
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const p of prospects) counts[p.status] = (counts[p.status] ?? 0) + 1;
+    return counts;
+  }, [prospects]);
+
+  const sourceCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const p of prospects) counts[p.source] = (counts[p.source] ?? 0) + 1;
+    return counts;
+  }, [prospects]);
+
   const load = async () => {
     setLoading(true);
     try {
@@ -1289,19 +1314,19 @@ function ProspectsTab() {
           />
           <Select
             placeholder="All statuses"
-            data={STATUS_OPTIONS}
+            data={STATUS_OPTIONS.map((o) => ({ ...o, label: `${o.label} · ${statusCounts[o.value] ?? 0}` }))}
             value={statusFilter}
             onChange={setStatusFilter}
             clearable
-            w={160}
+            w={180}
           />
           <Select
             placeholder="All sources"
-            data={SOURCE_OPTIONS}
+            data={SOURCE_OPTIONS.map((o) => ({ ...o, label: `${o.label} · ${sourceCounts[o.value] ?? 0}` }))}
             value={sourceFilter}
             onChange={setSourceFilter}
             clearable
-            w={140}
+            w={160}
           />
           <Button
             leftSection={<IconPlus size={14} />}
@@ -1317,18 +1342,18 @@ function ProspectsTab() {
           <Text size="xs" c="dimmed" fw={500}>Journey</Text>
           <Chip.Group multiple value={stepFilters} onChange={setStepFilters}>
             <Group gap={6}>
-              <Chip size="xs" value="0" radius="xl">Not Started</Chip>
-              <Chip size="xs" value="1" radius="xl">Step 1</Chip>
-              <Chip size="xs" value="2" radius="xl">Step 2</Chip>
-              <Chip size="xs" value="3" radius="xl">Step 3</Chip>
+              <Chip size="xs" value="0" radius="xl">Not Started · {stepCounts["0"]}</Chip>
+              <Chip size="xs" value="1" radius="xl">Step 1 · {stepCounts["1"]}</Chip>
+              <Chip size="xs" value="2" radius="xl">Step 2 · {stepCounts["2"]}</Chip>
+              <Chip size="xs" value="3" radius="xl">Step 3 · {stepCounts["3"]}</Chip>
             </Group>
           </Chip.Group>
           <Text size="xs" c="dimmed" fw={500} ml="xs">Channel</Text>
           <Chip.Group multiple value={channelFilters} onChange={setChannelFilters}>
             <Group gap={6}>
-              <Chip size="xs" value="whatsapp" radius="xl">WhatsApp</Chip>
-              <Chip size="xs" value="email" radius="xl">Email</Chip>
-              <Chip size="xs" value="sms" radius="xl">Text</Chip>
+              <Chip size="xs" value="whatsapp" radius="xl">WhatsApp · {channelCounts.whatsapp}</Chip>
+              <Chip size="xs" value="email" radius="xl">Email · {channelCounts.email}</Chip>
+              <Chip size="xs" value="sms" radius="xl">Text · {channelCounts.sms}</Chip>
             </Group>
           </Chip.Group>
         </Group>
