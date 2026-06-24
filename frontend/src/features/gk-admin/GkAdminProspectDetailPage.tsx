@@ -489,15 +489,12 @@ export function GkAdminProspectDetailPage() {
       const refreshed = await listOutreachLogs(prospect.id);
       setLogs(refreshed);
       const latest = refreshed[0];
-      console.log("[GK] send-step response", { step, channel, updated, latestLog: latest });
-      console.log("[GK] resend_id:", latest?.resend_id, "— if 'mock-resend-id', MOCK_RESEND is still True in prod");
       notifications.show({
         color: "green",
         title: "Sent",
         message: `Step ${step} ${channel} sent to ${prospect.email || prospect.name}.`,
       });
     } catch (err) {
-      console.error("[GK] send-step error", err);
       notifications.show({
         color: "red",
         title: "Send failed",

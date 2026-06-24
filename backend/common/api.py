@@ -33,7 +33,7 @@ def health(request):
             "resend_api_key_set": bool(getattr(settings, "RESEND_API_KEY", "")),
         },
         "google_client_id_set": bool(settings.GOOGLE_CLIENT_ID),
-        "settings_module": settings.SETTINGS_MODULE if hasattr(settings, "SETTINGS_MODULE") else __import__("os").environ.get("DJANGO_SETTINGS_MODULE", "unknown"),
+        "settings_module": __import__("os").environ.get("DJANGO_SETTINGS_MODULE", "unknown"),
     }
 
 
