@@ -23,6 +23,7 @@ import { AboutPage } from "./pages/marketing/AboutPage";
 import { CareersPage } from "./pages/marketing/CareersPage";
 import { ContactPage } from "./pages/marketing/ContactPage";
 import { TermsPage } from "./pages/marketing/TermsPage";
+import { FaqPage } from "./pages/marketing/FaqPage";
 
 // Public pages
 import { LoginPage } from "./pages/LoginPage";
@@ -114,6 +115,7 @@ export default function App() {
       <Route path="/careers" element={<MarketingLayout><CareersPage /></MarketingLayout>} />
       <Route path="/contact" element={<MarketingLayout><ContactPage /></MarketingLayout>} />
       <Route path="/terms" element={<MarketingLayout><TermsPage /></MarketingLayout>} />
+      <Route path="/faq" element={<MarketingLayout><FaqPage /></MarketingLayout>} />
 
       {/* Public app pages */}
       <Route path="/login" element={<LoginPage />} />

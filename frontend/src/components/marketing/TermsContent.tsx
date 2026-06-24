@@ -191,13 +191,6 @@ export function TermsContent() {
         </List>
       </Stack>
 
-      <Divider />
-
-      <Text size="xs" c="dimmed" fs="italic">
-        These Terms are a draft prepared for review purposes. GigKraft Inc. is not a law firm and this document
-        does not constitute legal advice. Please consult a qualified attorney before publishing.
-      </Text>
-
     </Stack>
   );
 }

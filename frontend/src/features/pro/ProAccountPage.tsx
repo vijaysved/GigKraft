@@ -46,6 +46,7 @@ import {
 
 import { BillingTab } from "./BillingTab";
 import { TermsContent } from "../../components/marketing/TermsContent";
+import { FaqContent } from "../../components/marketing/FaqContent";
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
@@ -496,6 +497,10 @@ export function ProAccountPage() {
             style={{ color: activeTab === "terms" ? "var(--gk-accent-primary)" : "var(--gk-accent-secondary)" }}>
             Terms
           </Tabs.Tab>
+          <Tabs.Tab value="faq"
+            style={{ color: activeTab === "faq" ? "var(--gk-accent-primary)" : "var(--gk-accent-secondary)" }}>
+            FAQ
+          </Tabs.Tab>
         </Tabs.List>
 
         {/* ══════════════════════════ PUBLIC PAGE TAB ══════════════════════════ */}
@@ -921,6 +926,11 @@ export function ProAccountPage() {
         {/* ══════════════════════════ TERMS TAB ══════════════════════════ */}
         <Tabs.Panel value="terms" pt="md">
           <TermsContent />
+        </Tabs.Panel>
+
+        {/* ══════════════════════════ FAQ TAB ══════════════════════════ */}
+        <Tabs.Panel value="faq" pt="md">
+          <FaqContent />
         </Tabs.Panel>
 
       </Tabs>
