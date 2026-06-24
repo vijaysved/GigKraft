@@ -18,6 +18,19 @@ from nodes.models import Node, SafetyLog
 router = Router(tags=["gk_admin"], auth=jwt_auth)
 
 
+@router.get("/debug-email-config", auth=jwt_auth)
+def debug_email_config(request):
+    from django.conf import settings
+    require_gk_admin(request)
+    api_key = os.environ.get("RESEND_API_KEY", "")
+    return {
+        "MOCK_RESEND": getattr(settings, "MOCK_RESEND", "NOT SET"),
+        "RESEND_API_KEY_set": bool(api_key),
+        "RESEND_API_KEY_prefix": api_key[:8] if api_key else "",
+        "DJANGO_SETTINGS_MODULE": os.environ.get("DJANGO_SETTINGS_MODULE", "NOT SET"),
+    }
+
+
 class NodeSummary(Schema):
     node_id: str
     name: str
