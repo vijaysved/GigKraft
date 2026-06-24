@@ -14,6 +14,7 @@ if SECRET_KEY == "insecure-local-only-change-me-0123456789abcdef":
     )
 
 DEBUG = False
+MOCK_RESEND = False
 
 # Railway terminates SSL at its proxy; trust X-Forwarded-Proto so Django
 # knows the connection is already HTTPS and doesn't redirect in a loop.
