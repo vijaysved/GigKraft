@@ -83,4 +83,4 @@ def send_email(
         params["bcc"] = bcc_list
 
     response = resend.Emails.send(params)
-    return response.get("id", "")
+    return getattr(response, "id", "") or ""
