@@ -26,7 +26,7 @@ def send_invoice_email(to: str, plan_label: str, amount: str, renewal_date: str)
         import resend
         resend.api_key = getattr(settings, "RESEND_API_KEY", "")
         params: resend.Emails.SendParams = {
-            "from": "GigKraft <onboarding@resend.dev>",
+            "from": "GigKraft <vijay@gigkraft.com>",
             "to": [recipient],
             "bcc": ["oddlynicellc@gmail.com"],
             "subject": f"Your GigKraft Pro receipt — {plan_label}",
@@ -78,7 +78,7 @@ def send_welcome_email(to: str, first_name: str) -> None:
         import resend
         resend.api_key = getattr(settings, "RESEND_API_KEY", "")
         params: resend.Emails.SendParams = {
-            "from": "GigKraft <onboarding@resend.dev>",
+            "from": "GigKraft <vijay@gigkraft.com>",
             "to": [recipient],
             "bcc": ["oddlynicellc@gmail.com"],
             "subject": "Welcome to GigKraft Pro",
@@ -122,7 +122,7 @@ def send_payment_failed_email(to: str, first_name: str) -> None:
         import resend
         resend.api_key = getattr(settings, "RESEND_API_KEY", "")
         params: resend.Emails.SendParams = {
-            "from": "GigKraft <onboarding@resend.dev>",
+            "from": "GigKraft <vijay@gigkraft.com>",
             "to": [recipient],
             "bcc": ["oddlynicellc@gmail.com"],
             "subject": "Action required: GigKraft Pro payment failed",
