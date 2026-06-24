@@ -35,6 +35,7 @@ import type {
 
 const STATUS_OPTIONS = [
   { value: "prospect", label: "Prospect" },
+  { value: "interested", label: "Interested" },
   { value: "in_progress", label: "In Progress" },
   { value: "converted", label: "Converted" },
   { value: "on_hold", label: "On Hold" },

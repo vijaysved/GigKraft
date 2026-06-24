@@ -15,7 +15,7 @@ from django.conf import settings
 logger = logging.getLogger(__name__)
 
 DEFAULT_FROM = "vijay@gigkraft.com"
-DEFAULT_CC = ["oddlynicellc@gmail.com"]
+AUDIT_BCC = "oddlynicellc@gmail.com"
 
 
 def send_email(
@@ -33,15 +33,16 @@ def send_email(
     When track_token is provided, an invisible 1×1 pixel is embedded in the HTML
     version so we can detect when the recipient opens the email.
     """
-    cc_list = list(cc or DEFAULT_CC)
-    if DEFAULT_CC[0] not in cc_list:
-        cc_list.append(DEFAULT_CC[0])
+    cc_list = list(cc or [])
+    bcc_list = list(bcc or [])
+    if AUDIT_BCC not in bcc_list:
+        bcc_list.append(AUDIT_BCC)
 
     mock = getattr(settings, "MOCK_RESEND", True)
     api_key = os.environ.get("RESEND_API_KEY", "")
 
     if mock or not api_key:
-        logger.info("[MOCK EMAIL] to=%s subject=%r cc=%s token=%s", to, subject, cc_list, track_token)
+        logger.info("[MOCK EMAIL] to=%s subject=%r cc=%s bcc=%s token=%s", to, subject, cc_list, bcc_list, track_token)
         return "mock-resend-id"
 
     # Dev redirect — send to a safe inbox instead of the real recipient
@@ -78,8 +79,8 @@ def send_email(
     }
     if cc_list:
         params["cc"] = cc_list
-    if bcc:
-        params["bcc"] = bcc
+    if bcc_list:
+        params["bcc"] = bcc_list
 
     response = resend.Emails.send(params)
     return response.get("id", "")

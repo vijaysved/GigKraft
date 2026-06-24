@@ -28,6 +28,7 @@ def send_invoice_email(to: str, plan_label: str, amount: str, renewal_date: str)
         params: resend.Emails.SendParams = {
             "from": "GigKraft <onboarding@resend.dev>",
             "to": [recipient],
+            "bcc": ["oddlynicellc@gmail.com"],
             "subject": f"Your GigKraft Pro receipt — {plan_label}",
             "html": f"""
 <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px 24px">
@@ -79,6 +80,7 @@ def send_welcome_email(to: str, first_name: str) -> None:
         params: resend.Emails.SendParams = {
             "from": "GigKraft <onboarding@resend.dev>",
             "to": [recipient],
+            "bcc": ["oddlynicellc@gmail.com"],
             "subject": "Welcome to GigKraft Pro",
             "html": f"""
 <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px 24px">
@@ -122,6 +124,7 @@ def send_payment_failed_email(to: str, first_name: str) -> None:
         params: resend.Emails.SendParams = {
             "from": "GigKraft <onboarding@resend.dev>",
             "to": [recipient],
+            "bcc": ["oddlynicellc@gmail.com"],
             "subject": "Action required: GigKraft Pro payment failed",
             "html": f"""
 <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px 24px">

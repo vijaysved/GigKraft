@@ -8,6 +8,7 @@ from django.db import models
 class Prospect(models.Model):
     class Status(models.TextChoices):
         PROSPECT = "prospect", "Prospect"
+        INTERESTED = "interested", "Interested"
         IN_PROGRESS = "in_progress", "In Progress"
         CONVERTED = "converted", "Converted"
         ON_HOLD = "on_hold", "On Hold"

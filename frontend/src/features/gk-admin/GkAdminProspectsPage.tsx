@@ -77,6 +77,7 @@ import type {
 
 const STATUS_COLORS: Record<string, string> = {
   prospect: "blue",
+  interested: "cyan",
   in_progress: "yellow",
   converted: "green",
   on_hold: "orange",
@@ -85,6 +86,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 const STATUS_LABELS: Record<string, string> = {
   prospect: "Prospect",
+  interested: "Interested",
   in_progress: "In Progress",
   converted: "Converted",
   on_hold: "On Hold",
@@ -100,6 +102,7 @@ const SOURCE_COLORS: Record<string, string> = {
 
 const STATUS_OPTIONS = [
   { value: "prospect", label: "Prospect" },
+  { value: "interested", label: "Interested" },
   { value: "in_progress", label: "In Progress" },
   { value: "converted", label: "Converted" },
   { value: "on_hold", label: "On Hold" },
