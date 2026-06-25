@@ -142,7 +142,7 @@ export function HomeAccountPage() {
         saveAvatar(photoPreview);
       } else if (urlTrimmed) {
         saveAvatar(urlTrimmed);
-        await client.PATCH("/api/home/profile", { body: { avatar_url: urlTrimmed } });
+        await client.PATCH("/api/home/profile" as never, { body: { avatar_url: urlTrimmed } });
       }
 
       setSaved(true);

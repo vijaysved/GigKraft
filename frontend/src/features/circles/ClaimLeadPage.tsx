@@ -8,7 +8,7 @@ import { getAccessToken } from "../../api/tokens";
 
 type ClaimState = "idle" | "claiming" | "claimed" | "no_pro_profile" | "error";
 
-function authHeaders() {
+function authHeaders(): Record<string, string> {
   const token = getAccessToken();
   return token
     ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
