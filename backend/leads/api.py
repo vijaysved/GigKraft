@@ -159,7 +159,20 @@ def serialize_lead(lead: Lead, viewer: User) -> dict:
         "last_message": (last.body or "[photo]") if last else None,
         "unread_hint": min(unread, 9),
         "quotes": [serialize_quote(q) for q in lead.quotes.all()],
+        **_circle_referral_fields(lead),
     }
+
+
+def _circle_referral_fields(lead: Lead) -> dict:
+    try:
+        ref = lead.circle_referral
+        curator = ref.circle.curator
+        return {
+            "circle_referral_slug": ref.circle.slug,
+            "circle_referral_curator": f"{curator.first_name} {curator.last_name}".strip() or curator.email or "",
+        }
+    except Exception:
+        return {"circle_referral_slug": None, "circle_referral_curator": None}
 
 
 def serialize_message(message: Message, viewer: User) -> dict:

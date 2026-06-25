@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     "vendors",
     "comms",
     "feedback",
+    "circles",
 ]
 
 MIDDLEWARE = [

@@ -17,7 +17,7 @@ import {
   type UserOut,
 } from "../api/endpoints";
 import { clearTokens, getAccessToken, getRefreshToken, setTokens } from "../api/tokens";
-import { clearAvatar } from "../hooks/useProAvatar";
+import { clearAvatar, clearGooglePictureUrl, saveAvatar, saveGooglePictureUrl } from "../hooks/useProAvatar";
 
 export type AuthStatus = "loading" | "authenticated" | "anonymous";
 
@@ -28,6 +28,17 @@ interface AuthContextValue {
   loginWithGoogle: (idToken: string, role?: string) => Promise<{ created: boolean }>;
   logout: () => void;
   updateUser: (patch: Partial<UserOut>) => void;
+}
+
+function decodeGoogleJwt(jwt: string): Record<string, unknown> {
+  try {
+    const payload = jwt.split(".")[1];
+    const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
+    return JSON.parse(atob(padded)) as Record<string, unknown>;
+  } catch {
+    return {};
+  }
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -96,8 +107,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const loginWithGoogle = useCallback(async (idToken: string, role = "homeowner") => {
+    const claims = decodeGoogleJwt(idToken);
+    const googlePic = typeof claims.picture === "string" ? claims.picture : null;
+
     const pair = await googleAuth(idToken, role);
-    if (pair.created) clearAvatar();
+
+    if (pair.created) {
+      clearAvatar();
+      if (googlePic) saveAvatar(googlePic);
+    }
+    if (googlePic) saveGooglePictureUrl(googlePic);
+
     setTokens(pair.access, pair.refresh);
     setUser(pair.user);
     setStatus("authenticated");
@@ -107,6 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     clearTokens();
     clearAvatar();
+    clearGooglePictureUrl();
     setUser(null);
     setStatus("anonymous");
   }, []);

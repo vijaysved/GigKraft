@@ -83,22 +83,31 @@ def home_account(request):
 class HomeProfilePatchIn(Schema):
     default_zip: Optional[str] = None
     preferred_trade: Optional[str] = None
+    avatar_url: Optional[str] = None
 
 
 class HomeProfileOut(Schema):
     default_zip: str
     preferred_trade: str
+    avatar_url: str
 
 
 @router.patch("/profile", response=HomeProfileOut)
 def patch_home_profile(request, payload: HomeProfilePatchIn):
     profile = require_homeowner(request)
+    update_fields = []
     if payload.default_zip is not None:
         profile.default_zip = payload.default_zip.strip()
+        update_fields.append("default_zip")
     if payload.preferred_trade is not None:
         profile.preferred_trade = payload.preferred_trade.strip()
-    profile.save(update_fields=["default_zip", "preferred_trade"])
-    return {"default_zip": profile.default_zip, "preferred_trade": profile.preferred_trade}
+        update_fields.append("preferred_trade")
+    if payload.avatar_url is not None:
+        profile.avatar_url = payload.avatar_url
+        update_fields.append("avatar_url")
+    if update_fields:
+        profile.save(update_fields=update_fields)
+    return {"default_zip": profile.default_zip, "preferred_trade": profile.preferred_trade, "avatar_url": profile.avatar_url}
 
 
 # --- Saved pros ---

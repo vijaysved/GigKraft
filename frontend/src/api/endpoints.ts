@@ -951,6 +951,8 @@ export interface InboxLead {
   last_message: string | null;
   unread_hint: number;
   quotes: InboxQuote[];
+  circle_referral_slug: string | null;
+  circle_referral_curator: string | null;
 }
 
 export interface CreateLeadPayload {

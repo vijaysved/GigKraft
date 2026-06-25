@@ -45,6 +45,10 @@ class Lead(models.Model):
         max_length=10, choices=ThreadType.choices, default=ThreadType.LEAD
     )
     request_accepted = models.BooleanField(default=False)
+    is_escrow = models.BooleanField(
+        default=False,
+        help_text="True when lead is held pending off-platform pro activation via Circle.",
+    )
     # SLA: created_at + pro.response_hours, set on create (see set_respond_by).
     respond_by = models.DateTimeField(null=True, blank=True)
     first_response_at = models.DateTimeField(null=True, blank=True)

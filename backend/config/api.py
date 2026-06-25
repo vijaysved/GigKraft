@@ -26,6 +26,8 @@ from leads.api import router as leads_router
 from nodes.admin_api import router as admin_router
 from feedback.api import public_router as feedback_public_router
 from feedback.api import router as feedback_router
+from circles.api import public_router as circles_public_router
+from circles.api import router as circles_router
 from recommendations.api import public_router as recommendations_public_router
 from recommendations.api import router as recommendations_router
 
@@ -63,3 +65,5 @@ api.add_router("/prospects", prospects_router)
 api.add_router("/comms", comms_router)
 api.add_router("/feedback", feedback_public_router)
 api.add_router("/feedback", feedback_router)
+api.add_router("/circles", circles_router)
+api.add_router("/circles", circles_public_router)

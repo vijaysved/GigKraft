@@ -59,6 +59,8 @@ export function ProPublicProfilePage() {
   const { id: handle } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const { status, user, loginWithGoogle } = useAuth();
+  // Capture ref param once at mount so it's available in the tracking effect.
+  const refParamRef = useRef(searchParams.get("ref") ?? undefined);
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
   const [pro, setPro] = useState<ProOut | null>(null);
@@ -151,13 +153,17 @@ export function ProPublicProfilePage() {
 
   useEffect(() => {
     if (!handle) return;
-    // Fire-and-forget page view tracking; ref=GK-XXX links view to a prospect
-    const ref = searchParams.get("ref") ?? undefined;
-    trackProPageView(handle, ref).catch(() => {});
-    trackProfileView(handle);
-    // Site-config traffic tracking (server-side filters out authenticated admins)
-    trackSitePageView(window.location.href);
-  }, [handle, searchParams]);
+    // Deferred via setTimeout so StrictMode's synchronous cleanup can cancel this
+    // before it fires. In production there is no cleanup, so it runs exactly once.
+    let cancelled = false;
+    const t = setTimeout(() => {
+      if (cancelled) return;
+      trackProPageView(handle, refParamRef.current).catch(() => {});
+      trackProfileView(handle);
+      trackSitePageView(window.location.href);
+    }, 0);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [handle]);
 
   useEffect(() => {
     if (!handle) return;

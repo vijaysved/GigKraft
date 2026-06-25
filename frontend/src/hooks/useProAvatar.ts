@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 const STORAGE_KEY = "gigkraft.pro_avatar";
+const GOOGLE_PIC_KEY = "gigkraft.google_picture_url";
 const EVENT_NAME = "pro-avatar-updated";
 const MAX_DIMENSION = 400; // resize to 400×400 max before storing
 const JPEG_QUALITY = 0.85;
@@ -12,6 +13,18 @@ export function loadAvatar(): string | null {
 export function clearAvatar() {
   try { localStorage.removeItem(STORAGE_KEY); } catch {}
   window.dispatchEvent(new CustomEvent(EVENT_NAME));
+}
+
+export function saveGooglePictureUrl(url: string) {
+  try { localStorage.setItem(GOOGLE_PIC_KEY, url); } catch {}
+}
+
+export function loadGooglePictureUrl(): string | null {
+  try { return localStorage.getItem(GOOGLE_PIC_KEY); } catch { return null; }
+}
+
+export function clearGooglePictureUrl() {
+  try { localStorage.removeItem(GOOGLE_PIC_KEY); } catch {}
 }
 
 /** Read a File as a data URL preserving original resolution and format. */

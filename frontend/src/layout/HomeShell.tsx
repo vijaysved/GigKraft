@@ -13,6 +13,7 @@ import {
 import {
   IconAlertOctagon,
   IconChevronUp,
+  IconCircles,
   IconLogout,
   IconMessage,
   IconSearch,
@@ -24,25 +25,21 @@ import { useEffect } from "react";
 
 import { useAuth } from "../auth/AuthContext";
 import { GkLogo } from "../brand/GkLogo";
+import { useProAvatar } from "../hooks/useProAvatar";
 
 const NAV_ITEMS = [
   { label: "Discover", icon: IconSearch, to: "/home/discover" },
   { label: "Messages", icon: IconMessage, to: "/home/messages" },
+  { label: "My Circle", icon: IconCircles, to: "/home/circle" },
   { label: "Recommend", icon: IconStar, to: "/home/recommend" },
   { label: "You", icon: IconUser, to: "/home/account" },
 ];
 
-const navLinkStyles = {
-  root: {
-    borderRadius: 8,
-    color: "var(--gk-text-sidebar)",
-    "&[data-active]": { background: "var(--gk-bg-sidebar-active)", color: "#fff" },
-  },
-};
 
 export function HomeShell() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const avatarSrc = useProAvatar();
 
   const initials = (user?.first_name?.[0] ?? user?.email?.[0] ?? user?.phone?.[0] ?? "H").toUpperCase();
   const displayName = [user?.first_name, user?.last_name].filter(Boolean).join(" ") || user?.email || user?.phone || "You";
@@ -74,7 +71,17 @@ export function HomeShell() {
           {NAV_ITEMS.map(({ label, icon: Icon, to }) => (
             <RouterNavLink key={to} to={to} style={{ textDecoration: "none" }}>
               {({ isActive }) => (
-                <NavLink label={label} leftSection={<Icon size={18} />} active={isActive} styles={navLinkStyles} />
+                <NavLink
+                  component="div"
+                  label={label}
+                  leftSection={<Icon size={18} />}
+                  active={isActive}
+                  style={{
+                    borderRadius: 8,
+                    color: isActive ? "#fff" : "var(--gk-text-sidebar)",
+                    background: isActive ? "var(--gk-bg-sidebar-active)" : undefined,
+                  }}
+                />
               )}
             </RouterNavLink>
           ))}
@@ -82,17 +89,16 @@ export function HomeShell() {
           <RouterNavLink to="/home/emergency" style={{ textDecoration: "none" }}>
             {({ isActive }) => (
               <NavLink
+                component="div"
                 label="Emergency"
                 leftSection={<IconAlertOctagon size={18} />}
                 active={isActive}
                 mt={8}
-                styles={{
-                  root: {
-                    borderRadius: 8,
-                    background: isActive ? "#C0392B" : "#E74C3C",
-                    color: "#fff",
-                    fontWeight: 700,
-                  },
+                style={{
+                  borderRadius: 8,
+                  background: isActive ? "#C0392B" : "#E74C3C",
+                  color: "#fff",
+                  fontWeight: 700,
                 }}
               />
             )}
@@ -107,7 +113,7 @@ export function HomeShell() {
               <UnstyledButton style={{ width: "100%", borderRadius: 8, padding: "8px 6px" }}>
                 <Group gap="sm" justify="space-between" wrap="nowrap">
                   <Group gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
-                    <Avatar size={36} color="teal" radius="xl">{initials}</Avatar>
+                    <Avatar size={36} src={avatarSrc ?? undefined} color="teal" radius="xl">{!avatarSrc && initials}</Avatar>
                     <Stack gap={0} style={{ minWidth: 0 }}>
                       <Text size="sm" fw={600} c="var(--gk-text-sidebar)" truncate>{displayName}</Text>
                       <Text size="xs" c="var(--gk-text-sidebar)" opacity={0.55} truncate>Homeowner</Text>

@@ -35,7 +35,7 @@ def verify_otp(phone, code):
 
 
 def verify_google_token(id_token):
-    """Validate a Google id_token and return (email, first_name, last_name), or (None, '', '')."""
+    """Validate a Google id_token and return (email, first_name, last_name, picture_url), or (None, '', '', '')."""
     try:
         from google.auth.transport import requests as google_requests
         from google.oauth2 import id_token as google_id_token
@@ -47,10 +47,11 @@ def verify_google_token(id_token):
         email = idinfo.get("email", "").lower() or None
         first_name = idinfo.get("given_name", "")
         last_name = idinfo.get("family_name", "")
-        return email, first_name, last_name
+        picture_url = idinfo.get("picture", "")
+        return email, first_name, last_name, picture_url
     except Exception as e:
         print(f"[GigKraft] Google token verification failed: {e}", flush=True)
-        return None, "", ""
+        return None, "", "", ""
 
 
 def ensure_role_profile(user):
@@ -74,7 +75,7 @@ def get_or_create_phone_user(phone, role):
 
 
 @transaction.atomic
-def get_or_create_google_user(email, role=User.Role.MEMBER, first_name="", last_name=""):
+def get_or_create_google_user(email, role=User.Role.MEMBER, first_name="", last_name="", picture_url=""):
     user, created = User.objects.get_or_create(
         email=email, defaults={"role": role, "first_name": first_name, "last_name": last_name}
     )
@@ -82,4 +83,14 @@ def get_or_create_google_user(email, role=User.Role.MEMBER, first_name="", last_
         user.set_unusable_password()
         user.save(update_fields=["password"])
         ensure_role_profile(user)
+        if picture_url:
+            _save_profile_picture(user, picture_url)
     return user, created
+
+
+def _save_profile_picture(user, picture_url):
+    """Save a Google profile picture URL to the user's role profile."""
+    if user.role == User.Role.PRO:
+        ProProfile.objects.filter(user=user).update(avatar_url=picture_url)
+    elif user.role == User.Role.HOMEOWNER:
+        HomeownerProfile.objects.filter(user=user).update(avatar_url=picture_url)

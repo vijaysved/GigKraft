@@ -27,6 +27,7 @@ import {
 } from "@mantine/core";
 import {
   IconAt,
+  IconBrandGoogle,
   IconCamera,
   IconCheck,
   IconCopy,
@@ -67,6 +68,7 @@ import {
   compressDataUrl,
   fileToDataUrl,
   loadAvatar,
+  loadGooglePictureUrl,
   saveAvatar,
   useProAvatar,
 } from "../../hooks/useProAvatar";
@@ -290,7 +292,18 @@ export function ProAccountPage() {
   const resetRef = useRef<() => void>(null);
   const profileContentRef = useRef<HTMLDivElement>(null);
   const existingAvatar = loadAvatar();
+  const googlePicUrl = loadGooglePictureUrl();
   const liveAvatarSrc = photoPreview ?? (photoUrl.trim() || existingAvatar) ?? undefined;
+
+  function handleUseGooglePhoto() {
+    if (!googlePicUrl) return;
+    setPhotoFile(null);
+    setPhotoPreview(null);
+    setPhotoUrl(googlePicUrl);
+    setPhotoError(null);
+    setAvatarCropSrc(googlePicUrl);
+    resetRef.current?.();
+  }
 
   function handleFileChange(file: File | null) {
     setPhotoError(null);
@@ -440,7 +453,7 @@ export function ProAccountPage() {
 
   // ── Shared profile hero (used in settings tab) ──
   const ProfileHero = (
-    <Card withBorder radius="md" padding="lg">
+    <Card withBorder shadow="sm" radius="md" padding="lg">
       <Group justify="space-between" wrap="nowrap">
         <Group gap="md">
           <Avatar size={64} src={avatarSrc ?? undefined} color="blue" radius="xl">
@@ -508,7 +521,7 @@ export function ProAccountPage() {
           <Stack ref={profileContentRef}>
 
             {/* ── Hero card — public profile layout with inline edit sections ── */}
-            <Card withBorder radius="md" padding={0} style={{ overflow: "hidden" }}>
+            <Card withBorder shadow="sm" radius="md" padding={0} style={{ overflow: "hidden" }}>
               {/* Wallpaper banner — click to open picker */}
               <div
                 style={{ height: 120, backgroundImage: bannerBg, backgroundSize: "cover", backgroundPosition: "center", position: "relative", cursor: "pointer" }}
@@ -624,7 +637,7 @@ export function ProAccountPage() {
                 <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md" mt="md" style={{ alignItems: "stretch" }}>
 
                   {/* LEFT card — Bio + Contact */}
-                  <Card withBorder radius="md" padding="md"
+                  <Card withBorder shadow="sm" radius="md" padding="md"
                     style={{ borderColor: "var(--gk-border)", background: "var(--gk-bg-surface)", display: "flex", flexDirection: "column" }}>
                     <Stack gap="md" style={{ flex: 1 }}>
 
@@ -688,7 +701,7 @@ export function ProAccountPage() {
                   </Card>
 
                   {/* RIGHT card — Trade / Response / Skills (no label above) */}
-                  <Card withBorder radius="md" padding="md"
+                  <Card withBorder shadow="sm" radius="md" padding="md"
                     style={{ borderColor: "var(--gk-border)", background: "var(--gk-bg-surface)", display: "flex", flexDirection: "column" }}>
                     <Stack gap="xs" style={{ flex: 1 }}>
                       <Group justify="flex-end">
@@ -850,7 +863,7 @@ export function ProAccountPage() {
                   ))}
                 </Stack>
               ) : (
-                <Card withBorder radius="md" padding="xl" style={{ textAlign: "center" }}>
+                <Card withBorder shadow="sm" radius="md" padding="xl" style={{ textAlign: "center" }}>
                   <Stack align="center" gap="sm">
                     <IconPhoto size={40} color="var(--gk-accent-primary)" />
                     <Text fw={600}>No Krafts yet</Text>
@@ -906,7 +919,7 @@ export function ProAccountPage() {
           <Stack>
             {ProfileHero}
             <ThemeSettingsCard />
-            <Card withBorder radius="md" padding="lg">
+            <Card withBorder shadow="sm" radius="md" padding="lg">
               <Stack>
                 <Title order={5}>Notifications</Title>
                 <Switch label="SMS alerts for new leads" defaultChecked description="Receive a text when a homeowner contacts you" />
@@ -914,7 +927,7 @@ export function ProAccountPage() {
                 <Switch label="Weekly performance digest" description="A summary of your profile views and lead activity" />
               </Stack>
             </Card>
-            <Card withBorder radius="md" padding="lg">
+            <Card withBorder shadow="sm" radius="md" padding="lg">
               <Stack>
                 <Title order={5}>Danger zone</Title>
                 <Text size="sm" c="dimmed">Permanently delete your account and all associated data.</Text>
@@ -996,7 +1009,7 @@ export function ProAccountPage() {
           </SimpleGrid>
           <Stack gap={4}>
             <Text size="xs" fw={500} c="dimmed">Message preview</Text>
-            <Card withBorder radius="md" padding="sm" style={{ background: "var(--gk-bg-surface)" }}>
+            <Card withBorder shadow="xs" radius="md" padding="sm" style={{ background: "var(--gk-bg-surface)" }}>
               <Text size="sm">{recMessage}</Text>
             </Card>
           </Stack>
@@ -1039,7 +1052,7 @@ export function ProAccountPage() {
         </Stack>
       </Modal>
 
-      <Modal opened={openModal === "photo"} onClose={() => { setOpenModal(null); setPhotoError(null); }} title="Profile photo" size="sm">
+      <Modal opened={openModal === "photo"} onClose={() => { setOpenModal(null); setPhotoError(null); }} title="Profile photo" size="sm" shadow="md">
         <Stack>
           <Group align="flex-start" gap="lg">
             <Stack align="center" gap="xs">
@@ -1054,11 +1067,16 @@ export function ProAccountPage() {
             <Stack gap="xs" style={{ flex: 1 }}>
               <FileButton resetRef={resetRef} onChange={handleFileChange} accept="image/jpeg,image/png,image/webp">
                 {(props) => (
-                  <Button {...props} variant="light" leftSection={<IconUpload size={16} />} fullWidth>
+                  <Button {...props} size="sm" radius="xl" variant="light" leftSection={<IconUpload size={15} />} fullWidth>
                     Upload from device
                   </Button>
                 )}
               </FileButton>
+              {googlePicUrl && (
+                <Button size="sm" radius="xl" variant="light" color="gray" leftSection={<IconBrandGoogle size={15} />} fullWidth onClick={handleUseGooglePhoto}>
+                  Use Google photo
+                </Button>
+              )}
               <Stack gap={2}>
                 <Text size="xs" c="dimmed"><strong>Recommended:</strong> 400×400 px or larger, square crop</Text>
                 <Text size="xs" c="dimmed"><strong>Max:</strong> {PHOTO_MAX_MB} MB · JPEG, PNG, WebP</Text>

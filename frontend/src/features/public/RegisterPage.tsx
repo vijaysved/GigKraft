@@ -68,6 +68,7 @@ export function RegisterPage() {
 
   const intent = searchParams.get("intent") ?? "";
   const plan = searchParams.get("plan") ?? "monthly";
+  const claimLeadId = searchParams.get("claim") ?? sessionStorage.getItem("gk_claim_lead");
   const isSubscribeIntent = intent === "subscribe";
 
   const [role, setRole] = useState<Role | null>(isSubscribeIntent ? "pro" : null);
@@ -290,7 +291,12 @@ export function RegisterPage() {
                         }
                       } else {
                         await loginWithGoogle(idToken, "member");
-                        navigate("/member/welcome", { replace: true });
+                        if (claimLeadId) {
+                          // ClaimLeadPage will attempt the explicit link and handle no_pro_profile
+                          navigate(`/claim/${claimLeadId}`, { replace: true });
+                        } else {
+                          navigate("/member/welcome", { replace: true });
+                        }
                       }
                     } catch {
                       setError("Google sign-up failed. Please try again.");

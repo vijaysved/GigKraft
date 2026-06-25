@@ -14,11 +14,11 @@ import {
   TextInput,
   Title,
 } from "@mantine/core";
-import { IconCamera, IconUpload } from "@tabler/icons-react";
+import { IconBrandGoogle, IconCamera, IconUpload } from "@tabler/icons-react";
 import { forwardRef, useImperativeHandle, useRef, useState } from "react";
 
 import { useAuth } from "../../auth/AuthContext";
-import { loadAvatar, saveAvatar, clearAvatar, compressToDataUrl } from "../../hooks/useProAvatar";
+import { loadAvatar, saveAvatar, clearAvatar, compressToDataUrl, loadGooglePictureUrl } from "../../hooks/useProAvatar";
 import { client } from "../../api/client";
 
 const TRADES = ["Plumber", "Electrician", "HVAC", "Carpenter", "Painter", "Roofer", "General contractor", "Other"];
@@ -59,6 +59,7 @@ export const ProProfilePage = forwardRef<ProProfileHandle>(function ProProfilePa
   const resetRef = useRef<() => void>(null);
 
   const existingAvatar = loadAvatar();
+  const googlePicUrl = loadGooglePictureUrl();
 
   const initials = (user?.first_name?.[0] ?? user?.email?.[0] ?? "P").toUpperCase();
   const displayName = [user?.first_name, user?.last_name].filter(Boolean).join(" ") || "Your Name";
@@ -89,6 +90,15 @@ export const ProProfilePage = forwardRef<ProProfileHandle>(function ProProfilePa
     compressToDataUrl(file)
       .then((dataUrl) => setPhotoPreview(dataUrl))
       .catch(() => setPhotoError("Could not read image — please try another file."));
+  }
+
+  function handleUseGooglePhoto() {
+    if (!googlePicUrl) return;
+    setPhotoFile(null);
+    setPhotoPreview(null);
+    setPhotoUrl(googlePicUrl);
+    setPhotoError(null);
+    resetRef.current?.();
   }
 
   function handleClearPhoto() {
@@ -141,7 +151,7 @@ export const ProProfilePage = forwardRef<ProProfileHandle>(function ProProfilePa
         </Tabs.List>
 
         <Tabs.Panel value="credentials" pt="md">
-          <Card withBorder radius="md" padding="lg">
+          <Card withBorder shadow="sm" radius="md" padding="lg">
             <Stack>
               <Switch
                 label="Licensed"
@@ -179,7 +189,7 @@ export const ProProfilePage = forwardRef<ProProfileHandle>(function ProProfilePa
         </Tabs.Panel>
 
         <Tabs.Panel value="trade" pt="md">
-          <Card withBorder radius="md" padding="lg">
+          <Card withBorder shadow="sm" radius="md" padding="lg">
             <Stack>
               <Select
                 label="Primary trade"
@@ -212,7 +222,7 @@ export const ProProfilePage = forwardRef<ProProfileHandle>(function ProProfilePa
         </Tabs.Panel>
 
         <Tabs.Panel value="visual" pt="md">
-          <Card withBorder radius="md" padding="lg">
+          <Card withBorder shadow="sm" radius="md" padding="lg">
             <Stack>
               <Title order={5}>Profile photo</Title>
 
@@ -237,14 +247,30 @@ export const ProProfilePage = forwardRef<ProProfileHandle>(function ProProfilePa
                     {(props) => (
                       <Button
                         {...props}
+                        size="sm"
+                        radius="xl"
                         variant="light"
-                        leftSection={<IconUpload size={16} />}
+                        leftSection={<IconUpload size={15} />}
                         fullWidth
                       >
                         Upload from device
                       </Button>
                     )}
                   </FileButton>
+
+                  {googlePicUrl && (
+                    <Button
+                      size="sm"
+                      radius="xl"
+                      variant="light"
+                      color="gray"
+                      leftSection={<IconBrandGoogle size={15} />}
+                      fullWidth
+                      onClick={handleUseGooglePhoto}
+                    >
+                      Use Google photo
+                    </Button>
+                  )}
 
                   <Stack gap={2}>
                     <Text size="xs" c="dimmed">
@@ -281,7 +307,7 @@ export const ProProfilePage = forwardRef<ProProfileHandle>(function ProProfilePa
 
               <Stack gap={4}>
                 <Text size="sm" fw={500}>Preview</Text>
-                <Card withBorder radius="md" padding="sm" style={{ background: "var(--gk-bg-surface)" }}>
+                <Card withBorder shadow="xs" radius="md" padding="sm" style={{ background: "var(--gk-bg-surface)" }}>
                   <Group gap="sm">
                     <Avatar src={avatarSrc} size={56} radius="xl" color="blue">
                       {!avatarSrc && initials}

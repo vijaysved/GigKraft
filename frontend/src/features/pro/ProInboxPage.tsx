@@ -509,6 +509,11 @@ function ChatPane({
               <Text size="xs" c="dimmed" style={{ fontFamily: "var(--mantine-font-family-monospace)" }}>
                 {lead.job_title}
               </Text>
+              {lead.circle_referral_slug && (
+                <Badge size="xs" color="yellow" variant="light">
+                  Via {lead.circle_referral_curator}'s Circle
+                </Badge>
+              )}
             </Stack>
           </Group>
 

@@ -81,6 +81,11 @@ import { HomeMessagesPage } from "./features/home/HomeMessagesPage";
 import { HomeAccountPage } from "./features/home/HomeAccountPage";
 import { HomeRecommendPage } from "./features/home/HomeRecommendPage";
 
+// Circle pages
+import { CircleLandingPage } from "./features/circles/CircleLandingPage";
+import { CuratorDashboardPage } from "./features/circles/CuratorDashboardPage";
+import { ClaimLeadPage } from "./features/circles/ClaimLeadPage";
+
 
 const ROLE_HOME: Record<string, string> = {
   member: "/member/welcome",
@@ -123,6 +128,10 @@ export default function App() {
       <Route path="/review/:handle/:token" element={<ReviewPage />} />
       <Route path="/pros/:id" element={<ProPublicProfilePage />} />
       <Route path="/search" element={<MarketingLayout><SearchPage /></MarketingLayout>} />
+
+      {/* Circle public pages — no auth shell */}
+      <Route path="/circle/:slug" element={<CircleLandingPage />} />
+      <Route path="/claim/:leadId" element={<ClaimLeadPage />} />
 
       {/* Member pages — authenticated, any role (page handles non-member redirects) */}
       <Route path="/member/welcome" element={<RequireAuth><MemberWelcomePage /></RequireAuth>} />
@@ -248,6 +257,7 @@ export default function App() {
         <Route path="messages" element={<HomeMessagesPage />} />
         <Route path="messages/:leadId" element={<HomeMessagesPage />} />
         <Route path="recommend" element={<HomeRecommendPage />} />
+        <Route path="circle" element={<CuratorDashboardPage />} />
         <Route path="account" element={<HomeAccountPage />} />
       </Route>
 

@@ -119,13 +119,13 @@ def otp_verify(request, payload: OTPVerifyIn):
 def google_auth(request, payload: GoogleAuthIn):
     """Google Sign-In: verify id_token and return a JWT pair."""
     try:
-        email, first_name, last_name = services.verify_google_token(payload.id_token)
+        email, first_name, last_name, picture_url = services.verify_google_token(payload.id_token)
     except services.AuthProviderUnavailable as exc:
         return 503, {"detail": str(exc)}
     if email is None:
         return 401, {"detail": "Invalid Google id_token."}
     user, created = services.get_or_create_google_user(
-        email, role=payload.role, first_name=first_name, last_name=last_name
+        email, role=payload.role, first_name=first_name, last_name=last_name, picture_url=picture_url
     )
     return 200, _token_response(user, created=created)
 
