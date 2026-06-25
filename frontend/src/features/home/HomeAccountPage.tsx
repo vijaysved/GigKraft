@@ -32,7 +32,6 @@ import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../../auth/AuthContext";
 import { ThemeSettingsCard } from "../../components/ThemeSettingsCard";
-import { client } from "../../api/client";
 import { getAccessToken } from "../../api/tokens";
 import { API_BASE_URL } from "../../config";
 import {
