@@ -17,7 +17,7 @@ import {
   type UserOut,
 } from "../api/endpoints";
 import { clearTokens, getAccessToken, getRefreshToken, setTokens } from "../api/tokens";
-import { clearAvatar, clearGooglePictureUrl, saveAvatar, saveGooglePictureUrl } from "../hooks/useProAvatar";
+import { clearAvatar, clearGooglePictureUrl, loadAvatar, saveAvatar, saveGooglePictureUrl } from "../hooks/useProAvatar";
 
 export type AuthStatus = "loading" | "authenticated" | "anonymous";
 
@@ -112,9 +112,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const pair = await googleAuth(idToken, role);
 
-    if (pair.created) {
-      clearAvatar();
-      if (googlePic) saveAvatar(googlePic);
+    if (googlePic && (pair.created || !loadAvatar())) {
+      if (pair.created) clearAvatar();
+      saveAvatar(googlePic);
     }
     if (googlePic) saveGooglePictureUrl(googlePic);
 
