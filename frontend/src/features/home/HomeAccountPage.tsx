@@ -160,7 +160,14 @@ export function HomeAccountPage() {
 
   function handleUseGooglePhoto() {
     if (!googlePicUrl) return;
-    setPhotoFile(null); setPhotoPreview(null); setPhotoUrl(googlePicUrl); setPhotoError(null); resetRef.current?.();
+    saveAvatar(googlePicUrl);
+    setPhotoFile(null); setPhotoPreview(null); setPhotoUrl(""); setPhotoError(null); resetRef.current?.();
+    setShowPhotoPanel(false);
+    void fetch(`${API_BASE_URL}/api/home/profile`, {
+      method: "PATCH",
+      headers: authHeaders(),
+      body: JSON.stringify({ avatar_url: googlePicUrl }),
+    });
   }
 
   async function saveProfile() {

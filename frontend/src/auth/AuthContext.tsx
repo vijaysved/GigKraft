@@ -112,11 +112,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const pair = await googleAuth(idToken, role);
 
-    if (googlePic && (pair.created || !loadAvatar())) {
-      if (pair.created) clearAvatar();
-      saveAvatar(googlePic);
+    if (googlePic) {
+      const existing = loadAvatar();
+      const hasManualPhoto = existing && existing.startsWith("data:");
+      if (!hasManualPhoto) saveAvatar(googlePic);
+      saveGooglePictureUrl(googlePic);
     }
-    if (googlePic) saveGooglePictureUrl(googlePic);
 
     setTokens(pair.access, pair.refresh);
     setUser(pair.user);

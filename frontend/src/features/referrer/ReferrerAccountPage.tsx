@@ -155,11 +155,18 @@ export function ReferrerAccountPage() {
 
   function handleUseGooglePhoto() {
     if (!googlePicUrl) return;
+    saveAvatar(googlePicUrl);
     setPhotoFile(null);
     setPhotoPreview(null);
-    setPhotoUrl(googlePicUrl);
+    setPhotoUrl("");
     setPhotoError(null);
     resetRef.current?.();
+    setEditing(false);
+    void fetch(`${API_BASE_URL}/api/referrer/me/profile`, {
+      method: "PATCH",
+      headers: authHeaders(),
+      body: JSON.stringify({ avatar_url: googlePicUrl }),
+    });
   }
 
   function handleCancelEdit() {
@@ -373,6 +380,32 @@ export function ReferrerAccountPage() {
         )}
       </Card>
 
+      {/* Referrer page URL — prominent standalone row */}
+      {!profileLoading && slug && (
+        <Card withBorder shadow="sm" radius="md" padding="md">
+          <Group justify="space-between" wrap="nowrap" align="center">
+            <Stack gap={2}>
+              <Text size="xs" fw={600} c="dimmed" tt="uppercase" style={{ letterSpacing: "0.05em" }}>Your referrer page</Text>
+              <Group gap={6} align="center">
+                <Text size="sm" fw={500}>gigkraft.com/us/{slug}/refer</Text>
+                {slugLocked && <IconLock size={13} style={{ color: "var(--gk-accent-primary)" }} />}
+              </Group>
+            </Stack>
+            <Button
+              size="sm"
+              radius="xl"
+              component="a"
+              href={`https://gigkraft.com/us/${slug}/refer`}
+              target="_blank"
+              leftSection={<IconExternalLink size={14} />}
+              style={gradientBtn}
+            >
+              Visit page
+            </Button>
+          </Group>
+        </Card>
+      )}
+
       {/* Profile Info (half-width) */}
       <Grid>
         <Grid.Col span={{ base: 12, md: 6 }}>
@@ -387,20 +420,6 @@ export function ReferrerAccountPage() {
                 <Center py="md"><Loader size="sm" /></Center>
               ) : (
                 <>
-                  {pageUrl && (
-                    <Group gap={6}>
-                      <Text size="sm" c="dimmed">gigkraft.com/us/{slug}/refer</Text>
-                      <ActionIcon
-                        size="xs"
-                        variant="subtle"
-                        component="a"
-                        href={`https://${pageUrl}`}
-                        target="_blank"
-                      >
-                        <IconExternalLink size={12} />
-                      </ActionIcon>
-                    </Group>
-                  )}
                   <TextInput
                     label="Your page slug"
                     description={slugLocked ? "Slug is locked — cannot be changed" : "gigkraft.com/us/YOUR-SLUG/refer — editable once"}
