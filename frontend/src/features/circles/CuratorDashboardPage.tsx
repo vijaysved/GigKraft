@@ -385,7 +385,7 @@ export function CuratorDashboardPage() {
         </Button>
       </Group>
 
-      <Collapse opened={addProOpen}>
+      <Collapse expanded={addProOpen}>
         <Card
           withBorder
           radius="md"

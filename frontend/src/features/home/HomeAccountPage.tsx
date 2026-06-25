@@ -142,7 +142,12 @@ export function HomeAccountPage() {
         saveAvatar(photoPreview);
       } else if (urlTrimmed) {
         saveAvatar(urlTrimmed);
-        await client.PATCH("/api/home/profile" as never, { body: { avatar_url: urlTrimmed } });
+        const token = getAccessToken();
+        await fetch(`${API_BASE_URL}/api/home/profile`, {
+          method: "PATCH",
+          headers: token ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } : { "Content-Type": "application/json" },
+          body: JSON.stringify({ avatar_url: urlTrimmed }),
+        });
       }
 
       setSaved(true);
