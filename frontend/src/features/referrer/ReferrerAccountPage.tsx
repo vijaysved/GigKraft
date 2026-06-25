@@ -1,10 +1,8 @@
 import {
   Alert,
-  Avatar,
   Button,
   Center,
   Divider,
-  Group,
   Loader,
   Stack,
   Text,
@@ -16,7 +14,6 @@ import { useEffect, useState } from "react";
 
 import { API_BASE_URL } from "../../config";
 import { getAccessToken } from "../../api/tokens";
-import type { ReferrerProfileOut } from "./types";
 import { InviteFriendModal } from "./components/InviteFriendModal";
 
 function authHeaders(): Record<string, string> {
@@ -27,7 +24,6 @@ function authHeaders(): Record<string, string> {
 }
 
 export function ReferrerAccountPage() {
-  const [profile, setProfile] = useState<ReferrerProfileOut | null>(null);
   const [loading, setLoading] = useState(true);
   const [slug, setSlug] = useState("");
   const [bio, setBio] = useState("");
@@ -40,8 +36,7 @@ export function ReferrerAccountPage() {
   async function load() {
     const r = await fetch(`${API_BASE_URL}/api/referrer/me`, { headers: authHeaders() });
     if (r.ok) {
-      const data = await r.json() as { profile: ReferrerProfileOut };
-      setProfile(data.profile);
+      const data = await r.json() as { profile: { slug: string; bio: string; default_zip: string } };
       setSlug(data.profile.slug);
       setBio(data.profile.bio);
       setDefaultZip(data.profile.default_zip);
