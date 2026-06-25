@@ -86,11 +86,18 @@ import { CircleLandingPage } from "./features/circles/CircleLandingPage";
 import { CuratorDashboardPage } from "./features/circles/CuratorDashboardPage";
 import { ClaimLeadPage } from "./features/circles/ClaimLeadPage";
 
+// Referrer pages
+import { ReferrerShell } from "./layout/ReferrerShell";
+import { ReferrerPublicPage } from "./features/referrer/ReferrerPublicPage";
+import { ReferrerDashboard } from "./features/referrer/ReferrerDashboard";
+import { ReferrerAccountPage } from "./features/referrer/ReferrerAccountPage";
+
 
 const ROLE_HOME: Record<string, string> = {
   member: "/member/welcome",
   pro: "/pro/dashboard",
   homeowner: "/home/discover",
+  referrer: "/us/me/refer",
   node_manager: "/admin/dashboard",
   gk_admin: "/gk-admin/dashboard",
 };
@@ -132,6 +139,9 @@ export default function App() {
       {/* Circle public pages — no auth shell */}
       <Route path="/circle/:slug" element={<CircleLandingPage />} />
       <Route path="/claim/:leadId" element={<ClaimLeadPage />} />
+
+      {/* Referrer public page — no auth shell */}
+      <Route path="/us/:slug/refer" element={<ReferrerPublicPage />} />
 
       {/* Member pages — authenticated, any role (page handles non-member redirects) */}
       <Route path="/member/welcome" element={<RequireAuth><MemberWelcomePage /></RequireAuth>} />
@@ -259,6 +269,25 @@ export default function App() {
         <Route path="recommend" element={<HomeRecommendPage />} />
         <Route path="circle" element={<CuratorDashboardPage />} />
         <Route path="account" element={<HomeAccountPage />} />
+      </Route>
+
+      {/* Referrer authenticated dashboard */}
+      <Route
+        path="/us/me"
+        element={
+          <RequireAuth>
+            <RequireRole role="referrer">
+              <ReferrerShell />
+            </RequireRole>
+          </RequireAuth>
+        }
+      >
+        <Route index element={<Navigate to="/us/me/refer" replace />} />
+        <Route path="refer" element={<ReferrerDashboard />} />
+        <Route path="requests" element={<ReferrerDashboard />} />
+        <Route path="followers" element={<ReferrerDashboard />} />
+        <Route path="activity" element={<ReferrerDashboard />} />
+        <Route path="account" element={<ReferrerAccountPage />} />
       </Route>
 
       {/* Legacy redirect */}

@@ -8,7 +8,7 @@ class Circle(models.Model):
         "accounts.User",
         on_delete=models.CASCADE,
         related_name="circle",
-        limit_choices_to={"role": "homeowner"},
+        limit_choices_to={"role__in": ["homeowner", "referrer"]},
     )
     slug = models.SlugField(max_length=80, unique=True, db_index=True)
     is_active = models.BooleanField(default=True)

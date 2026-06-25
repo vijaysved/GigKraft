@@ -2,9 +2,11 @@ import {
   ActionIcon,
   Alert,
   Badge,
+  Button,
   Card,
   Group,
   Loader,
+  Modal,
   Pagination,
   Select,
   Stack,
@@ -40,7 +42,6 @@ const ROLE_COLORS: Record<string, string> = {
 
 const PAGE_SIZE = 25;
 
-const DELETABLE_EMAILS = new Set(["karrys@gmail.com", "satyamanidhruva@gmail.com"]);
 const PROMOTE_TO_ADMIN_EMAILS = new Set(["karrys@gmail.com", "oddlynicellc@gmail.com", "vijaysarkarvedula@gmail.com"]);
 
 export function GkAdminUsersPage() {
@@ -55,6 +56,7 @@ export function GkAdminUsersPage() {
   const [zipFilter, setZipFilter] = useState<string>("");
   const [allZips, setAllZips] = useState<string[]>([]);
   const [page, setPage] = useState(1);
+  const [pendingDelete, setPendingDelete] = useState<GkUserRow | null>(null);
 
   useEffect(() => {
     getGkUserZipcodes()
@@ -95,8 +97,10 @@ export function GkAdminUsersPage() {
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-  async function handleDelete(u: GkUserRow) {
-    if (!confirm(`Delete ${u.email ?? u.phone}? This cannot be undone.`)) return;
+  async function confirmDelete() {
+    if (!pendingDelete) return;
+    const u = pendingDelete;
+    setPendingDelete(null);
     try {
       await deleteGkUser(u.id);
       if (currentUser?.id === u.id) {
@@ -331,18 +335,16 @@ export function GkAdminUsersPage() {
                             </ActionIcon>
                           </Tooltip>
                         )}
-                        {u.email && DELETABLE_EMAILS.has(u.email) && (
-                          <Tooltip label="Delete user" withArrow>
-                            <ActionIcon
-                              size="sm"
-                              variant="light"
-                              color="red"
-                              onClick={() => void handleDelete(u)}
-                            >
-                              <IconTrash size={13} />
-                            </ActionIcon>
-                          </Tooltip>
-                        )}
+                        <Tooltip label="Delete user" withArrow>
+                          <ActionIcon
+                            size="sm"
+                            variant="light"
+                            color="red"
+                            onClick={() => setPendingDelete(u)}
+                          >
+                            <IconTrash size={13} />
+                          </ActionIcon>
+                        </Tooltip>
                       </Group>
                     </Table.Td>
                   </Table.Tr>
@@ -365,6 +367,33 @@ export function GkAdminUsersPage() {
           <Loader size="sm" />
         )}
       </Card>
+
+      <Modal
+        opened={pendingDelete !== null}
+        onClose={() => setPendingDelete(null)}
+        title="Delete user"
+        centered
+        size="sm"
+      >
+        <Stack gap="md">
+          <Text size="sm">
+            Permanently delete <strong>{pendingDelete?.email ?? pendingDelete?.phone}</strong>?
+          </Text>
+          <Text size="xs" c="dimmed">
+            This removes all their data — profile, leads, messages, circles, billing history, and
+            waitlist/prospect records. Their auth tokens are invalidated immediately. This cannot
+            be undone.
+          </Text>
+          <Group justify="flex-end">
+            <Button variant="default" size="xs" onClick={() => setPendingDelete(null)}>
+              Cancel
+            </Button>
+            <Button color="red" size="xs" onClick={() => void confirmDelete()}>
+              Delete permanently
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
     </Stack>
   );
 }

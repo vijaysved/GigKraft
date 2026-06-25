@@ -33,6 +33,18 @@ def require_homeowner(request) -> HomeownerProfile:
     return profile
 
 
+def require_referrer(request) -> "ReferrerProfile":
+    """Ensure the user has the referrer role and return their ReferrerProfile."""
+    from referrals.models import ReferrerProfile
+    user = request.auth
+    if user.role != User.Role.REFERRER and User.Role.REFERRER not in (user.extra_roles or []):
+        raise HttpError(403, "This endpoint requires the referrer role.")
+    profile, _ = ReferrerProfile.objects.get_or_create(user=user)
+    if not profile.slug:
+        profile.save()  # triggers _generate_slug
+    return profile
+
+
 def require_node_manager(request) -> User:
     user = request.auth
     if user.role != User.Role.NODE_MANAGER:

@@ -159,8 +159,8 @@ def patch_me(request, payload: UserPatchIn):
         user.phone = phone
     if "role" in data:
         new_role = data["role"]
-        if new_role not in (User.Role.PRO, User.Role.HOMEOWNER):
-            return 400, {"detail": "Role must be pro or homeowner."}
+        if new_role not in (User.Role.PRO, User.Role.HOMEOWNER, User.Role.REFERRER):
+            return 400, {"detail": "Role must be pro, homeowner, or referrer."}
         user.role = new_role
         user.save()
         services.ensure_role_profile(user)

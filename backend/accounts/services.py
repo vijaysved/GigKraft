@@ -60,6 +60,11 @@ def ensure_role_profile(user):
         ProProfile.objects.get_or_create(user=user)
     elif user.role == User.Role.HOMEOWNER:
         HomeownerProfile.objects.get_or_create(user=user)
+    elif user.role == User.Role.REFERRER:
+        from referrals.models import ReferrerProfile
+        profile, created = ReferrerProfile.objects.get_or_create(user=user)
+        if created and not profile.slug:
+            profile.save()  # triggers _generate_slug
 
 
 @transaction.atomic

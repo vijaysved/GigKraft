@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     "comms",
     "feedback",
     "circles",
+    "referrals",
 ]
 
 MIDDLEWARE = [

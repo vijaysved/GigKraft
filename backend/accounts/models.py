@@ -21,7 +21,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         VISITOR = "visitor", "Visitor"
         MEMBER = "member", "Member"
         PRO = "pro", "Pro"
-        HOMEOWNER = "homeowner", "Homeowner"
+        HOMEOWNER = "homeowner", "Homeowner"  # legacy — migrating to REFERRER
+        REFERRER = "referrer", "Referrer"
         NODE_MANAGER = "node_manager", "Node Manager"
         GK_ADMIN = "gk_admin", "GK Admin"
 

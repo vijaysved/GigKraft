@@ -323,6 +323,27 @@ def delete_user(request, user_id: int):
     user = User.objects.filter(pk=user_id).first()
     if user is None:
         return 404, {"detail": "User not found."}
+
+    from accounts.models import WaitlistEntry
+    from circles.models import CirclePro
+    from comms.models import OutreachLog
+    from vendors.models import Prospect
+
+    email = user.email
+    phone = user.phone
+
+    # Wipe orphaned records not covered by cascade (independent email/phone stores)
+    if email:
+        WaitlistEntry.objects.filter(email=email).delete()
+        CirclePro.objects.filter(off_platform_email=email).delete()
+        OutreachLog.objects.filter(to_address=email).delete()
+        Prospect.objects.filter(email=email).delete()
+    if phone:
+        Prospect.objects.filter(phone=phone).delete()
+
+    # Cascade handles: ProProfile, HomeownerProfile, Circle, Lead, Message,
+    # EmergencyBroadcast, CircleFollow, FavoritePro, NotificationPref, etc.
+    # JWT tokens are invalidated automatically — deleted user_id fails auth lookup.
     user.delete()
     return 204, None
 
