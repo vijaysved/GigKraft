@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useParams } from "react-router-dom";
 
 import { RequireAuth } from "./auth/RequireAuth";
 import { FeedbackWidget } from "./components/FeedbackWidget";
@@ -82,7 +82,6 @@ import { HomeAccountPage } from "./features/home/HomeAccountPage";
 import { HomeRecommendPage } from "./features/home/HomeRecommendPage";
 
 // Circle pages
-import { CircleLandingPage } from "./features/circles/CircleLandingPage";
 import { CuratorDashboardPage } from "./features/circles/CuratorDashboardPage";
 import { ClaimLeadPage } from "./features/circles/ClaimLeadPage";
 
@@ -96,11 +95,16 @@ import { ReferrerAccountPage } from "./features/referrer/ReferrerAccountPage";
 const ROLE_HOME: Record<string, string> = {
   member: "/member/welcome",
   pro: "/pro/dashboard",
-  homeowner: "/home/discover",
+  homeowner: "/us/me/refer",
   referrer: "/us/me/refer",
   node_manager: "/admin/dashboard",
   gk_admin: "/gk-admin/dashboard",
 };
+
+function CircleSlugRedirect() {
+  const { slug } = useParams<{ slug: string }>();
+  return <Navigate to={`/us/${slug}/refer`} replace />;
+}
 
 function RootPage() {
   const { status, user } = useAuth();
@@ -136,8 +140,8 @@ export default function App() {
       <Route path="/pros/:id" element={<ProPublicProfilePage />} />
       <Route path="/search" element={<MarketingLayout><SearchPage /></MarketingLayout>} />
 
-      {/* Circle public pages — no auth shell */}
-      <Route path="/circle/:slug" element={<CircleLandingPage />} />
+      {/* Legacy circle URLs — redirect to new referrer URL */}
+      <Route path="/circle/:slug" element={<CircleSlugRedirect />} />
       <Route path="/claim/:leadId" element={<ClaimLeadPage />} />
 
       {/* Referrer public page — no auth shell */}
@@ -276,7 +280,7 @@ export default function App() {
         path="/us/me"
         element={
           <RequireAuth>
-            <RequireRole role="referrer">
+            <RequireRole role={["referrer", "homeowner"]}>
               <ReferrerShell />
             </RequireRole>
           </RequireAuth>

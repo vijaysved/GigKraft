@@ -9,7 +9,7 @@ interface RequireRoleProps {
 const ROLE_HOME: Record<string, string> = {
   member: "/member/welcome",
   pro: "/pro/leads",
-  homeowner: "/home/discover",
+  homeowner: "/us/me/refer",
   referrer: "/us/me/refer",
   node_manager: "/admin/dashboard",
   gk_admin: "/gk-admin/dashboard",

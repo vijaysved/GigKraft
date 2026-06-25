@@ -116,7 +116,7 @@ export function HomeShell() {
                     <Avatar size={36} src={avatarSrc ?? undefined} color="teal" radius="xl">{!avatarSrc && initials}</Avatar>
                     <Stack gap={0} style={{ minWidth: 0 }}>
                       <Text size="sm" fw={600} c="var(--gk-text-sidebar)" truncate>{displayName}</Text>
-                      <Text size="xs" c="var(--gk-text-sidebar)" opacity={0.55} truncate>Homeowner</Text>
+                      <Text size="xs" c="var(--gk-text-sidebar)" opacity={0.55} truncate>Referrer</Text>
                     </Stack>
                   </Group>
                   <IconChevronUp size={14} color="var(--gk-text-sidebar)" style={{ opacity: 0.5, flexShrink: 0 }} />
