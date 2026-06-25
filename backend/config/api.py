@@ -69,6 +69,7 @@ api.add_router("/feedback", feedback_public_router)
 api.add_router("/feedback", feedback_router)
 api.add_router("/circles", circles_router)
 api.add_router("/circles", circles_public_router)
-# Public referrer pages (/us/:slug/refer maps → /api/referrer/:slug)
-api.add_router("/referrer", referrals_public_router)
+# Authenticated /me endpoints must be registered BEFORE the public /{slug} wildcard
+# so that /api/referrer/me is not caught by the slug pattern
 api.add_router("/referrer", referrals_router)
+api.add_router("/referrer", referrals_public_router)
