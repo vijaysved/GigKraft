@@ -262,6 +262,9 @@ class ReferrerProfileOut(Schema):
     avatar_url: str
     default_zip: str
     page_url: str
+    slug_locked: bool = False
+    notify_email: bool = True
+    notify_sms: bool = False
 
 
 class ReferrerStatsOut(Schema):
@@ -280,6 +283,8 @@ class UpdateProfileIn(Schema):
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
     default_zip: Optional[str] = None
+    notify_email: Optional[bool] = None
+    notify_sms: Optional[bool] = None
 
 
 class ReferrerProDashboardOut(Schema):
@@ -607,6 +612,9 @@ def dashboard(request):
             "avatar_url": profile.avatar_url,
             "default_zip": profile.default_zip,
             "page_url": f"gigkraft.com/us/{profile.slug}/refer",
+            "slug_locked": profile.slug_locked,
+            "notify_email": profile.notify_email,
+            "notify_sms": profile.notify_sms,
         },
         "stats": {
             "follower_count": profile.follower_count,
@@ -622,6 +630,8 @@ def update_profile(request, payload: UpdateProfileIn):
     data = payload.dict(exclude_unset=True)
 
     if "slug" in data and data["slug"] != profile.slug:
+        if profile.slug_locked:
+            return 409, {"detail": "Slug is locked and cannot be changed."}
         new_slug = data["slug"]
         if ReferrerProfile.objects.exclude(pk=profile.pk).filter(slug=new_slug).exists():
             base = new_slug[:28]
@@ -630,10 +640,16 @@ def update_profile(request, payload: UpdateProfileIn):
                 i += 1
             return 409, {"detail": "Slug taken.", "suggestion": f"{base}-{i}"}
         profile.slug = new_slug
+        profile.slug_locked = True
 
     for field in ("bio", "avatar_url", "default_zip"):
         if field in data:
             setattr(profile, field, data[field])
+
+    if "notify_email" in data:
+        profile.notify_email = data["notify_email"]
+    if "notify_sms" in data:
+        profile.notify_sms = data["notify_sms"]
 
     profile.save()
     return 200, {
@@ -642,6 +658,9 @@ def update_profile(request, payload: UpdateProfileIn):
         "avatar_url": profile.avatar_url,
         "default_zip": profile.default_zip,
         "page_url": f"gigkraft.com/us/{profile.slug}/refer",
+        "slug_locked": profile.slug_locked,
+        "notify_email": profile.notify_email,
+        "notify_sms": profile.notify_sms,
     }
 
 

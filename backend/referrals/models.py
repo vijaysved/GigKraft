@@ -25,6 +25,9 @@ class ReferrerProfile(models.Model):
     default_zip = models.CharField(max_length=10, blank=True, default="")
     referral_count = models.PositiveIntegerField(default=0)
     follower_count = models.PositiveIntegerField(default=0)
+    slug_locked = models.BooleanField(default=False)
+    notify_email = models.BooleanField(default=True)
+    notify_sms = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

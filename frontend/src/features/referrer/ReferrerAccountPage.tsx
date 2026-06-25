@@ -17,7 +17,6 @@ import {
   Textarea,
   Title,
   Tooltip,
-  UnstyledButton,
 } from "@mantine/core";
 import {
   IconBell,
@@ -25,15 +24,12 @@ import {
   IconCamera,
   IconCheck,
   IconExternalLink,
-  IconPageBreak,
+  IconLock,
   IconPencil,
-  IconSend,
   IconUpload,
   IconUser,
-  IconUsers,
 } from "@tabler/icons-react";
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../../auth/AuthContext";
 import { ThemeSettingsCard } from "../../components/ThemeSettingsCard";
@@ -55,15 +51,14 @@ function authHeaders(): Record<string, string> {
     : { "Content-Type": "application/json" };
 }
 
-const NAV_LINKS = [
-  { label: "My referrer page", icon: IconPageBreak, to: "/us/me/refer" },
-  { label: "Requests", icon: IconSend, to: "/us/me/requests" },
-  { label: "Followers", icon: IconUsers, to: "/us/me/followers" },
-];
+const gradientBtn: React.CSSProperties = {
+  background: "var(--gk-brand-gradient)",
+  border: "none",
+  color: "#fff",
+};
 
 export function ReferrerAccountPage() {
   const { user, updateUser } = useAuth();
-  const navigate = useNavigate();
   const avatarSrc = useProAvatar();
 
   // Identity edit state
@@ -80,8 +75,9 @@ export function ReferrerAccountPage() {
   const [photoError, setPhotoError] = useState<string | null>(null);
   const resetRef = useRef<() => void>(null);
 
-  // Referrer-specific profile
+  // Profile Info (formerly "Referrer page")
   const [slug, setSlug] = useState("");
+  const [slugLocked, setSlugLocked] = useState(false);
   const [bio, setBio] = useState("");
   const [defaultZip, setDefaultZip] = useState("");
   const [pageUrl, setPageUrl] = useState("");
@@ -90,9 +86,11 @@ export function ReferrerAccountPage() {
   const [profileSaved, setProfileSaved] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
 
-  // Notifications
-  const [dispatchSms, setDispatchSms] = useState(true);
-  const [dispatchEmail, setDispatchEmail] = useState(false);
+  // Notifications — email on by default
+  const [dispatchEmail, setDispatchEmail] = useState(true);
+  const [dispatchSms, setDispatchSms] = useState(false);
+  const [notifSaving, setNotifSaving] = useState(false);
+  const [notifSaved, setNotifSaved] = useState(false);
 
   const existingAvatar = loadAvatar();
   const googlePicUrl = loadGooglePictureUrl();
@@ -111,11 +109,24 @@ export function ReferrerAccountPage() {
     setProfileLoading(true);
     const r = await fetch(`${API_BASE_URL}/api/referrer/me`, { headers: authHeaders() });
     if (r.ok) {
-      const data = await r.json() as { profile: { slug: string; bio: string; default_zip: string; page_url: string } };
+      const data = await r.json() as {
+        profile: {
+          slug: string;
+          bio: string;
+          default_zip: string;
+          page_url: string;
+          slug_locked: boolean;
+          notify_email: boolean;
+          notify_sms: boolean;
+        };
+      };
       setSlug(data.profile.slug);
       setBio(data.profile.bio);
       setDefaultZip(data.profile.default_zip);
       setPageUrl(data.profile.page_url);
+      setSlugLocked(data.profile.slug_locked);
+      setDispatchEmail(data.profile.notify_email);
+      setDispatchSms(data.profile.notify_sms);
     }
     setProfileLoading(false);
   }
@@ -209,19 +220,35 @@ export function ReferrerAccountPage() {
           default_zip: defaultZip.trim(),
         }),
       });
-      const data = await r.json() as { detail?: string; suggestion?: string; page_url?: string };
+      const data = await r.json() as { detail?: string; suggestion?: string; page_url?: string; slug_locked?: boolean };
       if (r.status === 409) {
         setProfileError(`Slug already taken. Try: ${data.suggestion ?? ""}`);
         return;
       }
       if (!r.ok) throw new Error(data.detail ?? "Failed to save.");
       if (data.page_url) setPageUrl(data.page_url);
+      if (data.slug_locked) setSlugLocked(true);
       setProfileSaved(true);
       setTimeout(() => setProfileSaved(false), 2000);
     } catch (e) {
       setProfileError(e instanceof Error ? e.message : "Error saving profile.");
     } finally {
       setProfileSaving(false);
+    }
+  }
+
+  async function handleSaveNotifications() {
+    setNotifSaving(true);
+    try {
+      await fetch(`${API_BASE_URL}/api/referrer/me/profile`, {
+        method: "PATCH",
+        headers: authHeaders(),
+        body: JSON.stringify({ notify_email: dispatchEmail, notify_sms: dispatchSms }),
+      });
+      setNotifSaved(true);
+      setTimeout(() => setNotifSaved(false), 2000);
+    } finally {
+      setNotifSaving(false);
     }
   }
 
@@ -232,7 +259,7 @@ export function ReferrerAccountPage() {
         <Title order={3} style={{ color: "var(--gk-accent-primary)" }}>Your Account</Title>
       </Group>
 
-      {/* Identity card — inline editable */}
+      {/* Identity card — contact info always visible */}
       <Card withBorder shadow="sm" radius="md" padding="lg">
         {!editing ? (
           <Group justify="space-between" wrap="nowrap" align="center">
@@ -242,7 +269,8 @@ export function ReferrerAccountPage() {
               </Avatar>
               <Stack gap={2}>
                 <Text fw={700} size="lg">{displayName}</Text>
-                <Text size="sm" c="dimmed">{user?.email ?? user?.phone ?? "—"}</Text>
+                {user?.email && <Text size="sm" c="dimmed">{user.email}</Text>}
+                {user?.phone && <Text size="sm" c="dimmed">{user.phone}</Text>}
                 <Badge size="sm" variant="light" color="teal">Referrer</Badge>
               </Stack>
             </Group>
@@ -278,7 +306,7 @@ export function ReferrerAccountPage() {
                 )}
               </Stack>
 
-              {/* Name inputs */}
+              {/* Name inputs + contact info */}
               <Stack gap="xs" style={{ flex: 1 }}>
                 <Group gap="xs" wrap="nowrap">
                   <TextInput
@@ -297,17 +325,17 @@ export function ReferrerAccountPage() {
                     style={{ flex: 1 }}
                   />
                 </Group>
-                <Text size="sm" c="dimmed">{user?.email ?? user?.phone ?? "—"}</Text>
+                {user?.email && <Text size="sm" c="dimmed">{user.email}</Text>}
+                {user?.phone && <Text size="sm" c="dimmed">{user.phone}</Text>}
               </Stack>
 
               <Group gap={4} style={{ flexShrink: 0 }}>
                 <Button
                   size="xs"
-                  variant="light"
-                  color="blue"
                   loading={saving}
                   leftSection={saved ? <IconCheck size={13} /> : undefined}
                   onClick={() => void handleSaveIdentity()}
+                  style={gradientBtn}
                 >
                   {saved ? "Saved!" : "Done"}
                 </Button>
@@ -345,82 +373,73 @@ export function ReferrerAccountPage() {
         )}
       </Card>
 
-      {/* Quick-nav links */}
+      {/* Profile Info (half-width) */}
       <Grid>
-        {NAV_LINKS.map(({ label, icon: Icon, to }) => (
-          <Grid.Col key={to} span={{ base: 12, sm: 6, md: 4 }}>
-            <UnstyledButton w="100%" onClick={() => navigate(to)}>
-              <Card withBorder shadow="sm" radius="md" padding="md" style={{ cursor: "pointer" }}>
-                <Group gap="sm">
-                  <Avatar radius="md" color="teal" size="md"><Icon size={20} /></Avatar>
-                  <Text fw={600} size="sm">{label}</Text>
-                </Group>
-              </Card>
-            </UnstyledButton>
-          </Grid.Col>
-        ))}
-      </Grid>
+        <Grid.Col span={{ base: 12, md: 6 }}>
+          <Card withBorder shadow="sm" radius="md" padding="lg" h="100%">
+            <Stack gap="md">
+              <Group gap="xs">
+                <IconUser size={18} style={{ color: "var(--gk-accent-primary)" }} />
+                <Title order={5}>Profile Info</Title>
+              </Group>
 
-      {/* Referrer page settings */}
-      <Card withBorder shadow="sm" radius="md" padding="lg">
-        <Stack gap="md">
-          <Group gap="xs">
-            <IconPageBreak size={18} style={{ color: "var(--gk-accent-primary)" }} />
-            <Title order={5}>Referrer page</Title>
-          </Group>
-
-          {profileLoading ? (
-            <Center py="md"><Loader size="sm" /></Center>
-          ) : (
-            <>
-              {pageUrl && (
-                <Group gap={6}>
-                  <Text size="sm" c="dimmed">gigkraft.com/us/{slug}/refer</Text>
-                  <ActionIcon
-                    size="xs"
-                    variant="subtle"
-                    component="a"
-                    href={`https://${pageUrl}`}
-                    target="_blank"
+              {profileLoading ? (
+                <Center py="md"><Loader size="sm" /></Center>
+              ) : (
+                <>
+                  {pageUrl && (
+                    <Group gap={6}>
+                      <Text size="sm" c="dimmed">gigkraft.com/us/{slug}/refer</Text>
+                      <ActionIcon
+                        size="xs"
+                        variant="subtle"
+                        component="a"
+                        href={`https://${pageUrl}`}
+                        target="_blank"
+                      >
+                        <IconExternalLink size={12} />
+                      </ActionIcon>
+                    </Group>
+                  )}
+                  <TextInput
+                    label="Your page slug"
+                    description={slugLocked ? "Slug is locked — cannot be changed" : "gigkraft.com/us/YOUR-SLUG/refer — editable once"}
+                    placeholder="your-name"
+                    value={slug}
+                    onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
+                    disabled={slugLocked}
+                    rightSection={slugLocked ? <IconLock size={14} style={{ color: "var(--gk-accent-primary)" }} /> : undefined}
+                  />
+                  <Textarea
+                    label="Bio"
+                    description="Shown at the top of your referrer page"
+                    placeholder="I've lived in Austin for 15 years and know every reliable trade in town…"
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value)}
+                    minRows={3}
+                  />
+                  <TextInput
+                    label="Default ZIP code"
+                    placeholder="78701"
+                    value={defaultZip}
+                    onChange={(e) => setDefaultZip(e.target.value)}
+                  />
+                  {profileError && <Alert color="red" variant="light">{profileError}</Alert>}
+                  <Button
+                    radius="xl"
+                    loading={profileSaving}
+                    leftSection={profileSaved ? <IconCheck size={14} /> : undefined}
+                    onClick={() => void handleSaveProfile()}
+                    style={gradientBtn}
                   >
-                    <IconExternalLink size={12} />
-                  </ActionIcon>
-                </Group>
+                    {profileSaved ? "Saved!" : "Save profile"}
+                  </Button>
+                </>
               )}
-              <TextInput
-                label="Your page slug"
-                description="gigkraft.com/us/YOUR-SLUG/refer"
-                placeholder="your-name"
-                value={slug}
-                onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
-              />
-              <Textarea
-                label="Bio"
-                description="Shown at the top of your referrer page"
-                placeholder="I've lived in Austin for 15 years and know every reliable trade in town…"
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-                minRows={3}
-              />
-              <TextInput
-                label="Default ZIP code"
-                placeholder="78701"
-                value={defaultZip}
-                onChange={(e) => setDefaultZip(e.target.value)}
-              />
-              {profileError && <Alert color="red" variant="light">{profileError}</Alert>}
-              <Button
-                radius="xl"
-                loading={profileSaving}
-                leftSection={profileSaved ? <IconCheck size={14} /> : undefined}
-                onClick={() => void handleSaveProfile()}
-              >
-                {profileSaved ? "Saved!" : "Save page settings"}
-              </Button>
-            </>
-          )}
-        </Stack>
-      </Card>
+            </Stack>
+          </Card>
+        </Grid.Col>
+      </Grid>
 
       {/* Notifications */}
       <Card withBorder shadow="sm" radius="md" padding="lg">
@@ -430,17 +449,29 @@ export function ReferrerAccountPage() {
             <Title order={5}>Notifications</Title>
           </Group>
           <Switch
-            label="SMS alerts"
-            description="Get a text when someone follows your page or requests a referral"
-            checked={dispatchSms}
-            onChange={(e) => setDispatchSms(e.currentTarget.checked)}
-          />
-          <Switch
             label="Email alerts"
             description="Get email for referral updates"
             checked={dispatchEmail}
             onChange={(e) => setDispatchEmail(e.currentTarget.checked)}
           />
+          <Switch
+            label="SMS alerts"
+            description="Get a text when someone follows your page or requests a referral"
+            checked={dispatchSms}
+            onChange={(e) => setDispatchSms(e.currentTarget.checked)}
+          />
+          <Group>
+            <Button
+              radius="xl"
+              size="sm"
+              loading={notifSaving}
+              leftSection={notifSaved ? <IconCheck size={14} /> : undefined}
+              onClick={() => void handleSaveNotifications()}
+              style={gradientBtn}
+            >
+              {notifSaved ? "Saved!" : "Save preferences"}
+            </Button>
+          </Group>
         </Stack>
       </Card>
 
