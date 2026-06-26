@@ -10,8 +10,13 @@ import {
 } from "@mantine/core";
 import { useEffect, useState } from "react";
 
-import { declineReferrerRequest, getReferrerRequests } from "../../../api/endpoints";
-import type { ReferralRequestDetailOut, ReferrerProDashboardOut } from "../types";
+import {
+  declineReferrerRequest,
+  getReferrerPros,
+  getReferrerRequests,
+  type ReferrerProRow,
+} from "../../../api/endpoints";
+import type { ReferralRequestDetailOut } from "../types";
 import { SendReferralModal } from "../components/SendReferralModal";
 
 function statusColor(status: string) {
@@ -22,15 +27,16 @@ function statusColor(status: string) {
   return "yellow";
 }
 
-interface Props {
-  pros: ReferrerProDashboardOut[];
-}
-
-export function RequestsTab({ pros }: Props) {
+export function RequestsTab() {
   const [filter, setFilter] = useState("pending");
   const [requests, setRequests] = useState<ReferralRequestDetailOut[]>([]);
+  const [pros, setPros] = useState<ReferrerProRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [sendReq, setSendReq] = useState<ReferralRequestDetailOut | null>(null);
+
+  useEffect(() => {
+    getReferrerPros().then(setPros).catch(() => undefined);
+  }, []);
 
   async function load() {
     setLoading(true);

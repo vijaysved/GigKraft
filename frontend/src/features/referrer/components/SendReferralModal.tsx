@@ -10,14 +10,14 @@ import {
 } from "@mantine/core";
 import { useState } from "react";
 
-import { sendReferralRequest, verifyFollowerOtp } from "../../../api/endpoints";
-import type { ReferralRequestDetailOut, ReferrerProDashboardOut } from "../types";
+import { sendReferralRequest, verifyFollowerOtp, type ReferrerProRow } from "../../../api/endpoints";
+import type { ReferralRequestDetailOut } from "../types";
 
 interface Props {
   opened: boolean;
   onClose: () => void;
   request: ReferralRequestDetailOut;
-  pros: ReferrerProDashboardOut[];
+  pros: ReferrerProRow[];
   onSent: () => void;
 }
 

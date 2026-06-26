@@ -1539,3 +1539,8 @@ export async function claimProInvite(token: string): Promise<void> {
   if (!response.ok) throw new ApiError(response.status, detailOf(error, "Failed to claim invite."));
 }
 
+export async function claimFriendInvite(token: string): Promise<void> {
+  const { error, response } = await _post(`/api/referrer/friend-invite/claim/${token}`);
+  if (!response.ok) throw new ApiError(response.status, detailOf(error, "Failed to claim friend invite."));
+}
+

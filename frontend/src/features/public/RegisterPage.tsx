@@ -13,9 +13,7 @@ import { IconCheck, IconHammer, IconHome } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 
-import { claimAnonymousLead, createLead } from "../../api/endpoints";
-import { getAccessToken } from "../../api/tokens";
-import { API_BASE_URL } from "../../config";
+import { claimAnonymousLead, claimFriendInvite, claimProInvite, createLead } from "../../api/endpoints";
 import { GkLogo } from "../../brand/GkLogo";
 import { useAuth } from "../../auth/AuthContext";
 import { GoogleSignInButton } from "../../components/GoogleSignInButton";
@@ -317,23 +315,14 @@ export function RegisterPage() {
                       const activeClaimPro = claimProToken || savedClaimPro;
                       const activeInv = invToken || savedInv;
 
-                      const tok = getAccessToken();
-                      const authHeader = tok ? { Authorization: `Bearer ${tok}` } : {};
-
                       if (activeClaimPro) {
-                        await fetch(`${API_BASE_URL}/api/referrer/pro-invite/claim/${activeClaimPro}`, {
-                          method: "POST",
-                          headers: authHeader,
-                        }).catch(() => undefined);
+                        await claimProInvite(activeClaimPro).catch(() => undefined);
                         navigate("/pro/account", { replace: true });
                         return;
                       }
 
                       if (activeInv) {
-                        await fetch(`${API_BASE_URL}/api/referrer/friend-invite/claim/${activeInv}`, {
-                          method: "POST",
-                          headers: authHeader,
-                        }).catch(() => undefined);
+                        await claimFriendInvite(activeInv).catch(() => undefined);
                         navigate(returnTo || "/member/welcome", { replace: true });
                         return;
                       }
