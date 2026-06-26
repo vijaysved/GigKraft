@@ -522,7 +522,6 @@ export function ProAccountPage() {
   // ── Contact info ──
   const [contactEmail, setContactEmail] = useState(user?.email ?? "");
   const [contactPhone, setContactPhone] = useState(formatPhone(user?.phone ?? ""));
-  const [emailError, setEmailError] = useState<string | null>(null);
   const [phoneError, setPhoneError] = useState<string | null>(null);
 
   // ── Custom trade ──

@@ -6,7 +6,6 @@ import {
   Button,
   Card,
   Center,
-  Divider,
   Group,
   Loader,
   SimpleGrid,
