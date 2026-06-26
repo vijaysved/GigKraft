@@ -28,56 +28,11 @@ import {
 } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 
-import { API_BASE_URL } from "../../config";
-import { getAccessToken } from "../../api/tokens";
-import { getTemplateProfile, updateTemplateProfile, type TemplateProfileData } from "../../api/endpoints";
+import { getSiteConfig, updateSiteConfig, getTemplateProfile, updateTemplateProfile, type SiteConfigData, type TemplateProfileData } from "../../api/endpoints";
 
 // ── types ──────────────────────────────────────────────────────────────────
 
-interface ExtraUrl {
-  label: string;
-  url: string;
-}
-
-interface SiteConfig {
-  template_pro_url_local: string;
-  template_pro_url_prod: string;
-  template_member_url_local: string;
-  template_member_url_prod: string;
-  extra_template_urls: ExtraUrl[];
-  updated_at: string | null;
-}
-
-// ── API ────────────────────────────────────────────────────────────────────
-
-async function authFetch(path: string, init?: RequestInit): Promise<Response> {
-  return fetch(`${API_BASE_URL}${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${getAccessToken() ?? ""}`,
-      ...(init?.headers ?? {}),
-    },
-  });
-}
-
-async function fetchConfig(): Promise<SiteConfig> {
-  const res = await authFetch("/api/gk-admin/site-config");
-  if (!res.ok) throw new Error("Failed to load site configuration");
-  return res.json() as Promise<SiteConfig>;
-}
-
-async function saveConfig(cfg: Omit<SiteConfig, "updated_at">): Promise<SiteConfig> {
-  const res = await authFetch("/api/gk-admin/site-config", {
-    method: "PUT",
-    body: JSON.stringify(cfg),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({})) as { detail?: string };
-    throw new Error(err.detail ?? "Failed to save");
-  }
-  return res.json() as Promise<SiteConfig>;
-}
+type SiteConfig = SiteConfigData;
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
@@ -276,7 +231,7 @@ export function GkAdminSiteConfigPage() {
   async function load() {
     setLoadError(null);
     try {
-      const data = await fetchConfig();
+      const data = await getSiteConfig();
       setCfg(data);
       setForm({
         template_pro_url_local: data.template_pro_url_local,
@@ -296,7 +251,7 @@ export function GkAdminSiteConfigPage() {
     setSaveError(null);
     setSavedAt(null);
     try {
-      const updated = await saveConfig(form);
+      const updated = await updateSiteConfig(form);
       setCfg(updated);
       setForm({
         template_pro_url_local: updated.template_pro_url_local,

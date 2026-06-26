@@ -488,6 +488,34 @@ export async function updateTemplateProfile(
   return data as TemplateProfileData;
 }
 
+// ---------- Site Config ----------
+
+export interface SiteConfigData {
+  template_pro_url_local: string;
+  template_pro_url_prod: string;
+  template_member_url_local: string;
+  template_member_url_prod: string;
+  extra_template_urls: { label: string; url: string }[];
+  updated_at: string | null;
+}
+
+export async function getSiteConfig(): Promise<SiteConfigData> {
+  const { data, error, response } = await client.GET("/api/gk-admin/site-config" as never);
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to load site configuration."));
+  return data as SiteConfigData;
+}
+
+export async function updateSiteConfig(
+  payload: Omit<SiteConfigData, "updated_at">,
+): Promise<SiteConfigData> {
+  const { data, error, response } = await client.PUT(
+    "/api/gk-admin/site-config" as never,
+    { body: payload } as never,
+  );
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to save site configuration."));
+  return data as SiteConfigData;
+}
+
 // ---------- Prospects ----------
 
 export interface StepJourney {
