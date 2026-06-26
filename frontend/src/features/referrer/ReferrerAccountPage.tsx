@@ -39,8 +39,13 @@ import { useSearchParams } from "react-router-dom";
 
 import { useAuth } from "../../auth/AuthContext";
 import { ThemeSettingsCard } from "../../components/ThemeSettingsCard";
-import { getAccessToken } from "../../api/tokens";
-import { API_BASE_URL } from "../../config";
+import {
+  patchMe,
+  getReferrerMe,
+  patchReferrerProfile,
+  uploadAvatar,
+  uploadAvatarFromUrl,
+} from "../../api/endpoints";
 import {
   clearAvatar,
   compressToDataUrl,
@@ -49,13 +54,6 @@ import {
   saveAvatar,
   useProAvatar,
 } from "../../hooks/useProAvatar";
-
-function authHeaders(): Record<string, string> {
-  const token = getAccessToken();
-  return token
-    ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
-    : { "Content-Type": "application/json" };
-}
 
 function formatPhone(raw: string): string {
   const digits = raw.replace(/\D/g, "").slice(0, 10);
@@ -166,24 +164,16 @@ export function ReferrerAccountPage() {
   async function loadProfile() {
     setProfileLoading(true);
     try {
-      const r = await fetch(`${API_BASE_URL}/api/referrer/me`, { headers: authHeaders() });
-      if (r.ok) {
-        const data = await r.json() as {
-          profile: {
-            slug: string; bio: string; default_zip: string;
-            page_url: string; slug_locked: boolean;
-            notify_email: boolean; notify_sms: boolean;
-          };
-        };
-        setSlug(data.profile.slug);
-        setBio(data.profile.bio);
-        setDefaultZip(data.profile.default_zip);
-        setPageUrl(data.profile.page_url);
-        setSlugLocked(data.profile.slug_locked);
-        setDispatchEmail(data.profile.notify_email);
-        setDispatchSms(data.profile.notify_sms);
-      }
-    } finally {
+      const data = await getReferrerMe();
+      setSlug(data.profile.slug);
+      setBio(data.profile.bio);
+      setDefaultZip(data.profile.default_zip);
+      setPageUrl(data.profile.page_url);
+      setSlugLocked(data.profile.slug_locked);
+      setDispatchEmail(data.profile.notify_email);
+      setDispatchSms(data.profile.notify_sms);
+    } catch { /* profile load errors are non-fatal — page still renders */ }
+    finally {
       setProfileLoading(false);
     }
   }
@@ -219,14 +209,7 @@ export function ReferrerAccountPage() {
     if (!googlePicUrl) return;
     setPhotoError(null);
     try {
-      const token = getAccessToken();
-      const res = await fetch(`${API_BASE_URL}/api/me/avatar-from-url`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ url: googlePicUrl }),
-      });
-      if (!res.ok) throw new Error("upload failed");
-      const { avatar_url } = await res.json() as { avatar_url: string };
+      const avatar_url = await uploadAvatarFromUrl(googlePicUrl);
       saveAvatar(avatar_url);
       setPhotoPreview(avatar_url);
     } catch {
@@ -257,65 +240,38 @@ export function ReferrerAccountPage() {
     setProfileError(null);
     try {
       // Identity: name + phone
-      const idRes = await fetch(`${API_BASE_URL}/api/me`, {
-        method: "PATCH",
-        headers: authHeaders(),
-        body: JSON.stringify({
-          first_name: firstName.trim(),
-          last_name: lastName.trim(),
-          phone: contactPhone.replace(/\D/g, "") || null,
-        }),
+      const meResult = await patchMe({
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
+        phone: contactPhone.replace(/\D/g, "") || null,
       });
-      if (idRes.ok) {
-        updateUser({
-          first_name: firstName.trim(),
-          last_name: lastName.trim(),
-          phone: contactPhone.replace(/\D/g, "") || null,
-        });
-      }
+      updateUser({
+        first_name: meResult.first_name,
+        last_name: meResult.last_name,
+        phone: meResult.phone ?? null,
+      });
 
       // Referrer profile: slug + bio + zip
-      const profRes = await fetch(`${API_BASE_URL}/api/referrer/me/profile`, {
-        method: "PATCH",
-        headers: authHeaders(),
-        body: JSON.stringify({
-          slug: slug.trim() || undefined,
-          bio: bio.trim(),
-          default_zip: defaultZip.trim(),
-        }),
+      const profResult = await patchReferrerProfile({
+        slug: slug.trim() || undefined,
+        bio: bio.trim(),
+        default_zip: defaultZip.trim(),
       });
-      const profData = await profRes.json() as {
-        detail?: string; suggestion?: string; page_url?: string; slug_locked?: boolean;
-      };
-      if (profRes.status === 409) {
-        setProfileError(`Slug taken. Try: ${profData.suggestion ?? ""}`);
+      if (profResult.status === 409) {
+        setProfileError(`Slug taken. Try: ${profResult.suggestion ?? ""}`);
         return;
       }
-      if (!profRes.ok) throw new Error(profData.detail ?? "Failed to save.");
-      if (profData.page_url) setPageUrl(profData.page_url);
-      if (profData.slug_locked) setSlugLocked(true);
+      if (!profResult.ok) throw new Error(profResult.detail ?? "Failed to save.");
+      if (profResult.page_url) setPageUrl(profResult.page_url);
+      if (profResult.slug_locked) setSlugLocked(true);
 
       // Photo — upload file to server, get back a stable public URL
       if (photoFile) {
-        const form = new FormData();
-        form.append("file", photoFile);
-        const token = getAccessToken();
-        const uploadRes = await fetch(`${API_BASE_URL}/api/me/avatar`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-          body: form,
-        });
-        if (uploadRes.ok) {
-          const { avatar_url } = await uploadRes.json() as { avatar_url: string };
-          saveAvatar(avatar_url);
-          // avatar_url already persisted server-side by the upload endpoint
-        }
+        const avatar_url = await uploadAvatar(photoFile);
+        saveAvatar(avatar_url);
       } else if (photoPreview && !photoFile) {
         // photoPreview was already uploaded (e.g. Google photo — already a server URL)
-        await fetch(`${API_BASE_URL}/api/referrer/me/profile`, {
-          method: "PATCH", headers: authHeaders(),
-          body: JSON.stringify({ avatar_url: photoPreview }),
-        });
+        await patchReferrerProfile({ avatar_url: photoPreview });
       }
 
       setPhotoFile(null); setPhotoPreview(null); setPhotoUrl(""); setShowPhotoPanel(false);
@@ -332,10 +288,7 @@ export function ReferrerAccountPage() {
   async function saveNotifications() {
     setNotifSaving(true);
     try {
-      await fetch(`${API_BASE_URL}/api/referrer/me/profile`, {
-        method: "PATCH", headers: authHeaders(),
-        body: JSON.stringify({ notify_email: dispatchEmail, notify_sms: dispatchSms }),
-      });
+      await patchReferrerProfile({ notify_email: dispatchEmail, notify_sms: dispatchSms });
       setNotifSaved(true);
       setTimeout(() => setNotifSaved(false), 2000);
     } finally {

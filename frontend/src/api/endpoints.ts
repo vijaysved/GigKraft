@@ -104,7 +104,7 @@ export async function getMe(): Promise<UserOut> {
   return data;
 }
 
-export async function patchMe(body: { role?: string; first_name?: string; last_name?: string }): Promise<UserOut> {
+export async function patchMe(body: { role?: string; first_name?: string; last_name?: string; phone?: string | null }): Promise<UserOut> {
   const { data, error, response } = await client.PATCH("/api/me", { body });
   if (!data) {
     throw new ApiError(response.status, detailOf(error, "Failed to update profile."));
@@ -514,6 +514,151 @@ export async function updateSiteConfig(
   );
   if (!data) throw new ApiError(response.status, detailOf(error, "Failed to save site configuration."));
   return data as SiteConfigData;
+}
+
+// ---------- Referrer ----------
+
+export interface ReferrerMeOut {
+  profile: {
+    slug: string;
+    bio: string;
+    default_zip: string;
+    page_url: string;
+    slug_locked: boolean;
+    notify_email: boolean;
+    notify_sms: boolean;
+  };
+}
+
+export interface ReferrerProRow {
+  id: number;
+  name: string;
+  trade: string;
+  phone: string | null;
+  email: string | null;
+  avatar_url: string | null;
+  endorsement: string;
+  show_on_page: boolean;
+  display_order: number;
+  referral_count: number;
+  is_on_platform: boolean;
+  is_pending: boolean;
+  invite_status: string | null;
+  added_at: string;
+}
+
+export interface FoundProOut {
+  user_id: number;
+  handle: string;
+  name: string;
+  trade: string;
+  city: string;
+  avatar_url: string;
+  is_verified: boolean;
+  is_pro: boolean;
+}
+
+export async function getReferrerMe(): Promise<ReferrerMeOut> {
+  const { data, error, response } = await client.GET("/api/referrer/me" as never);
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to load referrer profile."));
+  return data as ReferrerMeOut;
+}
+
+export async function getReferrerPros(): Promise<ReferrerProRow[]> {
+  const { data, error, response } = await client.GET("/api/referrer/me/pros" as never);
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to load pros."));
+  return data as ReferrerProRow[];
+}
+
+export async function updateReferrerPro(
+  id: number,
+  patch: { show_on_page?: boolean; endorsement?: string },
+): Promise<void> {
+  const { response } = await client.PATCH(`/api/referrer/me/pros/${id}` as never, { body: patch } as never);
+  if (!response.ok) throw new ApiError(response.status, "Failed to update pro.");
+}
+
+export async function deleteReferrerPro(id: number): Promise<void> {
+  const { response } = await client.DELETE(`/api/referrer/me/pros/${id}` as never);
+  if (!response.ok) throw new ApiError(response.status, "Failed to remove pro.");
+}
+
+export async function lookupReferrerPro(
+  params: { phone?: string; email?: string },
+): Promise<FoundProOut | null> {
+  const q = new URLSearchParams();
+  if (params.phone) q.set("phone", params.phone);
+  if (params.email) q.set("email", params.email);
+  const { data, response } = await client.GET(
+    `/api/referrer/me/pros/lookup?${q.toString()}` as never,
+  );
+  if (!response.ok || !data) return null;
+  return data as FoundProOut;
+}
+
+export async function addReferrerPro(
+  proHandle: string,
+): Promise<{ ok: boolean; status: number; detail?: string }> {
+  const { error, response } = await client.POST("/api/referrer/me/pros" as never, {
+    body: { pro_handle: proHandle },
+  } as never);
+  return { ok: response.ok, status: response.status, detail: detailOf(error, "") || undefined };
+}
+
+export async function inviteReferrerPro(payload: {
+  name: string;
+  trade: string;
+  phone?: string;
+  email?: string;
+}): Promise<{ ok: boolean; status: number; detail?: string }> {
+  const { error, response } = await client.POST("/api/referrer/me/invite-pro" as never, {
+    body: payload,
+  } as never);
+  return { ok: response.ok, status: response.status, detail: detailOf(error, "") || undefined };
+}
+
+export async function patchReferrerProfile(patch: {
+  slug?: string;
+  bio?: string;
+  default_zip?: string;
+  avatar_url?: string;
+  notify_email?: boolean;
+  notify_sms?: boolean;
+}): Promise<{ ok: boolean; status: number; page_url?: string; slug_locked?: boolean; detail?: string; suggestion?: string }> {
+  const { data, error, response } = await client.PATCH("/api/referrer/me/profile" as never, {
+    body: patch,
+  } as never);
+  const body = (data ?? error ?? {}) as Record<string, unknown>;
+  return {
+    ok: response.ok,
+    status: response.status,
+    page_url: body.page_url as string | undefined,
+    slug_locked: body.slug_locked as boolean | undefined,
+    detail: body.detail as string | undefined,
+    suggestion: body.suggestion as string | undefined,
+  };
+}
+
+export async function uploadAvatarFromUrl(url: string): Promise<string> {
+  const { data, error, response } = await client.POST("/api/me/avatar-from-url" as never, {
+    body: { url },
+  } as never);
+  if (!response.ok) throw new ApiError(response.status, detailOf(error, "Failed to set avatar."));
+  return (data as unknown as { avatar_url: string }).avatar_url;
+}
+
+export async function uploadAvatar(file: File): Promise<string> {
+  const form = new FormData();
+  form.append("file", file);
+  const token = getAccessToken();
+  const res = await fetch("/api/me/avatar", {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: form,
+  });
+  if (!res.ok) throw new ApiError(res.status, "Failed to upload avatar.");
+  const { avatar_url } = await res.json() as { avatar_url: string };
+  return avatar_url;
 }
 
 // ---------- Prospects ----------

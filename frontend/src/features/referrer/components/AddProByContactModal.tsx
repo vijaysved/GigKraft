@@ -21,8 +21,13 @@ import {
 } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 
-import { API_BASE_URL } from "../../../config";
-import { getAccessToken } from "../../../api/tokens";
+import {
+  getReferrerMe,
+  lookupReferrerPro,
+  addReferrerPro,
+  inviteReferrerPro,
+  type FoundProOut,
+} from "../../../api/endpoints";
 
 const TRADE_OPTIONS = [
   "Plumbing", "Electrical", "HVAC", "Roofing", "Painting", "Carpentry",
@@ -30,16 +35,7 @@ const TRADE_OPTIONS = [
   "Pest Control", "Masonry", "Drywall", "Tile", "Other",
 ];
 
-interface FoundPro {
-  user_id: number;
-  handle: string;
-  name: string;
-  trade: string;
-  city: string;
-  avatar_url: string;
-  is_verified: boolean;
-  is_pro: boolean;
-}
+type FoundPro = FoundProOut;
 
 type Step = "form" | "found" | "not_found" | "result";
 
@@ -53,13 +49,6 @@ interface Props {
   opened: boolean;
   onClose: () => void;
   onAdded: () => void;
-}
-
-function authHeaders(): Record<string, string> {
-  const token = getAccessToken();
-  return token
-    ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
-    : { "Content-Type": "application/json" };
 }
 
 function validateName(v: string): string | null {
@@ -135,32 +124,16 @@ export function AddProByContactModal({ opened, onClose, onAdded }: Props) {
   // ── Load default zip ──
   useEffect(() => {
     if (!opened) return;
-    const token = getAccessToken();
-    if (!token) return;
-    fetch(`${API_BASE_URL}/api/referrer/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data: { profile?: { default_zip?: string } } | null) => {
-        if (data?.profile?.default_zip) setZip(data.profile.default_zip);
-      })
+    getReferrerMe()
+      .then((data) => { if (data.profile.default_zip) setZip(data.profile.default_zip); })
       .catch(() => {});
   }, [opened]);
 
   async function tryAutoFillTrade(p: string, e: string) {
     if (!p.trim() && !e.trim()) return;
-    const params = new URLSearchParams();
-    if (p.trim()) params.set("phone", p.trim());
-    if (e.trim()) params.set("email", e.trim());
     try {
-      const r = await fetch(
-        `${API_BASE_URL}/api/referrer/me/pros/lookup?${params.toString()}`,
-        { headers: authHeaders() },
-      );
-      if (r.ok) {
-        const pro = await r.json() as FoundPro;
-        if (pro.trade) { setTrade(pro.trade); setTradeAutoFilled(true); }
-      }
+      const pro = await lookupReferrerPro({ phone: p.trim() || undefined, email: e.trim() || undefined });
+      if (pro?.trade) { setTrade(pro.trade); setTradeAutoFilled(true); }
     } catch { /* silent */ }
   }
 
@@ -190,24 +163,13 @@ export function AddProByContactModal({ opened, onClose, onAdded }: Props) {
 
     setSearching(true);
     try {
-      const params = new URLSearchParams();
       const digitsOnly = phone.replace(/\D/g, "");
-      if (digitsOnly) params.set("phone", digitsOnly);
-      if (email.trim()) params.set("email", email.trim());
-
-      const res = await fetch(
-        `${API_BASE_URL}/api/referrer/me/pros/lookup?${params.toString()}`,
-        { headers: authHeaders() },
-      );
-
-      if (res.ok) {
-        const pro = await res.json() as FoundPro;
-        setFoundPro(pro);
-        setStep("found");
-      } else {
-        setFoundPro(null);
-        setStep("not_found");
-      }
+      const pro = await lookupReferrerPro({
+        phone: digitsOnly || undefined,
+        email: email.trim() || undefined,
+      });
+      if (pro) { setFoundPro(pro); setStep("found"); }
+      else { setFoundPro(null); setStep("not_found"); }
     } catch {
       setFoundPro(null);
       setStep("not_found");
@@ -222,41 +184,29 @@ export function AddProByContactModal({ opened, onClose, onAdded }: Props) {
     setActing(true);
     try {
       if (foundPro.is_pro) {
-        // Has a pro profile — add directly by handle
-        const addRes = await fetch(`${API_BASE_URL}/api/referrer/me/pros`, {
-          method: "POST",
-          headers: authHeaders(),
-          body: JSON.stringify({ pro_handle: foundPro.handle }),
-        });
-        const addData = await addRes.json() as { detail?: string };
-        if (addRes.ok) {
+        const res = await addReferrerPro(foundPro.handle);
+        if (res.ok) {
           onAdded();
           setResult({ kind: "added", title: "Added!", body: `${foundPro.name} has been added to your list.` });
-        } else if (addRes.status === 409) {
+        } else if (res.status === 409) {
           setResult({ kind: "already_on_list", title: "Already on your list", body: `${foundPro.name} is already on your list.` });
         } else {
-          setResult({ kind: "error", title: "Couldn't add", body: addData.detail ?? "Something went wrong." });
+          setResult({ kind: "error", title: "Couldn't add", body: res.detail ?? "Something went wrong." });
         }
       } else {
-        // Member without a pro profile — send them an invite to join as a pro
-        const inviteRes = await fetch(`${API_BASE_URL}/api/referrer/me/invite-pro`, {
-          method: "POST",
-          headers: authHeaders(),
-          body: JSON.stringify({
-            name: foundPro.name,
-            trade: trade.trim() || "Professional",
-            phone: phone.trim() || undefined,
-            email: email.trim() || undefined,
-          }),
+        const res = await inviteReferrerPro({
+          name: foundPro.name,
+          trade: trade.trim() || "Professional",
+          phone: phone.trim() || undefined,
+          email: email.trim() || undefined,
         });
-        const inviteData = await inviteRes.json() as { detail?: string };
-        if (inviteRes.ok) {
+        if (res.ok) {
           onAdded();
           setResult({ kind: "invited", title: "Added to your list!", body: `${foundPro.name} has been added. They'll get a notification to complete their profile.` });
-        } else if (inviteRes.status === 409) {
+        } else if (res.status === 409) {
           setResult({ kind: "already_on_list", title: "Already on your list", body: `${foundPro.name} is already on your list.` });
         } else {
-          setResult({ kind: "error", title: "Couldn't add", body: inviteData.detail ?? "Something went wrong." });
+          setResult({ kind: "error", title: "Couldn't add", body: res.detail ?? "Something went wrong." });
         }
       }
     } catch (e) {
@@ -271,24 +221,19 @@ export function AddProByContactModal({ opened, onClose, onAdded }: Props) {
   async function handleInvite() {
     setActing(true);
     try {
-      const inviteRes = await fetch(`${API_BASE_URL}/api/referrer/me/invite-pro`, {
-        method: "POST",
-        headers: authHeaders(),
-        body: JSON.stringify({
-          name: name.trim(),
-          trade: trade.trim() || "Professional",
-          phone: phone.replace(/\D/g, "") || undefined,
-          email: email.trim() || undefined,
-        }),
+      const res = await inviteReferrerPro({
+        name: name.trim(),
+        trade: trade.trim() || "Professional",
+        phone: phone.replace(/\D/g, "") || undefined,
+        email: email.trim() || undefined,
       });
-      const inviteData = await inviteRes.json() as { detail?: string };
-      if (inviteRes.ok) {
+      if (res.ok) {
         onAdded();
         setResult({ kind: "invited", title: "Invite sent!", body: `${name.trim()} has been invited to join GigKraft.` });
-      } else if (inviteRes.status === 409) {
-        setResult({ kind: "already_on_list", title: "Already on your list", body: inviteData.detail ?? `${name.trim()} is already on your list.` });
+      } else if (res.status === 409) {
+        setResult({ kind: "already_on_list", title: "Already on your list", body: res.detail ?? `${name.trim()} is already on your list.` });
       } else {
-        setResult({ kind: "error", title: "Couldn't send invite", body: inviteData.detail ?? "Something went wrong." });
+        setResult({ kind: "error", title: "Couldn't send invite", body: res.detail ?? "Something went wrong." });
       }
     } catch (e) {
       setResult({ kind: "error", title: "Something went wrong", body: e instanceof Error ? e.message : "Please try again." });

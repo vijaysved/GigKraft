@@ -28,18 +28,10 @@ import {
 } from "@tabler/icons-react";
 import { useEffect, useMemo, useState } from "react";
 
-import { API_BASE_URL } from "../../../config";
-import { getAccessToken } from "../../../api/tokens";
+import { getReferrerPros, updateReferrerPro, deleteReferrerPro } from "../../../api/endpoints";
 import { fallbackAvatar } from "../../../assets/fallbackAvatars";
 import type { ReferrerProDashboardOut } from "../types";
 import { AddProByContactModal } from "../components/AddProByContactModal";
-
-function authHeaders(): Record<string, string> {
-  const token = getAccessToken();
-  return token
-    ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
-    : { "Content-Type": "application/json" };
-}
 
 const cardStyle = {
   borderColor: "var(--gk-accent-primary)",
@@ -116,9 +108,7 @@ export function MyProsTab() {
   async function load() {
     setLoading(true);
     try {
-      const r = await fetch(`${API_BASE_URL}/api/referrer/me/pros`, { headers: authHeaders() });
-      if (!r.ok) throw new Error("Failed to load pros.");
-      setPros(await r.json() as ReferrerProDashboardOut[]);
+      setPros(await getReferrerPros() as unknown as ReferrerProDashboardOut[]);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error");
     } finally {
@@ -129,21 +119,13 @@ export function MyProsTab() {
   useEffect(() => { load(); }, []);
 
   async function toggleShow(rp: ReferrerProDashboardOut) {
-    await fetch(`${API_BASE_URL}/api/referrer/me/pros/${rp.id}`, {
-      method: "PATCH",
-      headers: authHeaders(),
-      body: JSON.stringify({ show_on_page: !rp.show_on_page }),
-    });
+    await updateReferrerPro(rp.id, { show_on_page: !rp.show_on_page });
     load();
   }
 
   async function saveEndorsement(id: number) {
     setSavingId(id);
-    await fetch(`${API_BASE_URL}/api/referrer/me/pros/${id}`, {
-      method: "PATCH",
-      headers: authHeaders(),
-      body: JSON.stringify({ endorsement: editEndorsement }),
-    });
+    await updateReferrerPro(id, { endorsement: editEndorsement });
     setSavingId(null);
     setEditId(null);
     load();
@@ -151,10 +133,7 @@ export function MyProsTab() {
 
   async function removePro(id: number) {
     if (!confirm("Remove this pro from your page?")) return;
-    await fetch(`${API_BASE_URL}/api/referrer/me/pros/${id}`, {
-      method: "DELETE",
-      headers: authHeaders(),
-    });
+    await deleteReferrerPro(id);
     load();
   }
 
