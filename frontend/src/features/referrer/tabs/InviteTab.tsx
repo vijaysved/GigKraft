@@ -28,6 +28,7 @@ import {
   IconUsers,
 } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 
 import {
   archiveFriendInvite,
@@ -35,7 +36,6 @@ import {
   createFriendInvite,
   createProInvite,
   getInviteList,
-  getReferrerDashboard,
   resendFriendInvite,
   resendProInvite,
 } from "../../../api/endpoints";
@@ -113,8 +113,7 @@ const ghostBtn: React.CSSProperties = {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function InviteTab() {
-  const [slug, setSlug] = useState("");
-  const [loadingSlug, setLoadingSlug] = useState(true);
+  const { slug = "" } = useParams<{ slug: string }>();
   const [invites, setInvites] = useState<InviteListOut>({ pro_invites: [], friend_invites: [] });
   const [loadingInvites, setLoadingInvites] = useState(true);
 
@@ -142,10 +141,6 @@ export function InviteTab() {
   const [rowState, setRowState] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    getReferrerDashboard()
-      .then((d) => setSlug(d.profile?.slug ?? ""))
-      .catch(() => undefined)
-      .finally(() => setLoadingSlug(false));
     loadInvites();
   }, []);
 
@@ -589,10 +584,7 @@ export function InviteTab() {
             Share your page with anyone — no name or phone needed.
           </Text>
 
-          {loadingSlug ? (
-            <Loader size="xs" />
-          ) : (
-            <>
+          <>
               {/* URL display + copy */}
               <Group gap="xs" wrap="nowrap">
                 <Text
@@ -645,7 +637,6 @@ export function InviteTab() {
                 </button>
               </a>
             </>
-          )}
         </Stack>
       </Modal>
 
