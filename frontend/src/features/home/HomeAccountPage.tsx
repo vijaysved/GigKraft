@@ -197,6 +197,17 @@ export function HomeAccountPage() {
     }
   }, [user]);
 
+  function loadNotifFromStorage() {
+    const saved = localStorage.getItem("gk.home.notif");
+    if (!saved) return;
+    try {
+      const p = JSON.parse(saved) as { email?: boolean; sms?: boolean; inApp?: boolean };
+      if (p.email !== undefined) setNotifyEmail(p.email);
+      if (p.sms !== undefined) setNotifySms(p.sms);
+      if (p.inApp !== undefined) setNotifyInApp(p.inApp);
+    } catch {}
+  }
+
   useEffect(() => {
     fetch(`${API_BASE_URL}/api/home/account`, { headers: authHeaders() })
       .then((r) => r.ok ? r.json() : null)
@@ -239,17 +250,6 @@ export function HomeAccountPage() {
       })
       .catch(() => loadNotifFromStorage());
   }, []);
-
-  function loadNotifFromStorage() {
-    const saved = localStorage.getItem("gk.home.notif");
-    if (!saved) return;
-    try {
-      const p = JSON.parse(saved) as { email?: boolean; sms?: boolean; inApp?: boolean };
-      if (p.email !== undefined) setNotifyEmail(p.email);
-      if (p.sms !== undefined) setNotifySms(p.sms);
-      if (p.inApp !== undefined) setNotifyInApp(p.inApp);
-    } catch {}
-  }
 
   function cancelEdit() {
     setFirstName(user?.first_name ?? "");

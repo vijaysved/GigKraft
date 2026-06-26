@@ -606,7 +606,7 @@ export function ReferrerAccountPage() {
               </Card>
             ) : (
               <Card withBorder radius="md" padding="lg" style={cardStyle}>
-                {isEditing ? <EditForm /> : <ProCardView />}
+                {isEditing ? EditForm() : ProCardView()}
               </Card>
             )}
 
