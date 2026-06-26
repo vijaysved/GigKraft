@@ -2,7 +2,6 @@ import {
   Anchor,
   Avatar,
   Badge,
-  Button,
   Card,
   Divider,
   Group,
@@ -17,6 +16,7 @@ import {
 } from "@tabler/icons-react";
 import { useState } from "react";
 
+import { fallbackAvatar } from "../../../assets/fallbackAvatars";
 import type { ProCardOut } from "../types";
 import { RequestReferralModal } from "./RequestReferralModal";
 
@@ -73,7 +73,7 @@ export function ReferrerProCard({ pro, slug, referrerName, allPros, isFollower, 
 
         <Group gap="sm" align="flex-start" wrap="nowrap" mb={5} style={{ position: "relative", zIndex: 1 }}>
           <Avatar
-            src={pro.avatar_url || undefined}
+            src={pro.avatar_url || fallbackAvatar(pro.id)}
             radius="sm"
             size={80}
             color="teal"
@@ -87,7 +87,7 @@ export function ReferrerProCard({ pro, slug, referrerName, allPros, isFollower, 
               <Stack gap={0} style={{ minWidth: 0 }}>
                 <Group gap={4} wrap="nowrap">
                   <Text fw={700} size="sm" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {pro.name}
+                    {pro.name.split(" ")[0]}
                   </Text>
                   {pro.is_pending && (
                     <Badge color="gray" variant="outline" size="xs" style={{ flexShrink: 0 }}>Pending</Badge>
@@ -98,15 +98,29 @@ export function ReferrerProCard({ pro, slug, referrerName, allPros, isFollower, 
                   <Text size="xs" c="teal">Responds in {pro.responds_in}</Text>
                 )}
               </Stack>
-              <Button
-                size="compact-xs"
-                variant="light"
-                radius="xl"
+              <button
                 onClick={handleRequestClick}
-                style={{ flexShrink: 0, alignSelf: "flex-start", fontSize: 11 }}
+                style={{
+                  padding: "3px 11px",
+                  background: "var(--gk-brand-gradient)",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 99,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  letterSpacing: "0.04em",
+                  flexShrink: 0,
+                  alignSelf: "flex-start",
+                  transition: "opacity 0.15s",
+                  boxShadow: "0 2px 8px -2px var(--gk-accent-primary)",
+                }}
+                onMouseOver={(e) => (e.currentTarget.style.opacity = "0.85")}
+                onMouseOut={(e) => (e.currentTarget.style.opacity = "1")}
               >
                 Refer me
-              </Button>
+              </button>
             </Group>
 
             {/* Contact — plain text always visible, tap-to-call only after referral sent */}
@@ -168,7 +182,7 @@ export function ReferrerProCard({ pro, slug, referrerName, allPros, isFollower, 
           style={{
             fontSize: 9,
             color: "var(--gk-accent-primary)",
-            opacity: 0.5,
+            opacity: 0.75,
             letterSpacing: 0.5,
             position: "relative",
             zIndex: 1,

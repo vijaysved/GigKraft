@@ -31,6 +31,8 @@ export interface ReferrerPublicOut {
   pros: ProCardOut[];
   follower_state: FollowerState | null;
   is_owner: boolean;
+  phone?: string;
+  email?: string;
 }
 
 export interface ReferrerProfileOut {

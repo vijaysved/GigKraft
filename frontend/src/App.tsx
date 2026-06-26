@@ -1,9 +1,13 @@
-import { Navigate, Route, Routes, useParams } from "react-router-dom";
+import { Center, Loader } from "@mantine/core";
+import { Navigate, Route, Routes, useNavigate, useLocation, useParams } from "react-router-dom";
+import { useEffect } from "react";
 
 import { RequireAuth } from "./auth/RequireAuth";
 import { FeedbackWidget } from "./components/FeedbackWidget";
 import { RequireRole } from "./auth/RequireRole";
 import { useAuth } from "./auth/AuthContext";
+import { getAccessToken } from "./api/tokens";
+import { API_BASE_URL } from "./config";
 
 // Layouts
 import { AdminShell } from "./layout/AdminShell";
@@ -95,8 +99,8 @@ import { ReferrerAccountPage } from "./features/referrer/ReferrerAccountPage";
 const ROLE_HOME: Record<string, string> = {
   member: "/member/welcome",
   pro: "/pro/dashboard",
-  homeowner: "/us/me/refer",
-  referrer: "/us/me/refer",
+  homeowner: "/us/me/home",
+  referrer: "/us/me/home",
   node_manager: "/admin/dashboard",
   gk_admin: "/gk-admin/dashboard",
 };
@@ -104,6 +108,32 @@ const ROLE_HOME: Record<string, string> = {
 function CircleSlugRedirect() {
   const { slug } = useParams<{ slug: string }>();
   return <Navigate to={`/us/${slug}/refer`} replace />;
+}
+
+/** Resolves the authenticated user's referrer slug then redirects to /us/:slug/:dest */
+function MeRedirect({ dest = "home" }: { dest?: string }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const token = getAccessToken();
+    if (!token) { navigate("/login", { replace: true }); return; }
+
+    fetch(`${API_BASE_URL}/api/referrer/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { profile?: { slug?: string } } | null) => {
+        const slug = data?.profile?.slug;
+        if (!slug) { navigate("/login", { replace: true }); return; }
+        // Preserve sub-path: /us/me/account → /us/:slug/account
+        const subpath = location.pathname.replace(/^\/us\/me\/?/, "") || dest;
+        navigate(`/us/${slug}/${subpath}`, { replace: true });
+      })
+      .catch(() => navigate("/login", { replace: true }));
+  }, []);
+
+  return <Center h="60vh"><Loader /></Center>;
 }
 
 function RootPage() {
@@ -275,9 +305,15 @@ export default function App() {
         <Route path="account" element={<HomeAccountPage />} />
       </Route>
 
-      {/* Referrer authenticated dashboard */}
+      {/* /us/me/* — resolve slug then redirect to /us/:slug/* (static beats :slug) */}
+      <Route path="/us/me" element={<RequireAuth><MeRedirect /></RequireAuth>} />
+      <Route path="/us/me/refer" element={<RequireAuth><MeRedirect dest="home" /></RequireAuth>} />
+      <Route path="/us/me/home" element={<RequireAuth><MeRedirect dest="home" /></RequireAuth>} />
+      <Route path="/us/me/account" element={<RequireAuth><MeRedirect dest="account" /></RequireAuth>} />
+
+      {/* Referrer authenticated dashboard — slug-based URL */}
       <Route
-        path="/us/me"
+        path="/us/:slug"
         element={
           <RequireAuth>
             <RequireRole role={["referrer", "homeowner"]}>
@@ -286,11 +322,8 @@ export default function App() {
           </RequireAuth>
         }
       >
-        <Route index element={<Navigate to="/us/me/refer" replace />} />
-        <Route path="refer" element={<ReferrerDashboard />} />
-        <Route path="requests" element={<ReferrerDashboard />} />
-        <Route path="followers" element={<ReferrerDashboard />} />
-        <Route path="activity" element={<ReferrerDashboard />} />
+        <Route index element={<Navigate to="home" replace />} />
+        <Route path="home" element={<ReferrerDashboard />} />
         <Route path="account" element={<ReferrerAccountPage />} />
       </Route>
 

@@ -1,0 +1,89 @@
+"""Social-preview view for referrer profile pages.
+
+WhatsApp / Facebook / Twitter bots scrape this URL and get proper OG meta tags.
+Real users get an instant JS + meta-refresh redirect to the frontend SPA.
+"""
+import html
+import os
+
+from django.http import HttpResponse
+from django.views.decorators.cache import cache_control
+from django.views.decorators.http import require_GET
+
+from referrals.models import ReferrerProfile
+from accounts.models import HomeownerProfile, ProProfile
+
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
+GK_LOGO = "https://gigkraft.com/brand/gigKraftLogo.png"
+
+BOT_AGENTS = (
+    "whatsapp", "facebookexternalhit", "twitterbot", "linkedinbot",
+    "slackbot", "telegrambot", "discordbot", "googlebot", "bingbot",
+    "applebot", "ia_archiver", "curl", "wget", "python-requests",
+)
+
+
+def _is_bot(request) -> bool:
+    ua = (request.META.get("HTTP_USER_AGENT") or "").lower()
+    return any(b in ua for b in BOT_AGENTS)
+
+
+def _get_avatar(profile: ReferrerProfile) -> str:
+    if profile.avatar_url:
+        return profile.avatar_url
+    ho = HomeownerProfile.objects.filter(user=profile.user).values_list("avatar_url", flat=True).first()
+    if ho:
+        return ho
+    pp = ProProfile.objects.filter(user=profile.user).values_list("avatar_url", flat=True).first()
+    return pp or GK_LOGO
+
+
+@require_GET
+@cache_control(max_age=3600, public=True)
+def referrer_social_preview(request, slug: str) -> HttpResponse:
+    profile = ReferrerProfile.objects.select_related("user").filter(slug=slug).first()
+    frontend_url = f"{FRONTEND_URL}/us/{slug}/refer"
+
+    if profile is None:
+        # Unknown slug — redirect to frontend either way
+        return HttpResponse(
+            f'<html><head><meta http-equiv="refresh" content="0;url={frontend_url}"></head>'
+            f'<body><a href="{frontend_url}">Go to GigKraft</a></body></html>',
+            content_type="text/html",
+        )
+
+    name = html.escape(
+        f"{profile.user.first_name} {profile.user.last_name}".strip() or str(profile.user)
+    )
+    bio = html.escape(
+        profile.bio or f"Trusted home service professionals curated by {name} on GigKraft."
+    )
+    image = _get_avatar(profile)
+    title = f"{name}'s Trusted Pros · GigKraft"
+    canon = f"https://gigkraft.com/us/{slug}/refer"
+
+    og_html = f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>{html.escape(title)}</title>
+  <meta property="og:type"        content="profile" />
+  <meta property="og:site_name"   content="GigKraft" />
+  <meta property="og:title"       content="{html.escape(title)}" />
+  <meta property="og:description" content="{bio}" />
+  <meta property="og:image"       content="{html.escape(image)}" />
+  <meta property="og:url"         content="{canon}" />
+  <meta name="twitter:card"        content="summary_large_image" />
+  <meta name="twitter:title"       content="{html.escape(title)}" />
+  <meta name="twitter:description" content="{bio}" />
+  <meta name="twitter:image"       content="{html.escape(image)}" />
+  <!-- Redirect real users to the SPA immediately -->
+  <meta http-equiv="refresh" content="0;url={frontend_url}" />
+  <script>window.location.replace("{frontend_url}");</script>
+</head>
+<body>
+  <p><a href="{frontend_url}">View {html.escape(name)}'s page on GigKraft</a></p>
+</body>
+</html>"""
+
+    return HttpResponse(og_html, content_type="text/html; charset=utf-8")

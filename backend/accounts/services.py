@@ -94,8 +94,13 @@ def get_or_create_google_user(email, role=User.Role.MEMBER, first_name="", last_
 
 
 def _save_profile_picture(user, picture_url):
-    """Save a Google profile picture URL to the user's role profile."""
-    if user.role == User.Role.PRO:
-        ProProfile.objects.filter(user=user).update(avatar_url=picture_url)
-    elif user.role == User.Role.HOMEOWNER:
-        HomeownerProfile.objects.filter(user=user).update(avatar_url=picture_url)
+    """Save a profile picture URL to every profile model this user has."""
+    from referrals.models import ReferrerProfile
+    ProProfile.objects.filter(user=user).update(avatar_url=picture_url)
+    HomeownerProfile.objects.filter(user=user).update(avatar_url=picture_url)
+    ReferrerProfile.objects.filter(user=user).update(avatar_url=picture_url)
+
+
+def update_avatar_url(user, url: str) -> None:
+    """Persist a new avatar URL across all profile models for this user."""
+    _save_profile_picture(user, url)

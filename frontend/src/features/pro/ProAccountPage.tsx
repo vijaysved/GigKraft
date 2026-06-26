@@ -98,6 +98,43 @@ const WALLPAPERS: { id: number; label: string; gradient: string }[] = [
 
 const PHOTO_MAX_MB = 5;
 
+function formatPhone(raw: string): string {
+  const digits = raw.replace(/\D/g, "").slice(0, 10);
+  if (digits.length === 0) return "";
+  if (digits.length <= 3) return `(${digits}`;
+  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+}
+
+function isValidPhone(v: string) {
+  return v.replace(/\D/g, "").length === 10;
+}
+
+function nativeBtn(opts: { primary?: boolean; small?: boolean; disabled?: boolean }): React.CSSProperties {
+  const { primary = false, small = false, disabled = false } = opts;
+  return {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 4,
+    background: disabled ? "var(--gk-border)" : primary ? "var(--gk-accent-primary)" : "transparent",
+    color: primary ? "#fff" : "var(--gk-accent-primary)",
+    border: primary ? "none" : "1.5px solid var(--gk-accent-primary)",
+    borderRadius: 99,
+    padding: small ? "3px 12px" : "6px 20px",
+    fontSize: small ? 11 : 13,
+    fontWeight: 700,
+    letterSpacing: "0.03em",
+    cursor: disabled ? "default" : "pointer",
+    outline: "none",
+    fontFamily: "inherit",
+    lineHeight: "1.5",
+    opacity: disabled ? 0.6 : 1,
+    boxShadow: disabled || !primary
+      ? "0 1px 3px rgba(0,0,0,0.06)"
+      : "0 3px 10px -2px var(--gk-accent-primary), inset 0 1px 0 rgba(255,255,255,0.18)",
+    transition: "all 0.15s ease",
+  };
+}
 
 type ModalType = "handle" | "photo" | "wallpaper" | "rec-request" | null;
 type EditSection = "name" | "trade" | "credentials" | "bio" | "contact" | "service" | null;
@@ -107,19 +144,23 @@ type EditSection = "name" | "trade" | "credentials" | "bio" | "contact" | "servi
 function SectionHeader({
   label,
   editing,
+  saving,
   onEdit,
-  onDone,
+  onSave,
 }: {
   label: string;
   editing: boolean;
+  saving?: boolean;
   onEdit: () => void;
-  onDone: () => void;
+  onSave: () => void;
 }) {
   return (
     <Group justify="space-between" align="center">
       <Text size="xs" fw={600} c="dimmed" tt="uppercase" style={{ letterSpacing: "0.05em" }}>{label}</Text>
       {editing ? (
-        <Button size="xs" variant="light" color="blue" onClick={onDone}>Done</Button>
+        <button style={nativeBtn({ primary: true, small: true, disabled: saving })} disabled={saving} onClick={onSave}>
+          <IconCheck size={11} />{saving ? "Saving…" : "Save"}
+        </button>
       ) : (
         <Tooltip label={`Edit ${label.toLowerCase()}`} withArrow>
           <ActionIcon size="xs" variant="subtle" onClick={onEdit}><IconPencil size={12} /></ActionIcon>
@@ -183,6 +224,7 @@ export function ProAccountPage() {
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [sectionSaving, setSectionSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
 
   // ── Edit section state ──
@@ -233,17 +275,129 @@ export function ProAccountPage() {
     });
   }
 
+  async function saveName() {
+    setSectionSaving(true);
+    setSaveError(null);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/me`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${getAccessToken() ?? ""}` },
+        body: JSON.stringify({ first_name: firstName, last_name: lastName }),
+      });
+      if (!res.ok) throw new Error("Failed to save name.");
+      updateUser({ first_name: firstName, last_name: lastName });
+      setEditSection(null);
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : "Save failed.");
+    } finally {
+      setSectionSaving(false);
+    }
+  }
+
+  async function saveBio() {
+    setSectionSaving(true);
+    setSaveError(null);
+    try {
+      const { error } = await client.PATCH("/api/pros/me", { body: { bio } });
+      if (error) throw new Error("Failed to save bio.");
+      setEditSection(null);
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : "Save failed.");
+    } finally {
+      setSectionSaving(false);
+    }
+  }
+
+  async function saveContact() {
+    if (contactPhone.trim() && !isValidPhone(contactPhone)) {
+      setPhoneError("Enter a 10-digit phone number");
+      return;
+    }
+    setPhoneError(null);
+    setSectionSaving(true);
+    setSaveError(null);
+    const rawPhone = contactPhone.replace(/\D/g, "") || null;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/me`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${getAccessToken() ?? ""}` },
+        body: JSON.stringify({ phone: rawPhone }),
+      });
+      if (!res.ok) throw new Error("Failed to save contact.");
+      updateUser({ phone: rawPhone });
+      setEditSection(null);
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : "Save failed.");
+    } finally {
+      setSectionSaving(false);
+    }
+  }
+
+  async function saveTrade() {
+    setSectionSaving(true);
+    setSaveError(null);
+    try {
+      const { error } = await client.PATCH("/api/pros/me", {
+        body: {
+          primary_trade: trade || undefined,
+          response_hours: responseTime ? Number(responseTime) : undefined,
+          licensed,
+          insured,
+          license_number: licenseNumber || undefined,
+          skill_tags: skills,
+        },
+      });
+      if (error) throw new Error("Failed to save trade.");
+      setEditSection(null);
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : "Save failed.");
+    } finally {
+      setSectionSaving(false);
+    }
+  }
+
+  async function saveServiceArea() {
+    setSectionSaving(true);
+    setSaveError(null);
+    try {
+      const { error } = await client.PATCH("/api/pros/me/service-area", {
+        body: {
+          service_mode: serviceMode === "radius" ? "radial" : "explicit",
+          service_zips: serviceMode === "zips" ? zips : undefined,
+          service_center_zip: serviceMode === "radius" ? centerZip : undefined,
+          service_radius_miles: serviceMode === "radius" ? radius : undefined,
+        },
+      });
+      if (error) throw new Error("Failed to save service area.");
+      setEditSection(null);
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : "Save failed.");
+    } finally {
+      setSectionSaving(false);
+    }
+  }
+
   async function saveProfile() {
+    let hasErrors = false;
+    if (contactPhone.trim() && !isValidPhone(contactPhone)) {
+      setPhoneError("Enter a 10-digit phone number");
+      hasErrors = true;
+    } else {
+      setPhoneError(null);
+    }
+    if (hasErrors) return;
+
     setSaving(true);
     setSaveError(null);
+    const rawPhone = contactPhone.replace(/\D/g, "") || null;
     try {
       const nameRes = await fetch(`${API_BASE_URL}/api/me`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${getAccessToken() ?? ""}` },
-        body: JSON.stringify({ first_name: firstName, last_name: lastName, phone: contactPhone || null }),
+        body: JSON.stringify({ first_name: firstName, last_name: lastName, phone: rawPhone }),
       });
       if (nameRes.ok) {
-        updateUser({ first_name: firstName, last_name: lastName, phone: contactPhone || null });
+        updateUser({ first_name: firstName, last_name: lastName, phone: rawPhone });
       }
 
       const { error: proErr } = await client.PATCH("/api/pros/me", {
@@ -367,12 +521,17 @@ export function ProAccountPage() {
 
   // ── Contact info ──
   const [contactEmail, setContactEmail] = useState(user?.email ?? "");
-  const [contactPhone, setContactPhone] = useState(user?.phone ?? "");
+  const [contactPhone, setContactPhone] = useState(formatPhone(user?.phone ?? ""));
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+
+  // ── Custom trade ──
+  const [customTrade, setCustomTrade] = useState("");
 
   useEffect(() => {
     if (user) {
       setContactEmail((prev) => prev || user.email || "");
-      setContactPhone((prev) => prev || user.phone || "");
+      setContactPhone((prev) => prev || formatPhone(user.phone || ""));
     }
   }, [user]);
 
@@ -569,12 +728,22 @@ export function ProAccountPage() {
                 <Group justify="space-between" align="center" pt={8} pl={104} wrap="nowrap">
                   <Stack gap={2}>
                     {editSection === "name" ? (
-                      <Group gap="xs" wrap="wrap" align="flex-end">
-                        <TextInput size="sm" placeholder="First name" value={firstName}
-                          onChange={(e) => setFirstName(e.currentTarget.value)} style={{ flex: 1, minWidth: 100 }} autoFocus />
-                        <TextInput size="sm" placeholder="Last name" value={lastName}
-                          onChange={(e) => setLastName(e.currentTarget.value)} style={{ flex: 1, minWidth: 100 }} />
-                      </Group>
+                      <Stack gap={6}>
+                        <Group gap="xs" wrap="wrap" align="flex-end">
+                          <TextInput size="sm" placeholder="First name" value={firstName}
+                            onChange={(e) => setFirstName(e.currentTarget.value)} style={{ flex: 1, minWidth: 100 }} autoFocus />
+                          <TextInput size="sm" placeholder="Last name" value={lastName}
+                            onChange={(e) => setLastName(e.currentTarget.value)} style={{ flex: 1, minWidth: 100 }} />
+                        </Group>
+                        <Group gap="xs">
+                          <button style={nativeBtn({ primary: true, small: true, disabled: sectionSaving })} disabled={sectionSaving} onClick={() => void saveName()}>
+                            <IconCheck size={11} />{sectionSaving ? "Saving…" : "Save"}
+                          </button>
+                          <ActionIcon size="xs" variant="subtle" onClick={() => { setFirstName(user?.first_name ?? ""); setLastName(user?.last_name ?? ""); setEditSection(null); }}>
+                            <IconX size={12} />
+                          </ActionIcon>
+                        </Group>
+                      </Stack>
                     ) : (
                       <Group gap={6} align="center">
                         <Title order={2} style={{ lineHeight: 1.1 }}>{displayName}</Title>
@@ -647,7 +816,7 @@ export function ProAccountPage() {
                           <Text size="xs" fw={700} tt="uppercase"
                             style={{ color: "var(--gk-accent-primary)", letterSpacing: "0.07em" }}>Bio</Text>
                           {editSection === "bio"
-                            ? <Button size="xs" variant="light" color="blue" onClick={() => setEditSection(null)}>Done</Button>
+                            ? <button style={nativeBtn({ primary: true, small: true, disabled: sectionSaving })} disabled={sectionSaving} onClick={() => void saveBio()}><IconCheck size={11} />{sectionSaving ? "Saving…" : "Save"}</button>
                             : <Tooltip label="Edit bio" withArrow><ActionIcon size="xs" variant="subtle" onClick={() => setEditSection("bio")}><IconPencil size={12} /></ActionIcon></Tooltip>
                           }
                         </Group>
@@ -672,16 +841,23 @@ export function ProAccountPage() {
                           <Text size="xs" fw={700} tt="uppercase"
                             style={{ color: "var(--gk-accent-primary)", letterSpacing: "0.07em" }}>Contact</Text>
                           {editSection === "contact"
-                            ? <Button size="xs" variant="light" color="blue" onClick={() => setEditSection(null)}>Done</Button>
+                            ? <button style={nativeBtn({ primary: true, small: true, disabled: sectionSaving })} disabled={sectionSaving} onClick={() => void saveContact()}><IconCheck size={11} />{sectionSaving ? "Saving…" : "Save"}</button>
                             : <Tooltip label="Edit contact" withArrow><ActionIcon size="xs" variant="subtle" onClick={() => setEditSection("contact")}><IconPencil size={12} /></ActionIcon></Tooltip>
                           }
                         </Group>
                         {editSection === "contact" ? (
                           <Stack gap="xs">
                             <TextInput size="xs" label="Email" leftSection={<IconMail size={13} />}
-                              value={contactEmail} onChange={(e) => setContactEmail(e.currentTarget.value)} />
+                              value={contactEmail}
+                              disabled
+                              rightSection={<IconBrandGoogle size={12} />}
+                              description="Provided by Google — cannot be changed"
+                            />
                             <TextInput size="xs" label="Phone" leftSection={<IconMessage size={13} />}
-                              value={contactPhone} onChange={(e) => setContactPhone(e.currentTarget.value)} />
+                              value={contactPhone}
+                              onChange={(e) => { setContactPhone(formatPhone(e.currentTarget.value)); setPhoneError(null); }}
+                              error={phoneError}
+                            />
                           </Stack>
                         ) : (
                           <Stack gap={4}>
@@ -706,7 +882,7 @@ export function ProAccountPage() {
                     <Stack gap="xs" style={{ flex: 1 }}>
                       <Group justify="flex-end">
                         {editSection === "trade"
-                          ? <Button size="xs" variant="light" color="blue" onClick={() => setEditSection(null)}>Done</Button>
+                          ? <button style={nativeBtn({ primary: true, small: true, disabled: sectionSaving })} disabled={sectionSaving} onClick={() => void saveTrade()}><IconCheck size={11} />{sectionSaving ? "Saving…" : "Save"}</button>
                           : <Tooltip label="Edit" withArrow><ActionIcon size="xs" variant="subtle" onClick={() => setEditSection("trade")}><IconPencil size={12} /></ActionIcon></Tooltip>
                         }
                       </Group>
@@ -717,7 +893,7 @@ export function ProAccountPage() {
                             <Group justify="space-between" align="center" wrap="nowrap">
                               <Text fw={700} size="sm" style={{ color: "var(--gk-accent-primary)" }}>{trade}</Text>
                               <Text size="sm" style={{ color: "var(--gk-accent-secondary)", flexShrink: 0 }}>
-                                ⚡ {responseTime}h response
+                                ⚡ {responseTime === "168" ? "This week" : `${responseTime}h`} response
                               </Text>
                             </Group>
                             {skills.length > 0 && (
@@ -737,12 +913,41 @@ export function ProAccountPage() {
                       ) : (
                         <Stack gap="xs">
                           <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="xs">
-                            <Select size="xs" label="Primary trade" data={TRADES} value={trade || null}
+                            <Select size="xs" label="Primary trade"
+                              data={[...TRADES, ...(trade && !TRADES.includes(trade) ? [trade] : [])]}
+                              value={trade || null}
+                              searchable
                               onChange={(v) => { if (v) handleTradeChange(v); }} />
                             <Select size="xs" label="Response time" value={responseTime}
                               onChange={(v) => { if (v) setResponseTime(v); }}
-                              data={[{ value: "1", label: "1h" }, { value: "2", label: "2h" }, { value: "4", label: "4h" }, { value: "8", label: "8h" }]} />
+                              data={[
+                                { value: "1", label: "1h" },
+                                { value: "2", label: "2h" },
+                                { value: "4", label: "4h" },
+                                { value: "8", label: "8h" },
+                                { value: "168", label: "This week" },
+                              ]} />
                           </SimpleGrid>
+                          <Group gap="xs" align="flex-end">
+                            <TextInput size="xs" placeholder="Add custom trade…"
+                              value={customTrade}
+                              onChange={(e) => setCustomTrade(e.currentTarget.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" && customTrade.trim()) {
+                                  handleTradeChange(customTrade.trim());
+                                  setCustomTrade("");
+                                }
+                              }}
+                              style={{ flex: 1 }}
+                            />
+                            <button
+                              style={nativeBtn({ small: true, disabled: !customTrade.trim() })}
+                              disabled={!customTrade.trim()}
+                              onClick={() => { if (customTrade.trim()) { handleTradeChange(customTrade.trim()); setCustomTrade(""); } }}
+                            >
+                              Add
+                            </button>
+                          </Group>
                           {trade && (
                             <div>
                               <Text size="xs" c="dimmed" mb={4}>Skills</Text>
@@ -775,7 +980,7 @@ export function ProAccountPage() {
                 {/* Service area */}
                 <Stack gap="xs">
                   <SectionHeader label="Service area" editing={editSection === "service"}
-                    onEdit={() => setEditSection("service")} onDone={() => setEditSection(null)} />
+                    saving={sectionSaving} onEdit={() => setEditSection("service")} onSave={() => void saveServiceArea()} />
                   <Group gap="xs">
                     {serviceMode === "zips"
                       ? zips.length > 0
@@ -788,8 +993,8 @@ export function ProAccountPage() {
                   {editSection === "service" && (
                     <Stack gap="xs" mt={4}>
                       <Group gap="xs">
-                        <Button size="xs" variant={serviceMode === "zips" ? "filled" : "light"} onClick={() => setServiceMode("zips")}>ZIP codes</Button>
-                        <Button size="xs" variant={serviceMode === "radius" ? "filled" : "light"} onClick={() => setServiceMode("radius")}>Radius</Button>
+                        <button style={nativeBtn({ primary: serviceMode === "zips", small: true })} onClick={() => setServiceMode("zips")}>ZIP codes</button>
+                        <button style={nativeBtn({ primary: serviceMode === "radius", small: true })} onClick={() => setServiceMode("radius")}>Radius</button>
                       </Group>
                       {serviceMode === "zips" ? (
                         <>
@@ -807,7 +1012,7 @@ export function ProAccountPage() {
                               <TextInput size="xs" placeholder="Add ZIP (max 3)" value={zipInput}
                                 onChange={(e) => setZipInput(e.currentTarget.value)}
                                 onKeyDown={(e) => { if (e.key === "Enter") addZip(); }} w={160} />
-                              <Button size="xs" variant="light" onClick={addZip}>Add</Button>
+                              <button style={nativeBtn({ small: true })} onClick={addZip}>Add</button>
                             </Group>
                           )}
                         </>

@@ -10,38 +10,35 @@ import {
   Text,
   UnstyledButton,
 } from "@mantine/core";
+import { loadGooglePictureUrl, useProAvatar } from "../hooks/useProAvatar";
 import {
-  IconActivity,
   IconChevronUp,
+  IconHome,
   IconLogout,
-  IconPageBreak,
-  IconSend,
   IconUser,
-  IconUsers,
 } from "@tabler/icons-react";
-import { NavLink as RouterNavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink as RouterNavLink, Outlet, useNavigate, useParams } from "react-router-dom";
 import { useEffect } from "react";
 
 import { useAuth } from "../auth/AuthContext";
 import { GkLogo } from "../brand/GkLogo";
 
-const NAV_ITEMS = [
-  { label: "My Page", icon: IconPageBreak, to: "/us/me/refer" },
-  { label: "Requests", icon: IconSend, to: "/us/me/requests" },
-  { label: "Followers", icon: IconUsers, to: "/us/me/followers" },
-  { label: "Activity", icon: IconActivity, to: "/us/me/activity" },
-  { label: "Account", icon: IconUser, to: "/us/me/account" },
-];
-
 export function ReferrerShell() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { slug } = useParams<{ slug: string }>();
 
   const initials = (user?.first_name?.[0] ?? user?.email?.[0] ?? "R").toUpperCase();
+  const avatarSrc = useProAvatar() || loadGooglePictureUrl() || undefined;
   const displayName =
     [user?.first_name, user?.last_name].filter(Boolean).join(" ") ||
     user?.email ||
     "You";
+
+  const NAV_ITEMS = [
+    { label: "Home", icon: IconHome, to: `/us/${slug}/home` },
+    { label: "Account", icon: IconUser, to: `/us/${slug}/account` },
+  ];
 
   useEffect(() => {
     document.title = displayName !== "You" ? `${displayName} · gigKraft.com` : "gigKraft.com";
@@ -66,7 +63,7 @@ export function ReferrerShell() {
 
         <Stack gap={4} style={{ flex: 1 }}>
           {NAV_ITEMS.map(({ label, icon: Icon, to }) => (
-            <RouterNavLink key={to} to={to} end={to === "/us/me/refer"} style={{ textDecoration: "none" }}>
+            <RouterNavLink key={to} to={to} end style={{ textDecoration: "none" }}>
               {({ isActive }) => (
                 <NavLink
                   component="div"
@@ -91,7 +88,7 @@ export function ReferrerShell() {
               <UnstyledButton style={{ width: "100%", borderRadius: 8, padding: "8px 6px" }}>
                 <Group gap="sm" justify="space-between" wrap="nowrap">
                   <Group gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
-                    <Avatar size={36} color="teal" radius="xl">{initials}</Avatar>
+                    <Avatar size={36} src={avatarSrc} color="teal" radius="xl">{!avatarSrc && initials}</Avatar>
                     <Stack gap={0} style={{ minWidth: 0 }}>
                       <Text size="sm" fw={600} c="var(--gk-text-sidebar)" truncate>{displayName}</Text>
                       <Text size="xs" c="var(--gk-text-sidebar)" opacity={0.55} truncate>Referrer</Text>
@@ -103,7 +100,7 @@ export function ReferrerShell() {
             </Menu.Target>
             <Menu.Dropdown>
               <Menu.Label>{user?.email ?? user?.phone ?? "referrer"}</Menu.Label>
-              <Menu.Item onClick={() => navigate("/us/me/account")}>Account</Menu.Item>
+              <Menu.Item onClick={() => navigate(`/us/${slug}/account`)}>Account</Menu.Item>
               <Menu.Divider />
               <Menu.Item
                 color="red"

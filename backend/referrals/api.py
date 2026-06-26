@@ -12,8 +12,8 @@ from django.utils import timezone
 from ninja import File, Router, Schema, UploadedFile
 from ninja.errors import HttpError
 
-from accounts.auth import jwt_auth
-from accounts.models import ProProfile, User
+from accounts.auth import jwt_auth, optional_jwt
+from accounts.models import HomeownerProfile, ProProfile, User
 from common.notify import send_sms
 from common.permissions import require_referrer
 from referrals.models import (
@@ -219,6 +219,8 @@ class ReferrerPublicOut(Schema):
     pros: list[ProCardOut]
     follower_state: Optional[FollowerStateOut] = None
     is_owner: bool
+    phone: Optional[str] = None
+    email: Optional[str] = None
 
 
 class FollowIn(Schema):
@@ -250,6 +252,7 @@ class ProSearchResultOut(Schema):
     city: str
     avatar_url: str
     is_verified: bool
+    is_pro: bool = True
 
 
 # ---------------------------------------------------------------------------
@@ -320,7 +323,7 @@ class ReorderProsIn(Schema):
 
 class InviteProIn(Schema):
     name: str
-    trade: str
+    trade: str = ""
     phone: Optional[str] = None
     email: Optional[str] = None
     note: Optional[str] = None
@@ -478,7 +481,7 @@ def search_pros(request, q: str, trade: Optional[str] = None):
     return results
 
 
-@public_router.get("/{slug}", response=ReferrerPublicOut)
+@public_router.get("/{slug}", response=ReferrerPublicOut, auth=optional_jwt)
 def referrer_public_page(request, slug: str):
     profile = _get_referrer_profile(slug)
 
@@ -493,20 +496,36 @@ def referrer_public_page(request, slug: str):
         "pro", "pro__user", "pro_invite"
     ).filter(referrer=profile.user, show_on_page=True)
 
-    is_owner = False
-    if hasattr(request, "auth") and request.auth and request.auth == profile.user:
-        is_owner = True
+    authed_user = getattr(request, "auth", None)
+    is_owner = bool(authed_user and authed_user == profile.user)
+
+    # Fall back to any other profile that has a picture
+    avatar_url = profile.avatar_url
+    if not avatar_url:
+        ho = HomeownerProfile.objects.filter(user=profile.user).only("avatar_url").first()
+        if ho and ho.avatar_url:
+            avatar_url = ho.avatar_url
+    if not avatar_url:
+        pp = ProProfile.objects.filter(user=profile.user).only("avatar_url").first()
+        if pp and pp.avatar_url:
+            avatar_url = pp.avatar_url
+    # Backfill so future requests skip this lookup
+    if avatar_url and not profile.avatar_url:
+        profile.avatar_url = avatar_url
+        profile.save(update_fields=["avatar_url"])
 
     return {
         "slug": profile.slug,
         "display_name": f"{profile.user.first_name} {profile.user.last_name}".strip() or str(profile.user),
         "bio": profile.bio,
-        "avatar_url": profile.avatar_url,
+        "avatar_url": avatar_url,
         "follower_count": profile.follower_count,
         "referral_count": profile.referral_count,
         "pros": [_build_pro_card(rp, follower) for rp in pros_qs],
         "follower_state": {"follower_id": follower.pk, "name": follower.name} if follower else None,
         "is_owner": is_owner,
+        "phone": profile.user.phone if authed_user else None,
+        "email": profile.user.email if authed_user else None,
     }
 
 
@@ -736,6 +755,70 @@ def add_pro(request, payload: AddProIn):
     return 201, _serialize_referrer_pro(rp)
 
 
+@router.patch("/me/pros/reorder", response={200: dict})
+def reorder_pros(request, payload: ReorderProsIn):
+    profile = require_referrer(request)
+    owned_ids = set(
+        ReferrerPro.objects.filter(referrer=request.auth).values_list("pk", flat=True)
+    )
+    for pid in payload.ordered_ids:
+        if pid not in owned_ids:
+            raise HttpError(403, f"Pro {pid} does not belong to your page.")
+
+    for order, pid in enumerate(payload.ordered_ids):
+        ReferrerPro.objects.filter(pk=pid).update(display_order=order)
+    return 200, {"ok": True}
+
+
+@router.get("/me/pros/lookup", response={200: ProSearchResultOut, 404: dict})
+def lookup_pro_by_contact(request, phone: Optional[str] = None, email: Optional[str] = None):
+    """Find a pro (or member) by exact phone or email match."""
+    require_referrer(request)
+    if not phone and not email:
+        raise HttpError(422, "Phone or email is required.")
+    from django.db.models import Q as DQ
+    from accounts.models import User as GkUser
+    q = DQ()
+    if phone:
+        q |= DQ(user__phone=phone)
+    if email:
+        q |= DQ(user__email__iexact=email)
+    pro = ProProfile.objects.select_related("user").filter(
+        q, is_suspended=False, is_template=False
+    ).first()
+    if pro:
+        return 200, {
+            "user_id": pro.user_id,
+            "handle": pro.handle or "",
+            "name": pro.display_name,
+            "trade": pro.primary_trade or "",
+            "city": pro.base_zip or "",
+            "avatar_url": pro.avatar_url or "",
+            "is_verified": pro.is_verified,
+            "is_pro": True,
+        }
+    # No ProProfile — check if a User account exists with that contact
+    uq = DQ()
+    if phone:
+        uq |= DQ(phone=phone)
+    if email:
+        uq |= DQ(email__iexact=email)
+    user = GkUser.objects.filter(uq).first()
+    if user:
+        full_name = f"{user.first_name} {user.last_name}".strip() or user.email or phone or "Member"
+        return 200, {
+            "user_id": user.pk,
+            "handle": "",
+            "name": full_name,
+            "trade": "",
+            "city": "",
+            "avatar_url": "",
+            "is_verified": False,
+            "is_pro": False,
+        }
+    return 404, {"detail": "No account found with that contact."}
+
+
 @router.patch("/me/pros/{rp_id}", response={200: ReferrerProDashboardOut, 404: dict})
 def update_pro(request, rp_id: int, payload: UpdateProIn):
     profile = require_referrer(request)
@@ -752,22 +835,6 @@ def update_pro(request, rp_id: int, payload: UpdateProIn):
         rp.show_on_page = data["show_on_page"]
     rp.save()
     return 200, _serialize_referrer_pro(rp)
-
-
-@router.patch("/me/pros/reorder", response={200: dict})
-def reorder_pros(request, payload: ReorderProsIn):
-    profile = require_referrer(request)
-    # Validate all IDs belong to this referrer
-    owned_ids = set(
-        ReferrerPro.objects.filter(referrer=request.auth).values_list("pk", flat=True)
-    )
-    for pid in payload.ordered_ids:
-        if pid not in owned_ids:
-            raise HttpError(403, f"Pro {pid} does not belong to your page.")
-
-    for order, pid in enumerate(payload.ordered_ids):
-        ReferrerPro.objects.filter(pk=pid).update(display_order=order)
-    return 200, {"ok": True}
 
 
 @router.delete("/me/pros/{rp_id}", response={204: None, 404: dict})

@@ -11,6 +11,13 @@ interface Props {
 export function GoogleSignInButton({ label = "continue_with", onSuccess, onError, fullWidth }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [buttonWidth, setButtonWidth] = useState(300);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    // Delay one microtask so StrictMode's double-mount settles before GSI init
+    const id = setTimeout(() => setMounted(true), 0);
+    return () => { clearTimeout(id); setMounted(false); };
+  }, []);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -29,19 +36,21 @@ export function GoogleSignInButton({ label = "continue_with", onSuccess, onError
         width: fullWidth ? "100%" : undefined,
       }}
     >
-      <GoogleLogin
-        text={label}
-        shape="rectangular"
-        size="large"
-        width={buttonWidth}
-        logo_alignment="left"
-        onSuccess={async ({ credential }) => {
-          if (!credential) { onError?.("Google did not return a credential."); return; }
-          try { await onSuccess(credential); }
-          catch { onError?.("Google sign-in failed."); }
-        }}
-        onError={() => onError?.("Google sign-in failed.")}
-      />
+      {mounted && (
+        <GoogleLogin
+          text={label}
+          shape="rectangular"
+          size="large"
+          width={buttonWidth}
+          logo_alignment="left"
+          onSuccess={async ({ credential }) => {
+            if (!credential) { onError?.("Google did not return a credential."); return; }
+            try { await onSuccess(credential); }
+            catch { onError?.("Google sign-in failed."); }
+          }}
+          onError={() => onError?.("Google sign-in failed.")}
+        />
+      )}
     </div>
   );
 }

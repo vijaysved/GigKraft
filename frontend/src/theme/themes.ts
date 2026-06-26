@@ -105,7 +105,14 @@ const sharedBase: MantineThemeOverride = {
   },
   components: {
     Button: {
-      defaultProps: { radius: "md" },
+      defaultProps: { radius: "xl" },
+      vars: () => ({
+        root: {
+          "--button-bg": "var(--gk-accent-secondary)",
+          "--button-hover": "var(--gk-accent-secondary)",
+          "--button-color": "var(--gk-accent-primary)",
+        },
+      }),
       styles: { root: { fontWeight: 700, height: rem(46) } },
     },
     Card: { defaultProps: { radius: "lg", withBorder: true, shadow: "sm", padding: "md" } },

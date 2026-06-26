@@ -718,12 +718,13 @@ export function ProPublicProfilePage() {
       {pro && !submitSuccess && (
         <Box style={{ position: "fixed", bottom: 28, right: 28, zIndex: 200 }}>
           <Button
-            leftSection={<IconSend size={16} />}
+            leftSection={<IconSend size={16} color="#fff" />}
             radius="xl"
             size="md"
             onClick={() => setQuoteFormOpen(true)}
             style={{
               background: "var(--gk-brand-gradient)",
+              color: "#fff",
               boxShadow: "0 4px 24px color-mix(in srgb, var(--gk-accent-primary) 45%, transparent)",
             }}
           >
@@ -769,11 +770,11 @@ export function ProPublicProfilePage() {
           {submitError && <Alert color="red" variant="light">{submitError}</Alert>}
           <Button
             fullWidth
-            leftSection={isLoggedIn ? <IconSend size={15} /> : <IconLock size={15} />}
+            leftSection={isLoggedIn ? <IconSend size={15} color="#fff" /> : <IconLock size={15} color="#fff" />}
             loading={submitting}
             onClick={() => void handleQuoteClick()}
             disabled={!draftTitle.trim()}
-            style={{ background: "var(--gk-brand-gradient)" }}
+            style={{ background: "var(--gk-brand-gradient)", color: "#fff" }}
             mt="xs"
           >
             {isLoggedIn ? "Send Quote Request" : "Continue to send"}

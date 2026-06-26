@@ -40,6 +40,7 @@ class HomeAccountOut(Schema):
     avatar_url: str
     primary_address: Optional[str]
     default_zip: str
+    bio: str
     address_count: int
     stats: HomeStatsOut
 
@@ -68,6 +69,7 @@ def home_account(request):
         "avatar_url": profile.avatar_url,
         "primary_address": primary.line1 if primary else None,
         "default_zip": profile.default_zip,
+        "bio": profile.bio,
         "address_count": profile.addresses.count(),
         "stats": {
             "jobs_hired": jobs_hired,
@@ -84,11 +86,13 @@ class HomeProfilePatchIn(Schema):
     default_zip: Optional[str] = None
     preferred_trade: Optional[str] = None
     avatar_url: Optional[str] = None
+    bio: Optional[str] = None
 
 
 class HomeProfileOut(Schema):
     default_zip: str
     preferred_trade: str
+    bio: str
     avatar_url: str
 
 
@@ -102,12 +106,15 @@ def patch_home_profile(request, payload: HomeProfilePatchIn):
     if payload.preferred_trade is not None:
         profile.preferred_trade = payload.preferred_trade.strip()
         update_fields.append("preferred_trade")
+    if payload.bio is not None:
+        profile.bio = payload.bio.strip()
+        update_fields.append("bio")
     if payload.avatar_url is not None:
         profile.avatar_url = payload.avatar_url
         update_fields.append("avatar_url")
     if update_fields:
         profile.save(update_fields=update_fields)
-    return {"default_zip": profile.default_zip, "preferred_trade": profile.preferred_trade, "avatar_url": profile.avatar_url}
+    return {"default_zip": profile.default_zip, "preferred_trade": profile.preferred_trade, "bio": profile.bio, "avatar_url": profile.avatar_url}
 
 
 # --- Saved pros ---
@@ -291,13 +298,17 @@ def delete_address(request, address_id: int):
 
 
 class NotifPrefOut(Schema):
+    email_alerts: bool
     sms_alerts: bool
+    in_app_alerts: bool
     whatsapp_dispatch: bool
     weekly_digest: bool
 
 
 class NotifPrefIn(Schema):
+    email_alerts: Optional[bool] = None
     sms_alerts: Optional[bool] = None
+    in_app_alerts: Optional[bool] = None
     whatsapp_dispatch: Optional[bool] = None
     weekly_digest: Optional[bool] = None
 

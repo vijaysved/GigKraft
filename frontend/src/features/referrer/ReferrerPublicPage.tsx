@@ -1,39 +1,217 @@
 import {
   Alert,
   Avatar,
-  Badge,
-  Button,
+  Card,
   Center,
+  Divider,
   Group,
   Loader,
   SimpleGrid,
+  Skeleton,
   Stack,
   Text,
+  TextInput,
   Title,
+  Tooltip,
 } from "@mantine/core";
-import { IconUserCheck, IconUsers } from "@tabler/icons-react";
-import { useEffect, useState } from "react";
+import {
+  IconBrandWhatsapp,
+  IconBriefcase,
+  IconCheck,
+  IconLink,
+  IconMail,
+  IconPhone,
+  IconPlus,
+  IconSearch,
+  IconSend,
+  IconUserCheck,
+  IconUsers,
+} from "@tabler/icons-react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { API_BASE_URL } from "../../config";
+import { useAuth } from "../../auth/AuthContext";
+import { getAccessToken } from "../../api/tokens";
+import { fallbackAvatar } from "../../assets/fallbackAvatars";
 import type { ReferrerPublicOut } from "./types";
+import { AddProByContactModal } from "./components/AddProByContactModal";
+import { AddProModal } from "./components/AddProModal";
 import { FollowModal } from "./components/FollowModal";
 import { ReferrerProCard } from "./components/ReferrerProCard";
 import { RequestReferralModal } from "./components/RequestReferralModal";
 
+const GK_LOGO_URL = "https://gigkraft.com/brand/gigKraftLogo.png";
+
+const iconColor = { color: "var(--gk-accent-primary)" } satisfies React.CSSProperties;
+
+const btnBase: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 6,
+  width: "100%",
+  padding: "8px 16px",
+  border: "none",
+  borderRadius: 99,
+  fontSize: 13,
+  fontWeight: 700,
+  cursor: "pointer",
+  letterSpacing: "0.02em",
+  fontFamily: "inherit",
+  lineHeight: 1.5,
+  transition: "opacity 0.15s ease",
+};
+
+const followBtn: React.CSSProperties = {
+  ...btnBase,
+  background: "var(--gk-brand-gradient)",
+  color: "#fff",
+  boxShadow: "0 3px 10px -2px var(--gk-accent-primary), inset 0 1px 0 rgba(255,255,255,0.18)",
+};
+
+const requestBtn: React.CSSProperties = {
+  ...btnBase,
+  background: "transparent",
+  color: "var(--gk-accent-primary)",
+  border: "1.5px solid var(--gk-accent-primary)",
+};
+
+
+/** Round icon-only action button */
+function IconAction({
+  label,
+  onClick,
+  children,
+  color,
+}: {
+  label: string;
+  onClick: () => void;
+  children: React.ReactNode;
+  color?: string;
+}) {
+  return (
+    <Tooltip label={label} withArrow position="bottom">
+      <button
+        onClick={onClick}
+        aria-label={label}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: 36,
+          height: 36,
+          border: "1.5px solid var(--gk-border)",
+          borderRadius: "50%",
+          background: "transparent",
+          cursor: "pointer",
+          color: color ?? "var(--gk-accent-primary)",
+          fontFamily: "inherit",
+          transition: "background 0.15s, border-color 0.15s",
+          flexShrink: 0,
+        }}
+      >
+        {children}
+      </button>
+    </Tooltip>
+  );
+}
+
+function EmptyProCard() {
+  return (
+    <Card
+      withBorder
+      radius="md"
+      p="sm"
+      style={{
+        borderStyle: "dashed",
+        borderColor: "var(--mantine-color-gray-3)",
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
+      <Group gap="sm" align="flex-start" wrap="nowrap" mb={8}>
+        <Skeleton radius="sm" width={80} height={80} style={{ flexShrink: 0 }} />
+        <Stack gap={6} style={{ flex: 1 }}>
+          <Skeleton height={12} width="65%" radius="xl" />
+          <Skeleton height={10} width="45%" radius="xl" />
+          <Skeleton height={10} width="55%" radius="xl" mt={4} />
+          <Skeleton height={10} width="40%" radius="xl" />
+        </Stack>
+      </Group>
+      <Skeleton height={10} width="75%" radius="xl" mb={6} />
+      <Group gap={6}>
+        <Skeleton height={18} width={64} radius="xl" />
+        <Skeleton height={18} width={56} radius="xl" />
+      </Group>
+    </Card>
+  );
+}
+
 export function ReferrerPublicPage() {
   const { slug } = useParams<{ slug: string }>();
+  const { status } = useAuth();
+  const isAuthenticated = status === "authenticated";
+
   const [page, setPage] = useState<ReferrerPublicOut | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [followOpen, setFollowOpen] = useState(false);
   const [requestOpen, setRequestOpen] = useState(false);
+  const [addProOpen, setAddProOpen] = useState(false);
+  const [addProByContactOpen, setAddProByContactOpen] = useState(false);
   const [followerState, setFollowerState] = useState<{ follower_id: number; name: string } | null>(null);
+  const [search, setSearch] = useState("");
+  const [isOwner, setIsOwner] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [selectedTrades, setSelectedTrades] = useState<Set<string>>(new Set());
+  const [selectedZips, setSelectedZips] = useState<Set<string>>(new Set());
+
+  const uniqueTrades = useMemo(() => {
+    if (!page?.pros) return [] as string[];
+    return [...new Set(page.pros.map((p) => p.trade).filter(Boolean))].sort();
+  }, [page]);
+
+  const uniqueZips = useMemo(() => {
+    if (!page?.pros) return [] as string[];
+    return [...new Set(page.pros.map((p) => p.city).filter(Boolean))].sort();
+  }, [page]);
+
+  function toggleTrade(t: string) {
+    setSelectedTrades((prev) => { const n = new Set(prev); n.has(t) ? n.delete(t) : n.add(t); return n; });
+  }
+  function toggleZip(z: string) {
+    setSelectedZips((prev) => { const n = new Set(prev); n.has(z) ? n.delete(z) : n.add(z); return n; });
+  }
+
+  const filteredPros = useMemo(() => {
+    if (!page?.pros) return [];
+    const q = search.toLowerCase().trim();
+    return page.pros.filter((p) => {
+      if (q) {
+        const hit =
+          p.name.toLowerCase().includes(q) ||
+          p.trade?.toLowerCase().includes(q) ||
+          p.city?.toLowerCase().includes(q) ||
+          p.phone?.toLowerCase().includes(q) ||
+          p.email?.toLowerCase().includes(q) ||
+          p.endorsement?.toLowerCase().includes(q);
+        if (!hit) return false;
+      }
+      if (selectedTrades.size > 0 && !selectedTrades.has(p.trade)) return false;
+      if (selectedZips.size > 0 && !selectedZips.has(p.city)) return false;
+      return true;
+    });
+  }, [search, page, selectedTrades, selectedZips]);
 
   async function load() {
     setLoading(true);
     try {
-      const r = await fetch(`${API_BASE_URL}/api/referrer/${slug}`, { credentials: "include" });
+      const token = getAccessToken();
+      const headers: Record<string, string> = token
+        ? { Authorization: `Bearer ${token}` }
+        : {};
+      const r = await fetch(`${API_BASE_URL}/api/referrer/${slug}`, { headers });
       if (!r.ok) throw new Error("Not found");
       const data = await r.json() as ReferrerPublicOut;
       setPage(data);
@@ -45,7 +223,22 @@ export function ReferrerPublicPage() {
     }
   }
 
-  useEffect(() => { load(); }, [slug]);
+  // Detect ownership by comparing the authenticated user's slug with the URL slug
+  useEffect(() => {
+    if (!isAuthenticated) { setIsOwner(false); return; }
+    const token = getAccessToken();
+    if (!token) return;
+    fetch(`${API_BASE_URL}/api/referrer/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data: { profile?: { slug?: string } } | null) => {
+        setIsOwner(!!data?.profile?.slug && data.profile.slug === slug);
+      })
+      .catch(() => setIsOwner(false));
+  }, [isAuthenticated, slug]);
+
+  useEffect(() => { load(); }, [slug, status]);
 
   useEffect(() => {
     if (page) {
@@ -53,6 +246,44 @@ export function ReferrerPublicPage() {
       return () => { document.title = "gigKraft.com"; };
     }
   }, [page?.display_name]);
+
+  // Inject OG meta tags so WhatsApp / social link preview picks up the profile pic
+  useEffect(() => {
+    if (!page) return;
+
+    const imageUrl = page.avatar_url || GK_LOGO_URL;
+    const title = `${page.display_name}'s Trusted Pros · GigKraft`;
+    const description =
+      page.bio ||
+      `Trusted home service professionals curated by ${page.display_name} on GigKraft.`;
+    const url = `https://gigkraft.com/us/${slug}/refer`;
+
+    function upsertMeta(attr: string, val: string, content: string): Element {
+      const sel = `meta[${attr}="${val}"]`;
+      let el = document.head.querySelector(sel);
+      if (!el) {
+        el = document.createElement("meta");
+        el.setAttribute(attr, val);
+        document.head.appendChild(el);
+      }
+      el.setAttribute("content", content);
+      return el;
+    }
+
+    const injected = [
+      upsertMeta("property", "og:title", title),
+      upsertMeta("property", "og:description", description),
+      upsertMeta("property", "og:image", imageUrl),
+      upsertMeta("property", "og:url", url),
+      upsertMeta("property", "og:type", "profile"),
+      upsertMeta("name", "twitter:card", "summary_large_image"),
+      upsertMeta("name", "twitter:image", imageUrl),
+      upsertMeta("name", "twitter:title", title),
+      upsertMeta("name", "twitter:description", description),
+    ];
+
+    return () => { injected.forEach((el) => el.remove()); };
+  }, [page, slug]);
 
   if (loading) return <Center h="100vh"><Loader /></Center>;
 
@@ -68,82 +299,295 @@ export function ReferrerPublicPage() {
   }
 
   const isFollower = !!followerState;
+  const avatarSrc = page.avatar_url || fallbackAvatar(page.slug);
+  // pageUrl: what the user sees / copies — always the frontend canonical URL
+  const pageUrl = `https://gigkraft.com/us/${slug}/refer`;
+  // shareUrl: what WhatsApp scrapes — the Django social-preview endpoint which serves real OG tags
+  const shareUrl = `${API_BASE_URL}/us/${slug}/refer`;
+
+  function handleCopyUrl() {
+    void navigator.clipboard.writeText(pageUrl).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  function openWhatsAppShare() {
+    const lines: string[] = [
+      `👋 Check out *${page!.display_name}'s Trusted Pros* on GigKraft!`,
+    ];
+    if (page!.bio) lines.push(`_"${page!.bio}"_`);
+    lines.push("");
+    if (isOwner && page!.phone) lines.push(`📞 ${page!.phone}`);
+    if (isOwner && page!.email) lines.push(`✉️ ${page!.email}`);
+    lines.push(
+      `👥 ${page!.follower_count} follower${page!.follower_count !== 1 ? "s" : ""}`,
+      `📋 ${page!.referral_count} referral${page!.referral_count !== 1 ? "s" : ""} sent`,
+    );
+    // Use the backend preview URL so WhatsApp's bot gets real OG tags (profile pic + name)
+    lines.push("", `🔗 ${shareUrl}`);
+
+    const msg = encodeURIComponent(lines.join("\n"));
+    window.open(`https://wa.me/?text=${msg}`, "_blank", "noopener,noreferrer");
+  }
 
   return (
     <>
-      <Stack gap="xl" p="xl" maw={960} mx="auto" py={48}>
-        {/* Header */}
-        <Stack gap="sm" align="center" ta="center">
-          <Avatar src={page.avatar_url || undefined} size={80} radius="50%" color="teal">
-            {page.display_name[0]?.toUpperCase()}
-          </Avatar>
-          <Title order={2}>{page.display_name}'s Trusted Pros</Title>
-          {page.bio && (
-            <Text size="sm" c="dimmed" maw={480}>{page.bio}</Text>
-          )}
-          <Group gap="sm" justify="center">
-            <Badge color="teal" variant="light" leftSection={<IconUsers size={13} />} size="lg">
-              {page.follower_count} follower{page.follower_count !== 1 ? "s" : ""}
-            </Badge>
-            <Badge color="gray" variant="outline" size="lg">
-              {page.referral_count} referral{page.referral_count !== 1 ? "s" : ""} sent
-            </Badge>
+      <Group
+        align="flex-start"
+        gap="xl"
+        p="xl"
+        maw={1100}
+        mx="auto"
+        py={48}
+        wrap="wrap"
+      >
+        {/* ── Left: Profile card ── */}
+        <Card
+          withBorder
+          radius="md"
+          p="md"
+          style={{
+            width: 240,
+            flexShrink: 0,
+            position: "sticky",
+            top: 24,
+            borderColor: "var(--gk-border)",
+            boxShadow: "0 4px 14px -4px var(--gk-accent-secondary)",
+          }}
+        >
+          {/* Avatar — always visible */}
+          <Stack align="center" gap="xs" mb="sm">
+            <Avatar
+              src={avatarSrc}
+              size={96}
+              radius="50%"
+              color="teal"
+              style={{ border: "2px solid var(--gk-accent-primary)" }}
+            >
+              {page.display_name?.[0]?.toUpperCase()}
+            </Avatar>
+
+            <Title order={5} ta="center" style={{ wordBreak: "break-word" }}>
+              {page.display_name}
+            </Title>
+
+            {page.bio && (
+              <Text size="xs" fs="italic" c="dimmed" ta="center" lineClamp={3}>
+                {page.bio}
+              </Text>
+            )}
+
+            {/* Contact rows — any logged-in user */}
+            {isAuthenticated && (
+              <Stack gap={4} w="100%">
+                <Group gap={6}>
+                  <IconPhone size={12} style={iconColor} />
+                  <Text size="xs">{page.phone || "—"}</Text>
+                </Group>
+                <Group gap={6}>
+                  <IconMail size={12} style={iconColor} />
+                  <Text size="xs">{page.email || "—"}</Text>
+                </Group>
+              </Stack>
+            )}
+          </Stack>
+
+          <Divider mb="sm" style={{ borderColor: "var(--gk-border)" }} />
+
+          {/* Stats */}
+          <SimpleGrid cols={3} spacing={6} mb="sm">
+            {(
+              [
+                { icon: <IconUsers size={22} />, count: page.follower_count, label: "Followers", color: "var(--mantine-color-red-6)" },
+                { icon: <IconSend size={22} />, count: page.referral_count, label: "Referrals", color: "var(--mantine-color-blue-6)" },
+                { icon: <IconBriefcase size={22} />, count: page.pros.length, label: "Pros", color: "var(--mantine-color-green-6)" },
+              ] as const
+            ).map(({ icon, count, label, color }) => (
+              <Stack
+                key={label}
+                align="center"
+                gap={2}
+                p={8}
+                style={{
+                  background: "var(--mantine-color-default)",
+                  borderRadius: 10,
+                  border: `1.5px solid ${color}`,
+                }}
+              >
+                <Center style={{ color }}>{icon}</Center>
+                {count > 0 && (
+                  <Text size="sm" fw={700} lh={1} style={{ color }}>
+                    {count}
+                  </Text>
+                )}
+                <Text size="10px" c="dimmed" fw={500} ta="center" lh={1.2}>
+                  {label}
+                </Text>
+              </Stack>
+            ))}
+          </SimpleGrid>
+
+          {/* Share icons — visible to all */}
+          <Group gap={8} justify="center" mb="sm">
+            <IconAction label="Share on WhatsApp" onClick={openWhatsAppShare} color="#25D366">
+              <IconBrandWhatsapp size={18} />
+            </IconAction>
+            <IconAction
+              label={copied ? "Copied!" : "Copy page link"}
+              onClick={handleCopyUrl}
+              color={copied ? "var(--mantine-color-green-6)" : "var(--gk-accent-primary)"}
+            >
+              {copied ? <IconCheck size={18} /> : <IconLink size={18} />}
+            </IconAction>
           </Group>
 
-          {!page.is_owner && (
-            <Group gap="sm" mt="xs">
+          {/* Visitor: follow / request actions */}
+          {!isOwner && (
+            <Stack gap="xs">
               {!isFollower ? (
-                <Button
-                  radius="xl"
-                  leftSection={<IconUserCheck size={16} />}
-                  style={{ background: "var(--gk-brand-gradient)" }}
-                  onClick={() => setFollowOpen(true)}
-                >
+                <button style={followBtn} onClick={() => setFollowOpen(true)}>
+                  <IconUserCheck size={15} color="#fff" />
                   Follow
-                </Button>
+                </button>
               ) : (
-                <Alert color="teal" variant="light" py={6} px={12}>
-                  Following as {followerState!.name}
+                <Alert color="teal" variant="light" py={6} px={10}>
+                  <Text size="xs">Following as {followerState!.name}</Text>
                 </Alert>
               )}
               {isFollower && (
-                <Button
-                  radius="xl"
-                  variant="outline"
-                  onClick={() => setRequestOpen(true)}
-                >
+                <button style={requestBtn} onClick={() => setRequestOpen(true)}>
+                  <IconSend size={14} />
                   Request a referral
-                </Button>
+                </button>
               )}
-            </Group>
+            </Stack>
+          )}
+
+          <Text ta="center" size="xs" c="dimmed" mt="sm">
+            Powered by{" "}
+            <a href="https://gigkraft.com" style={{ color: "inherit" }}>
+              gigKraft.com
+            </a>
+          </Text>
+        </Card>
+
+        {/* ── Right: Search + pros grid ── */}
+        <Stack gap="md" style={{ flex: 1, minWidth: 280 }}>
+          <Group gap="sm" align="center">
+            <TextInput
+              style={{ flex: 1 }}
+              placeholder="Search by name, phone, email, trade, zip…"
+              leftSection={<IconSearch size={15} />}
+              value={search}
+              onChange={(e) => setSearch(e.currentTarget.value)}
+              radius="xl"
+            />
+            {isOwner && (
+              <button
+                onClick={() => setAddProByContactOpen(true)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "8px 16px",
+                  background: "var(--gk-brand-gradient)",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 99,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  letterSpacing: "0.02em",
+                  whiteSpace: "nowrap",
+                  boxShadow: "0 3px 10px -2px var(--gk-accent-primary)",
+                  flexShrink: 0,
+                }}
+              >
+                <IconPlus size={14} color="#fff" />
+                Add a Pro
+              </button>
+            )}
+          </Group>
+
+          {(uniqueTrades.length > 0 || uniqueZips.length > 0) && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {uniqueTrades.map((t) => {
+                const active = selectedTrades.has(t);
+                return (
+                  <button
+                    key={t}
+                    onClick={() => toggleTrade(t)}
+                    style={{
+                      padding: "3px 11px",
+                      borderRadius: 99,
+                      border: `1.5px solid ${active ? "var(--gk-accent-primary)" : "var(--gk-border)"}`,
+                      background: active ? "var(--gk-accent-primary)" : "transparent",
+                      color: active ? "#fff" : "var(--gk-text-secondary, #666)",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    {t}
+                  </button>
+                );
+              })}
+              {uniqueZips.map((z) => {
+                const active = selectedZips.has(z);
+                return (
+                  <button
+                    key={z}
+                    onClick={() => toggleZip(z)}
+                    style={{
+                      padding: "3px 11px",
+                      borderRadius: 99,
+                      border: `1.5px solid ${active ? "var(--gk-accent-secondary)" : "var(--gk-border)"}`,
+                      background: active ? "var(--gk-accent-secondary)" : "transparent",
+                      color: active ? "#fff" : "var(--gk-text-secondary, #666)",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    {z}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {!page.pros?.length ? (
+            <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
+              <EmptyProCard />
+              <EmptyProCard />
+            </SimpleGrid>
+          ) : filteredPros.length === 0 ? (
+            <Text c="dimmed" ta="center" py="xl">
+              No pros match the current filters.
+            </Text>
+          ) : (
+            <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
+              {filteredPros.map((pro) => (
+                <ReferrerProCard
+                  key={pro.id}
+                  pro={pro}
+                  slug={slug!}
+                  referrerName={page.display_name}
+                  allPros={page.pros ?? []}
+                  isFollower={isFollower}
+                  onNeedFollow={() => setFollowOpen(true)}
+                />
+              ))}
+            </SimpleGrid>
           )}
         </Stack>
-
-        {/* Pro grid */}
-        {page.pros.length === 0 ? (
-          <Text c="dimmed" ta="center" py="xl">
-            {page.display_name} hasn't added any pros yet. Check back soon!
-          </Text>
-        ) : (
-          <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="sm">
-            {page.pros.map((pro) => (
-              <ReferrerProCard
-                key={pro.id}
-                pro={pro}
-                slug={slug!}
-                referrerName={page.display_name}
-                allPros={page.pros}
-                isFollower={isFollower}
-                onNeedFollow={() => setFollowOpen(true)}
-              />
-            ))}
-          </SimpleGrid>
-        )}
-
-        <Text ta="center" size="xs" c="dimmed" mt="xl">
-          Powered by <a href="https://gigkraft.com" style={{ color: "inherit" }}>gigKraft.com</a>
-        </Text>
-      </Stack>
+      </Group>
 
       <FollowModal
         opened={followOpen}
@@ -161,6 +605,18 @@ export function ReferrerPublicPage() {
         selectedPro={null}
         pros={page.pros}
         onRequested={load}
+      />
+
+      <AddProModal
+        opened={addProOpen}
+        onClose={() => setAddProOpen(false)}
+        onAdded={() => { void load(); }}
+      />
+
+      <AddProByContactModal
+        opened={addProByContactOpen}
+        onClose={() => setAddProByContactOpen(false)}
+        onAdded={() => { void load(); }}
       />
     </>
   );

@@ -1,7 +1,11 @@
+import uuid
+from pathlib import Path
 from typing import Optional
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
-from ninja import Router, Schema
+from ninja import File, Router, Schema
+from ninja.files import UploadedFile
 
 from accounts import services, tokens
 from accounts.auth import jwt_auth
@@ -20,6 +24,9 @@ from accounts.schemas import (
     UserOut,
 )
 from nodes.models import Node
+
+_ALLOWED_IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
+_AVATARS_SUBDIR = "avatars"
 
 router = Router(tags=["auth"])
 me_router = Router(tags=["me"])
@@ -166,3 +173,60 @@ def patch_me(request, payload: UserPatchIn):
         services.ensure_role_profile(user)
     user.save()
     return 200, user
+
+
+def _save_avatar_file(content: bytes, original_name: str) -> str:
+    """Write avatar bytes to MEDIA_ROOT/avatars/ and return the path fragment."""
+    suffix = Path(original_name).suffix.lower() or ".jpg"
+    if suffix not in _ALLOWED_IMAGE_SUFFIXES:
+        suffix = ".jpg"
+    filename = f"avatar_{uuid.uuid4().hex}{suffix}"
+    dest_dir = Path(settings.MEDIA_ROOT) / _AVATARS_SUBDIR
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    (dest_dir / filename).write_bytes(content)
+    return f"{_AVATARS_SUBDIR}/{filename}"
+
+
+class AvatarOut(Schema):
+    avatar_url: str
+
+
+class AvatarUrlIn(Schema):
+    url: str
+
+
+@me_router.post("/me/avatar", response=AvatarOut, auth=jwt_auth)
+def upload_avatar(request, file: UploadedFile = File(...)):
+    """Accept a multipart image upload, save to MEDIA_ROOT, return the public URL."""
+    content = file.read()
+    path_fragment = _save_avatar_file(content, file.name or "avatar.jpg")
+    public_url = request.build_absolute_uri(f"{settings.MEDIA_URL}{path_fragment}")
+    services.update_avatar_url(request.auth, public_url)
+    return {"avatar_url": public_url}
+
+
+@me_router.post("/me/avatar-from-url", response=AvatarOut, auth=jwt_auth)
+def avatar_from_url(request, payload: AvatarUrlIn):
+    """Download an image URL (e.g. Google photo), save to MEDIA_ROOT, return stable URL."""
+    import requests as http_req
+
+    src = payload.url.strip()
+    if not src.startswith(("http://", "https://")):
+        return {"avatar_url": src}
+    try:
+        resp = http_req.get(src, timeout=8, stream=True)
+        resp.raise_for_status()
+        content_type = resp.headers.get("content-type", "")
+        if "png" in content_type:
+            ext = ".png"
+        elif "webp" in content_type:
+            ext = ".webp"
+        else:
+            ext = ".jpg"
+        content = resp.content
+        path_fragment = _save_avatar_file(content, f"avatar{ext}")
+        public_url = request.build_absolute_uri(f"{settings.MEDIA_URL}{path_fragment}")
+        services.update_avatar_url(request.auth, public_url)
+        return {"avatar_url": public_url}
+    except Exception:
+        return {"avatar_url": src}

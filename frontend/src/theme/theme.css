@@ -60,6 +60,18 @@ body {
 .kraft-description h2 { font-size: 1.05em; }
 .kraft-description h3 { font-size: 0.95em; }
 
+/* ── Raised action button: secondary bg + primary text + elevated shadow ── */
+button.mantine-Button-root[data-variant="filled"] {
+  --gk-brand-gradient: var(--gk-accent-secondary);
+  box-shadow: 0 4px 14px -4px rgba(0,0,0,0.28), 0 1px 3px rgba(0,0,0,0.1),
+              inset 0 1px 0 rgba(255,255,255,0.14);
+}
+button.mantine-Button-root[data-variant="filled"]:hover:not([data-disabled]) {
+  box-shadow: 0 6px 20px -4px rgba(0,0,0,0.32), 0 2px 6px rgba(0,0,0,0.12),
+              inset 0 1px 0 rgba(255,255,255,0.14);
+  filter: brightness(1.06);
+}
+
 /* Hide interactive UI controls when printing / saving as PDF */
 @media print {
   button,
