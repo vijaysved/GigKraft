@@ -65,7 +65,7 @@ function authHeaders(): Record<string, string> {
 function validateName(v: string): string | null {
   if (!v.trim()) return "Name is required.";
   if (v.trim().length < 2) return "Name must be at least 2 characters.";
-  if (!/^[a-zA-Z\s'\-\.]+$/.test(v.trim()))
+  if (!/^[a-zA-Z\s'.\-]+$/.test(v.trim()))
     return "Name may only contain letters, spaces, hyphens, and apostrophes.";
   return null;
 }

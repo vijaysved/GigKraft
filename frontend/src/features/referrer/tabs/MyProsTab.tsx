@@ -108,7 +108,7 @@ export function MyProsTab() {
   function toggleTrade(t: string) {
     setSelectedTrades((prev) => {
       const n = new Set(prev);
-      n.has(t) ? n.delete(t) : n.add(t);
+      if (n.has(t)) { n.delete(t); } else { n.add(t); }
       return n;
     });
   }

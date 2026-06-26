@@ -178,10 +178,10 @@ export function ReferrerPublicPage() {
   }, [page]);
 
   function toggleTrade(t: string) {
-    setSelectedTrades((prev) => { const n = new Set(prev); n.has(t) ? n.delete(t) : n.add(t); return n; });
+    setSelectedTrades((prev) => { const n = new Set(prev); if (n.has(t)) { n.delete(t); } else { n.add(t); } return n; });
   }
   function toggleZip(z: string) {
-    setSelectedZips((prev) => { const n = new Set(prev); n.has(z) ? n.delete(z) : n.add(z); return n; });
+    setSelectedZips((prev) => { const n = new Set(prev); if (n.has(z)) { n.delete(z); } else { n.add(z); } return n; });
   }
 
   const filteredPros = useMemo(() => {
