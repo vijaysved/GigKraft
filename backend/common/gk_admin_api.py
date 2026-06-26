@@ -643,6 +643,74 @@ def billing_transactions(request, page: int = 1, page_size: int = 25):
     )
 
 
+# ── Inbox Platform View (gk_admin oversight) ─────────────────────────────────
+
+class InboxUserRow(Schema):
+    id: int
+    name: str
+    email: Optional[str]
+    role: str
+    lead_count: int
+    message_count: int
+
+
+class InboxUserListOut(Schema):
+    total: int
+    items: List[InboxUserRow]
+
+
+@router.get("/inbox/overview", response=InboxUserListOut)
+def inbox_overview(request, search: str = "", page: int = 1, page_size: int = 25):
+    """Platform-wide inbox overview: all users with conversation activity."""
+    require_gk_admin(request)
+    qs = User.objects.annotate(
+        lead_count=Count("leads", distinct=True),
+        message_count=Count("messages", distinct=True),
+    ).filter(
+        Q(lead_count__gt=0) | Q(message_count__gt=0)
+    )
+    if search:
+        qs = qs.filter(
+            Q(email__icontains=search)
+            | Q(first_name__icontains=search)
+            | Q(last_name__icontains=search)
+        )
+    qs = qs.order_by("-message_count", "-lead_count")
+    total = qs.count()
+    offset = (page - 1) * page_size
+    items = []
+    for u in qs[offset: offset + page_size]:
+        name = f"{u.first_name} {u.last_name}".strip() or u.email or str(u.pk)
+        items.append(InboxUserRow(
+            id=u.id,
+            name=name,
+            email=u.email,
+            role=u.role,
+            lead_count=u.lead_count,
+            message_count=u.message_count,
+        ))
+    return InboxUserListOut(total=total, items=items)
+
+
+@router.get("/inbox/user/{user_id}", response=List[dict])
+def inbox_user_leads(request, user_id: int):
+    """All leads where the given user is a participant (homeowner or pro slot)."""
+    require_gk_admin(request)
+    from leads.models import Lead
+    from leads.api import serialize_lead
+
+    user = User.objects.filter(pk=user_id).first()
+    if not user:
+        return []
+    leads = (
+        Lead.objects.filter(Q(homeowner_id=user_id) | Q(pro__user_id=user_id))
+        .select_related("homeowner", "pro", "pro__user")
+        .prefetch_related("quotes", "messages")
+        .order_by("-created_at")[:100]
+    )
+    return [serialize_lead(lead, request.auth) for lead in leads]
+
+
 # ── Anonymous leads (captured inquiries) ──────────────────────────────────────
 
 class AnonLeadRow(Schema):

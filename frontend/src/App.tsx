@@ -94,6 +94,7 @@ import { ReferrerShell } from "./layout/ReferrerShell";
 import { ReferrerPublicPage } from "./features/referrer/ReferrerPublicPage";
 import { ReferrerDashboard } from "./features/referrer/ReferrerDashboard";
 import { ReferrerAccountPage } from "./features/referrer/ReferrerAccountPage";
+import { ReferrerInboxPage } from "./features/referrer/ReferrerInboxPage";
 
 
 const ROLE_HOME: Record<string, string> = {
@@ -309,6 +310,7 @@ export default function App() {
       <Route path="/us/me" element={<RequireAuth><MeRedirect /></RequireAuth>} />
       <Route path="/us/me/refer" element={<RequireAuth><MeRedirect dest="home" /></RequireAuth>} />
       <Route path="/us/me/home" element={<RequireAuth><MeRedirect dest="home" /></RequireAuth>} />
+      <Route path="/us/me/inbox" element={<RequireAuth><MeRedirect dest="inbox" /></RequireAuth>} />
       <Route path="/us/me/account" element={<RequireAuth><MeRedirect dest="account" /></RequireAuth>} />
 
       {/* Referrer authenticated dashboard — slug-based URL */}
@@ -324,6 +326,8 @@ export default function App() {
       >
         <Route index element={<Navigate to="home" replace />} />
         <Route path="home" element={<ReferrerDashboard />} />
+        <Route path="inbox" element={<ReferrerInboxPage />} />
+        <Route path="inbox/:leadId" element={<ReferrerInboxPage />} />
         <Route path="account" element={<ReferrerAccountPage />} />
       </Route>
 

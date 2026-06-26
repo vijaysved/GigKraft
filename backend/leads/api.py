@@ -27,6 +27,7 @@ from common import notify
 from common.permissions import require_homeowner, require_pro
 from leads.models import Lead, Message, Quote
 from nodes.models import Node
+from referrals.models import ReferrerPro
 
 router = Router(tags=["leads"], auth=jwt_auth)
 public_router = Router(tags=["leads"])
@@ -87,6 +88,7 @@ class LeadOut(Schema):
     last_message: Optional[str]
     unread_hint: int
     quotes: list[QuoteOut]
+    is_connected: bool = False
 
 
 class LeadCreateIn(Schema):
@@ -134,9 +136,13 @@ def serialize_quote(quote: Quote) -> dict:
     }
 
 
-def serialize_lead(lead: Lead, viewer: User) -> dict:
+def serialize_lead(lead: Lead, viewer: User, connected_pro_ids: set | None = None) -> dict:
     last = lead.messages.order_by("-created_at").first()
     unread = lead.messages.exclude(sender=viewer).count() if last else 0
+    is_connected = True
+    if connected_pro_ids is not None:
+        pro_user_id = lead.pro.user_id if lead.pro else None
+        is_connected = pro_user_id in connected_pro_ids if pro_user_id else False
     return {
         "id": lead.id,
         "job_title": lead.job_title,
@@ -159,6 +165,7 @@ def serialize_lead(lead: Lead, viewer: User) -> dict:
         "last_message": (last.body or "[photo]") if last else None,
         "unread_hint": min(unread, 9),
         "quotes": [serialize_quote(q) for q in lead.quotes.all()],
+        "is_connected": is_connected,
         **_circle_referral_fields(lead),
     }
 
@@ -212,11 +219,12 @@ def _lead_for_viewer(request, lead_id: int) -> Lead:
 
 @router.get("", response=list[LeadOut])
 def list_leads(request, status: Optional[str] = None, thread_type: Optional[str] = None, sent: bool = False):
-    """Role-aware list: pros see their leads, homeowners see theirs.
+    """Role-aware list: pros see their leads, homeowners/referrers see theirs.
 
     Pass ?sent=true to see threads initiated by the current user (homeowner slot),
     regardless of role — powers the Sent tab in both inboxes."""
     user = request.auth
+    connected_pro_ids: set | None = None
     if user.role == User.Role.GK_ADMIN:
         leads = Lead.objects.all()
     elif user.role == User.Role.NODE_MANAGER:
@@ -226,6 +234,12 @@ def list_leads(request, status: Optional[str] = None, thread_type: Optional[str]
     elif user.role == User.Role.PRO:
         pro = require_pro(request)
         leads = Lead.objects.filter(pro=pro)
+    elif user.role == User.Role.REFERRER:
+        leads = Lead.objects.filter(homeowner=user)
+        connected_pro_ids = set(
+            ReferrerPro.objects.filter(referrer=user, pro__isnull=False)
+            .values_list("pro__user_id", flat=True)
+        )
     else:
         leads = Lead.objects.filter(homeowner=user)
     if status:
@@ -235,7 +249,7 @@ def list_leads(request, status: Optional[str] = None, thread_type: Optional[str]
         types = [t for t in thread_type.split(",") if t]
         leads = leads.filter(thread_type__in=types)
     leads = leads.select_related("homeowner", "pro", "pro__user").prefetch_related("quotes", "messages")
-    return [serialize_lead(lead, user) for lead in leads[:100]]
+    return [serialize_lead(lead, user, connected_pro_ids) for lead in leads[:100]]
 
 
 @router.post("", response={201: LeadOut, 400: ErrorOut})

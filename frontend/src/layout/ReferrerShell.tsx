@@ -14,6 +14,7 @@ import { loadGooglePictureUrl, useProAvatar } from "../hooks/useProAvatar";
 import {
   IconChevronUp,
   IconHome,
+  IconInbox,
   IconLogout,
   IconUser,
 } from "@tabler/icons-react";
@@ -37,6 +38,7 @@ export function ReferrerShell() {
 
   const NAV_ITEMS = [
     { label: "Home", icon: IconHome, to: `/us/${slug}/home` },
+    { label: "Inbox", icon: IconInbox, to: `/us/${slug}/inbox` },
     { label: "Account", icon: IconUser, to: `/us/${slug}/account` },
   ];
 

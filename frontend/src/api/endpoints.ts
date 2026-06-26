@@ -1126,6 +1126,7 @@ export interface InboxLead {
   quotes: InboxQuote[];
   circle_referral_slug: string | null;
   circle_referral_curator: string | null;
+  is_connected: boolean;
 }
 
 export interface CreateLeadPayload {
@@ -1366,5 +1367,42 @@ export function trackSitePageView(url: string): void {
   const referrer = document.referrer || "";
   const cleanUrl = url.split("?")[0].split("#")[0];
   void _post("/api/track/page-view", { body: { url: cleanUrl, referrer } });
+}
+
+// ── GK Admin Inbox Platform View ──────────────────────────────────────────────
+
+export interface InboxUserRow {
+  id: number;
+  name: string;
+  email: string | null;
+  role: string;
+  lead_count: number;
+  message_count: number;
+}
+
+export interface InboxUserListOut {
+  total: number;
+  items: InboxUserRow[];
+}
+
+export async function getGkInboxOverview(params?: {
+  search?: string;
+  page?: number;
+  page_size?: number;
+}): Promise<InboxUserListOut> {
+  const q: Record<string, string> = {};
+  if (params?.search) q.search = params.search;
+  if (params?.page) q.page = String(params.page);
+  if (params?.page_size) q.page_size = String(params.page_size);
+  const qs = Object.keys(q).length ? `?${new URLSearchParams(q).toString()}` : "";
+  const { data, response } = await _get(`/api/gk-admin/inbox/overview${qs}`);
+  if (!data) throw new ApiError(response.status, "Failed to load inbox overview.");
+  return data as InboxUserListOut;
+}
+
+export async function getGkInboxUserLeads(userId: number): Promise<InboxLead[]> {
+  const { data, response } = await _get(`/api/gk-admin/inbox/user/${userId}`);
+  if (!data) throw new ApiError(response.status, "Failed to load user threads.");
+  return data as InboxLead[];
 }
 
