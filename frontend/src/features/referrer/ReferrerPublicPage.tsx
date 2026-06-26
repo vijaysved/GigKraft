@@ -28,9 +28,10 @@ import {
   IconUsers,
 } from "@tabler/icons-react";
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { API_BASE_URL } from "../../config";
+import { getReferrerMe } from "../../api/endpoints";
 import { useAuth } from "../../auth/AuthContext";
 import { getAccessToken } from "../../api/tokens";
 import { fallbackAvatar } from "../../assets/fallbackAvatars";
@@ -148,10 +149,17 @@ function EmptyProCard() {
   );
 }
 
+const BANNER_DISMISS_KEY = "gk_banner_dismissed";
+
 export function ReferrerPublicPage() {
   const { slug } = useParams<{ slug: string }>();
   const { status } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const isAuthenticated = status === "authenticated";
+
+  const claimToken = searchParams.get("claim") ?? "";
+  const invToken = searchParams.get("inv") ?? "";
 
   const [page, setPage] = useState<ReferrerPublicOut | null>(null);
   const [loading, setLoading] = useState(true);
@@ -166,6 +174,10 @@ export function ReferrerPublicPage() {
   const [copied, setCopied] = useState(false);
   const [selectedTrades, setSelectedTrades] = useState<Set<string>>(new Set());
   const [selectedZips, setSelectedZips] = useState<Set<string>>(new Set());
+  const [highlightedProId, setHighlightedProId] = useState<number | null>(null);
+  const [bannerDismissed, setBannerDismissed] = useState(
+    () => localStorage.getItem(BANNER_DISMISS_KEY) === "1"
+  );
 
   const uniqueTrades = useMemo(() => {
     if (!page?.pros) return [] as string[];
@@ -226,19 +238,30 @@ export function ReferrerPublicPage() {
   // Detect ownership by comparing the authenticated user's slug with the URL slug
   useEffect(() => {
     if (!isAuthenticated) { setIsOwner(false); return; }
-    const token = getAccessToken();
-    if (!token) return;
-    fetch(`${API_BASE_URL}/api/referrer/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.ok ? r.json() : null)
-      .then((data: { profile?: { slug?: string } } | null) => {
-        setIsOwner(!!data?.profile?.slug && data.profile.slug === slug);
-      })
+    getReferrerMe()
+      .then((data) => { setIsOwner(!!data?.profile?.slug && data.profile.slug === slug); })
       .catch(() => setIsOwner(false));
   }, [isAuthenticated, slug]);
 
   useEffect(() => { load(); }, [slug, status]);
+
+  // Fire click counts and resolve highlighted pro card on mount
+  useEffect(() => {
+    if (claimToken) {
+      // Fire-and-forget click increment
+      fetch(`${API_BASE_URL}/api/referrer/pro-invite/click/${claimToken}`, { method: "POST" });
+      // Preview to know which card to highlight
+      fetch(`${API_BASE_URL}/api/referrer/pro-invite/preview/${claimToken}`)
+        .then((r) => r.ok ? r.json() : null)
+        .then((data: { pro_id?: number } | null) => {
+          if (data?.pro_id) setHighlightedProId(data.pro_id);
+        })
+        .catch(() => undefined);
+    }
+    if (invToken) {
+      fetch(`${API_BASE_URL}/api/referrer/friend-invite/click/${invToken}`, { method: "POST" });
+    }
+  }, [claimToken, invToken]);
 
   useEffect(() => {
     if (page) {
@@ -331,8 +354,92 @@ export function ReferrerPublicPage() {
     window.open(`https://wa.me/?text=${msg}`, "_blank", "noopener,noreferrer");
   }
 
+  function dismissBanner() {
+    localStorage.setItem(BANNER_DISMISS_KEY, "1");
+    setBannerDismissed(true);
+  }
+
   return (
     <>
+      {/* Visitor signup banner — only for non-authenticated, non-dismissed visitors */}
+      {!isAuthenticated && !bannerDismissed && (
+        <div
+          style={{
+            position: "sticky",
+            top: 0,
+            zIndex: 100,
+            background: "var(--gk-brand-gradient, linear-gradient(135deg,#C42200,#FF6B1A 55%,#84CC16))",
+            color: "#fff",
+            padding: "10px 20px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            flexWrap: "wrap",
+          }}
+        >
+          <div>
+            <span style={{ fontWeight: 700, fontSize: 14 }}>
+              You're viewing {page?.display_name ?? "this"}'s trusted circle of local pros.
+            </span>
+            <span style={{ fontSize: 13, marginLeft: 8, opacity: 0.9 }}>
+              Sign up free to follow their recommendations.
+            </span>
+          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
+            <button
+              onClick={() => navigate("/register")}
+              style={{
+                background: "#fff",
+                color: "var(--gk-accent-primary, #C42200)",
+                border: "none",
+                borderRadius: 99,
+                padding: "5px 14px",
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: "pointer",
+                fontFamily: "inherit",
+              }}
+            >
+              Sign Up
+            </button>
+            <button
+              onClick={() => navigate("/login")}
+              style={{
+                background: "transparent",
+                color: "#fff",
+                border: "1.5px solid rgba(255,255,255,0.6)",
+                borderRadius: 99,
+                padding: "5px 14px",
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: "pointer",
+                fontFamily: "inherit",
+              }}
+            >
+              Log In
+            </button>
+            <button
+              onClick={dismissBanner}
+              aria-label="Dismiss"
+              style={{
+                background: "transparent",
+                color: "#fff",
+                border: "none",
+                cursor: "pointer",
+                fontSize: 18,
+                lineHeight: 1,
+                padding: "0 4px",
+                fontFamily: "inherit",
+                opacity: 0.8,
+              }}
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
       <Group
         align="flex-start"
         gap="xl"
@@ -582,6 +689,8 @@ export function ReferrerPublicPage() {
                   allPros={page.pros ?? []}
                   isFollower={isFollower}
                   onNeedFollow={() => setFollowOpen(true)}
+                  highlightedProId={highlightedProId ?? undefined}
+                  claimToken={claimToken || undefined}
                 />
               ))}
             </SimpleGrid>

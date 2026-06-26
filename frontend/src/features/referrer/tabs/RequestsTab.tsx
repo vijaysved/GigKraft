@@ -10,17 +10,9 @@ import {
 } from "@mantine/core";
 import { useEffect, useState } from "react";
 
-import { API_BASE_URL } from "../../../config";
-import { getAccessToken } from "../../../api/tokens";
+import { declineReferrerRequest, getReferrerRequests } from "../../../api/endpoints";
 import type { ReferralRequestDetailOut, ReferrerProDashboardOut } from "../types";
 import { SendReferralModal } from "../components/SendReferralModal";
-
-function authHeaders(): Record<string, string> {
-  const token = getAccessToken();
-  return token
-    ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
-    : { "Content-Type": "application/json" };
-}
 
 function statusColor(status: string) {
   if (status === "sent") return "teal";
@@ -42,21 +34,20 @@ export function RequestsTab({ pros }: Props) {
 
   async function load() {
     setLoading(true);
-    const r = await fetch(`${API_BASE_URL}/api/referrer/me/requests?status=${filter}`, {
-      headers: authHeaders(),
-    });
-    if (r.ok) setRequests(await r.json() as ReferralRequestDetailOut[]);
-    setLoading(false);
+    try {
+      setRequests(await getReferrerRequests(filter));
+    } catch {
+      setRequests([]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => { load(); }, [filter]);
 
   async function decline(id: number) {
     if (!confirm("Decline this request?")) return;
-    await fetch(`${API_BASE_URL}/api/referrer/me/requests/${id}/decline`, {
-      method: "POST",
-      headers: authHeaders(),
-    });
+    await declineReferrerRequest(id);
     load();
   }
 

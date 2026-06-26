@@ -8,7 +8,7 @@ from django.utils import timezone
 
 
 def _generate_token():
-    return uuid.uuid4().hex
+    return secrets.token_urlsafe(11)  # 15-char mixed-case URL-safe
 
 
 def _hash_otp(code: str) -> str:
@@ -66,13 +66,17 @@ class ProInvite(models.Model):
         "accounts.User", on_delete=models.CASCADE, related_name="pro_invites_sent"
     )
     name = models.CharField(max_length=100)
-    trade = models.CharField(max_length=60)
+    trade = models.CharField(max_length=60, blank=True, default="")
     phone = models.CharField(max_length=20, blank=True, default="")
     email = models.EmailField(blank=True, default="")
     note = models.TextField(blank=True, default="")
+    channel = models.CharField(max_length=10, blank=True, default="")
     token = models.CharField(max_length=64, unique=True, db_index=True, default=_generate_token)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)
+    click_count = models.PositiveIntegerField(default=0)
+    is_archived = models.BooleanField(default=False)
     invited_at = models.DateTimeField(auto_now_add=True)
+    last_resent_at = models.DateTimeField(null=True, blank=True)
     claimed_at = models.DateTimeField(null=True, blank=True)
     claimed_by = models.ForeignKey(
         "accounts.User",
@@ -268,7 +272,12 @@ class FriendInvite(models.Model):
     name = models.CharField(max_length=100)
     phone = models.CharField(max_length=20, blank=True, default="")
     email = models.EmailField(blank=True, default="")
+    channel = models.CharField(max_length=10, blank=True, default="")
+    token = models.CharField(max_length=32, unique=True, db_index=True, default=_generate_token)
+    click_count = models.PositiveIntegerField(default=0)
+    is_archived = models.BooleanField(default=False)
     invited_at = models.DateTimeField(auto_now_add=True)
+    last_resent_at = models.DateTimeField(null=True, blank=True)
     followed_at = models.DateTimeField(null=True, blank=True)
     follower = models.ForeignKey(
         ReferrerFollower, null=True, blank=True, on_delete=models.SET_NULL,

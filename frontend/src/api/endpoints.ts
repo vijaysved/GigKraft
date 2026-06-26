@@ -1,6 +1,13 @@
 import { client } from "./client";
 import type { components } from "./generated/types";
 import { getAccessToken } from "./tokens";
+import type {
+  ReferrerDashboardOut,
+  ReferralSentSummaryOut,
+  FollowerOut,
+  ReferralRequestDetailOut,
+  InviteListOut,
+} from "../features/referrer/types";
 
 export type HealthOut = components["schemas"]["HealthOut"];
 export type TokenPairOut = components["schemas"]["TokenPairOut"];
@@ -598,9 +605,12 @@ export async function lookupReferrerPro(
 
 export async function addReferrerPro(
   proHandle: string,
+  endorsement?: string,
 ): Promise<{ ok: boolean; status: number; detail?: string }> {
+  const body: Record<string, string> = { pro_handle: proHandle };
+  if (endorsement) body.endorsement = endorsement;
   const { error, response } = await client.POST("/api/referrer/me/pros" as never, {
-    body: { pro_handle: proHandle },
+    body,
   } as never);
   return { ok: response.ok, status: response.status, detail: detailOf(error, "") || undefined };
 }
@@ -1404,5 +1414,128 @@ export async function getGkInboxUserLeads(userId: number): Promise<InboxLead[]> 
   const { data, response } = await _get(`/api/gk-admin/inbox/user/${userId}`);
   if (!data) throw new ApiError(response.status, "Failed to load user threads.");
   return data as InboxLead[];
+}
+
+// ---------- Referrer — activity, followers, requests, invites ----------
+
+export async function getReferrerDashboard(): Promise<ReferrerDashboardOut> {
+  const { data, response } = await _get("/api/referrer/me/dashboard");
+  if (!data) throw new ApiError(response.status, "Failed to load referrer dashboard.");
+  return data as ReferrerDashboardOut;
+}
+
+export async function getReferrerActivity(
+  page = 1,
+  pageSize = 20,
+): Promise<{ total: number; results: ReferralSentSummaryOut[] }> {
+  const { data, response } = await _get(
+    `/api/referrer/me/activity?page=${page}&page_size=${pageSize}`,
+  );
+  if (!data) throw new ApiError(response.status, "Failed to load activity.");
+  return data as { total: number; results: ReferralSentSummaryOut[] };
+}
+
+export async function getReferrerFollowers(
+  page = 1,
+  pageSize = 20,
+): Promise<{ total: number; results: FollowerOut[] }> {
+  const { data, response } = await _get(
+    `/api/referrer/me/followers?page=${page}&page_size=${pageSize}`,
+  );
+  if (!data) throw new ApiError(response.status, "Failed to load followers.");
+  return data as { total: number; results: FollowerOut[] };
+}
+
+export async function getReferrerRequests(
+  status = "pending",
+): Promise<ReferralRequestDetailOut[]> {
+  const { data, response } = await _get(`/api/referrer/me/requests?status=${status}`);
+  if (!data) throw new ApiError(response.status, "Failed to load requests.");
+  return data as ReferralRequestDetailOut[];
+}
+
+export async function declineReferrerRequest(id: number): Promise<void> {
+  await _post(`/api/referrer/me/requests/${id}/decline`);
+}
+
+export async function sendReferralRequest(
+  id: number,
+  body: { referrer_pro_id: number; note_to_follower: string; note_to_pro: string },
+): Promise<{ otp_required?: boolean; message?: string }> {
+  const { data, error, response } = await _post(`/api/referrer/me/requests/${id}/send`, { body });
+  if (!response.ok) throw new ApiError(response.status, detailOf(error, "Failed to send."));
+  return (data ?? {}) as { otp_required?: boolean; message?: string };
+}
+
+export async function verifyFollowerOtp(
+  id: number,
+  otp: string,
+): Promise<{ verified?: boolean; error?: string }> {
+  const { data, error, response } = await _post(
+    `/api/referrer/me/requests/${id}/verify-follower-otp`,
+    { body: { otp } },
+  );
+  if (!response.ok) throw new ApiError(response.status, detailOf(error, "OTP check failed."));
+  return (data ?? {}) as { verified?: boolean; error?: string };
+}
+
+export async function getInviteList(): Promise<InviteListOut> {
+  const { data, response } = await _get("/api/referrer/me/invites");
+  if (!data) throw new ApiError(response.status, "Failed to load invites.");
+  return data as InviteListOut;
+}
+
+export async function createProInvite(payload: {
+  name: string;
+  phone: string;
+  note?: string;
+  channel?: string;
+}): Promise<{ invite_id: number; referrer_pro_id: number; token: string; referrer_slug: string }> {
+  const { data, error, response } = await _post("/api/referrer/me/invite-pro", { body: payload });
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to create invite."));
+  return data as { invite_id: number; referrer_pro_id: number; token: string; referrer_slug: string };
+}
+
+export async function createFriendInvite(payload: {
+  name: string;
+  phone: string;
+  channel?: string;
+}): Promise<{ invite_id: number; token: string; referrer_slug: string }> {
+  const { data, error, response } = await _post("/api/referrer/me/invite-friend-single", {
+    body: payload,
+  });
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to create friend invite."));
+  return data as { invite_id: number; token: string; referrer_slug: string };
+}
+
+export async function resendProInvite(
+  id: number,
+): Promise<{ ok: boolean; token: string; referrer_slug: string }> {
+  const { data, error, response } = await _post(`/api/referrer/me/invite-pro/${id}/resend`);
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to resend."));
+  return data as { ok: boolean; token: string; referrer_slug: string };
+}
+
+export async function resendFriendInvite(
+  id: number,
+): Promise<{ ok: boolean; token: string; referrer_slug: string }> {
+  const { data, error, response } = await _post(
+    `/api/referrer/me/invite-friend-single/${id}/resend`,
+  );
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to resend."));
+  return data as { ok: boolean; token: string; referrer_slug: string };
+}
+
+export async function archiveProInvite(id: number): Promise<void> {
+  await _post(`/api/referrer/me/invite-pro/${id}/archive`);
+}
+
+export async function archiveFriendInvite(id: number): Promise<void> {
+  await _post(`/api/referrer/me/invite-friend-single/${id}/archive`);
+}
+
+export async function claimProInvite(token: string): Promise<void> {
+  const { error, response } = await _post(`/api/referrer/pro-invite/claim/${token}`);
+  if (!response.ok) throw new ApiError(response.status, detailOf(error, "Failed to claim invite."));
 }
 

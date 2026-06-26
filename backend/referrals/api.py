@@ -327,11 +327,27 @@ class InviteProIn(Schema):
     phone: Optional[str] = None
     email: Optional[str] = None
     note: Optional[str] = None
+    channel: str = ""
 
 
 class InviteProOut(Schema):
     invite_id: int
     referrer_pro_id: int
+    token: str
+    referrer_slug: str
+
+
+class InviteProResendOut(Schema):
+    ok: bool
+    token: str
+    referrer_slug: str
+
+
+class ProInvitePreviewOut(Schema):
+    referrer_slug: str
+    referrer_name: str
+    pro_name: str
+    pro_id: int
 
 
 class FriendInviteeIn(Schema):
@@ -347,6 +363,52 @@ class InviteFriendIn(Schema):
 class InviteFriendOut(Schema):
     sent_count: int
     invite_ids: list[int]
+
+
+class InviteFriendSingleIn(Schema):
+    name: str
+    phone: str
+    channel: str = ""
+
+
+class InviteFriendSingleOut(Schema):
+    invite_id: int
+    token: str
+    referrer_slug: str
+
+
+class FriendInviteResendOut(Schema):
+    ok: bool
+    token: str
+    referrer_slug: str
+
+
+class InviteListProOut(Schema):
+    invite_id: int
+    name: str
+    trade: str
+    phone: str
+    channel: str
+    status: str
+    click_count: int
+    invited_at: str
+    last_resent_at: Optional[str] = None
+
+
+class InviteListFriendOut(Schema):
+    invite_id: int
+    name: str
+    phone: str
+    channel: str
+    status: str
+    click_count: int
+    invited_at: str
+    last_resent_at: Optional[str] = None
+
+
+class InviteListOut(Schema):
+    pro_invites: list[InviteListProOut]
+    friend_invites: list[InviteListFriendOut]
 
 
 class MatchedContactOut(Schema):
@@ -859,6 +921,7 @@ def invite_pro(request, payload: InviteProIn):
         phone=payload.phone or "",
         email=payload.email or "",
         note=payload.note or "",
+        channel=payload.channel,
     )
 
     max_order = ReferrerPro.objects.filter(referrer=request.auth).count()
@@ -868,50 +931,46 @@ def invite_pro(request, payload: InviteProIn):
         display_order=max_order,
     )
 
-    referrer_name = f"{request.auth.first_name} {request.auth.last_name}".strip() or "Someone"
-    claim_url = f"gigkraft.com/claim/{invite.token}"
-    if payload.phone:
-        send_sms(
-            payload.phone,
-            f"Hey {payload.name}, {referrer_name} added you to their referral page on GigKraft. "
-            f"Claim your free profile and start getting jobs: {claim_url}",
-        )
-    return 201, {"invite_id": invite.pk, "referrer_pro_id": rp.pk}
+    return 201, {
+        "invite_id": invite.pk,
+        "referrer_pro_id": rp.pk,
+        "token": invite.token,
+        "referrer_slug": profile.slug,
+    }
 
 
-@router.post("/me/invite-pro/{invite_id}/resend", response={200: dict, 404: dict, 429: dict})
+@router.post("/me/invite-pro/{invite_id}/resend", response={200: InviteProResendOut, 404: dict, 429: dict})
 def resend_pro_invite(request, invite_id: int):
     profile = require_referrer(request)
     invite = ProInvite.objects.filter(pk=invite_id, invited_by=request.auth).first()
     if not invite:
         return 404, {"detail": "Invite not found."}
 
-    # Rate limit: once per 24h
-    if invite.invited_at and (timezone.now() - invite.invited_at).total_seconds() < 86400:
-        # For resends we track by checking if there was a recent one — simplified
-        pass
+    # Rate limit: once per 24h based on last_resent_at (or invited_at for first resend)
+    last = invite.last_resent_at or invite.invited_at
+    if last and (timezone.now() - last).total_seconds() < 86400:
+        seconds_left = int(86400 - (timezone.now() - last).total_seconds())
+        hours_left = round(seconds_left / 3600, 1)
+        return 429, {"detail": f"Resend available in {hours_left}h."}
 
-    referrer_name = f"{request.auth.first_name} {request.auth.last_name}".strip() or "Someone"
-    claim_url = f"gigkraft.com/claim/{invite.token}"
-    if invite.phone:
-        send_sms(
-            invite.phone,
-            f"Hey {invite.name}, {referrer_name} added you to their referral page on GigKraft. "
-            f"Claim your free profile: {claim_url}",
-        )
-    return 200, {"ok": True}
+    invite.last_resent_at = timezone.now()
+    invite.save(update_fields=["last_resent_at"])
+
+    return 200, {
+        "ok": True,
+        "token": invite.token,
+        "referrer_slug": profile.slug,
+    }
 
 
 @router.post("/me/invite-friend", response=InviteFriendOut)
 def invite_friend(request, payload: InviteFriendIn):
+    """Legacy batch endpoint — kept for backward compat. New code uses /me/invite-friend-single."""
     profile = require_referrer(request)
     if len(payload.invitees) > 10:
         raise HttpError(422, "Maximum 10 invitees per request.")
 
-    referrer_name = f"{request.auth.first_name} {request.auth.last_name}".strip() or "Someone"
-    page_url = f"gigkraft.com/us/{profile.slug}/refer"
     invite_ids = []
-
     for inv in payload.invitees:
         if not inv.phone and not inv.email:
             continue
@@ -922,14 +981,256 @@ def invite_friend(request, payload: InviteFriendIn):
             email=inv.email or "",
         )
         invite_ids.append(fi.pk)
-        msg = (
-            f"Hey {inv.name}, {referrer_name} wanted you to check out their trusted pros on GigKraft: "
-            f"{page_url} — Follow them to request referrals when you need them."
-        )
-        if inv.phone:
-            send_sms(inv.phone, msg)
 
     return {"sent_count": len(invite_ids), "invite_ids": invite_ids}
+
+
+@router.post("/me/invite-friend-single", response={201: InviteFriendSingleOut, 422: dict})
+def invite_friend_single(request, payload: InviteFriendSingleIn):
+    """Single friend invite — creates a tracked FriendInvite with a unique token.
+    Frontend builds the WhatsApp/SMS deep link using the returned token + referrer_slug."""
+    profile = require_referrer(request)
+    if not payload.phone:
+        return 422, {"detail": "Phone is required."}
+
+    fi = FriendInvite.objects.create(
+        referrer=request.auth,
+        name=payload.name,
+        phone=payload.phone,
+        channel=payload.channel,
+    )
+    return 201, {
+        "invite_id": fi.pk,
+        "token": fi.token,
+        "referrer_slug": profile.slug,
+    }
+
+
+@router.post("/me/invite-friend-single/{invite_id}/resend", response={200: FriendInviteResendOut, 404: dict, 429: dict})
+def resend_friend_invite(request, invite_id: int):
+    profile = require_referrer(request)
+    fi = FriendInvite.objects.filter(pk=invite_id, referrer=request.auth).first()
+    if not fi:
+        return 404, {"detail": "Invite not found."}
+
+    last = fi.last_resent_at or fi.invited_at
+    if last and (timezone.now() - last).total_seconds() < 86400:
+        seconds_left = int(86400 - (timezone.now() - last).total_seconds())
+        hours_left = round(seconds_left / 3600, 1)
+        return 429, {"detail": f"Resend available in {hours_left}h."}
+
+    fi.last_resent_at = timezone.now()
+    fi.save(update_fields=["last_resent_at"])
+
+    return 200, {
+        "ok": True,
+        "token": fi.token,
+        "referrer_slug": profile.slug,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Pro-invite: preview, click, claim (public + auth)
+# ---------------------------------------------------------------------------
+
+@public_router.get("/pro-invite/preview/{token}", response={200: ProInvitePreviewOut, 404: dict}, auth=None)
+def pro_invite_preview(request, token: str):
+    """Public. Returns context for the claim landing page — used to highlight the right pro card."""
+    invite = ProInvite.objects.select_related("invited_by__referrer_profile").filter(token=token).first()
+    if not invite:
+        return 404, {"detail": "Invite not found."}
+    rp = invite.referrer_pro.filter().first()
+    profile = getattr(invite.invited_by, "referrer_profile", None)
+    referrer_name = f"{invite.invited_by.first_name} {invite.invited_by.last_name}".strip() or "GigKraft User"
+    return 200, {
+        "referrer_slug": profile.slug if profile else "",
+        "referrer_name": referrer_name,
+        "pro_name": invite.name,
+        "pro_id": rp.pk if rp else 0,
+    }
+
+
+@public_router.post("/pro-invite/click/{token}", response={200: dict}, auth=None)
+def pro_invite_click(request, token: str):
+    """Public. Fire-and-forget — atomically increments click_count."""
+    from django.db.models import F as _F
+    ProInvite.objects.filter(token=token).update(click_count=_F("click_count") + 1)
+    return 200, {}
+
+
+@router.post("/pro-invite/claim/{token}", response={200: dict, 400: dict, 404: dict, 409: dict})
+def claim_pro_invite(request, token: str):
+    """Auth required. Links the authenticated user to the ProInvite and creates a ProProfile."""
+    invite = ProInvite.objects.select_related("invited_by__referrer_profile").filter(
+        token=token, status=ProInvite.Status.PENDING
+    ).first()
+    if not invite:
+        existing = ProInvite.objects.filter(token=token).first()
+        if existing and existing.status == ProInvite.Status.CLAIMED:
+            return 409, {"detail": "This invite has already been claimed."}
+        return 404, {"detail": "Invite not found or already used."}
+
+    user = request.auth
+
+    # Set role to PRO if not already a pro
+    if user.role != User.Role.PRO:
+        user.role = User.Role.PRO
+        if not user.first_name and " " in invite.name:
+            parts = invite.name.split(" ", 1)
+            user.first_name, user.last_name = parts[0], parts[1]
+        elif not user.first_name:
+            user.first_name = invite.name
+        user.save(update_fields=["role", "first_name", "last_name"])
+
+    profile, _ = ProProfile.objects.get_or_create(user=user)
+    handle = profile.handle or ""
+
+    with transaction.atomic():
+        invite.status = ProInvite.Status.CLAIMED
+        invite.claimed_at = timezone.now()
+        invite.claimed_by = user
+        invite.save(update_fields=["status", "claimed_at", "claimed_by"])
+
+        # Upgrade the pending ReferrerPro card to a live on-platform card
+        rp = invite.referrer_pro.filter().first()
+        if rp and not rp.pro:
+            rp.pro = profile
+            rp.pro_invite = None
+            rp.save(update_fields=["pro", "pro_invite"])
+
+    return 200, {"pro_handle": handle}
+
+
+# ---------------------------------------------------------------------------
+# Friend-invite: click, claim (public + auth)
+# ---------------------------------------------------------------------------
+
+@public_router.post("/friend-invite/click/{token}", response={200: dict}, auth=None)
+def friend_invite_click(request, token: str):
+    """Public. Fire-and-forget — atomically increments click_count."""
+    from django.db.models import F as _F
+    FriendInvite.objects.filter(token=token).update(click_count=_F("click_count") + 1)
+    return 200, {}
+
+
+@router.post("/friend-invite/claim/{token}", response={200: dict, 404: dict, 409: dict})
+def claim_friend_invite(request, token: str, response):
+    """Auth required. Auto-follows the referrer and marks the FriendInvite as converted."""
+    fi = FriendInvite.objects.select_related("referrer__referrer_profile").filter(
+        token=token, followed_at__isnull=True
+    ).first()
+    if not fi:
+        existing = FriendInvite.objects.filter(token=token).first()
+        if existing and existing.followed_at:
+            return 409, {"detail": "This invite has already been used."}
+        return 404, {"detail": "Invite not found."}
+
+    referrer_profile = getattr(fi.referrer, "referrer_profile", None)
+    if not referrer_profile:
+        return 404, {"detail": "Referrer not found."}
+
+    user = request.auth
+
+    # Generate a cookie token for the new follower record
+    cookie_token = uuid.uuid4().hex
+
+    with transaction.atomic():
+        follower, created = ReferrerFollower.objects.get_or_create(
+            referrer=fi.referrer,
+            phone=fi.phone,
+            defaults={
+                "name": fi.name,
+                "phone": fi.phone,
+                "cookie_token": cookie_token,
+                "user": user,
+            },
+        )
+        if not created and not follower.user:
+            follower.user = user
+            follower.save(update_fields=["user"])
+
+        fi.followed_at = timezone.now()
+        fi.follower = follower
+        fi.save(update_fields=["followed_at", "follower"])
+
+    # Set follower cookie so the page recognises them immediately
+    response.set_cookie(
+        COOKIE_NAME,
+        follower.cookie_token,
+        max_age=COOKIE_MAX_AGE,
+        httponly=True,
+        samesite="Lax",
+    )
+
+    return 200, {"referrer_slug": referrer_profile.slug}
+
+
+# ---------------------------------------------------------------------------
+# Invites dashboard list
+# ---------------------------------------------------------------------------
+
+@router.get("/me/invites", response=InviteListOut)
+def list_invites(request):
+    """Returns non-archived pro and friend invites for the dashboard."""
+    profile = require_referrer(request)
+
+    pro_invites = ProInvite.objects.filter(
+        invited_by=request.auth, is_archived=False
+    ).order_by("-invited_at")
+    friend_invites = FriendInvite.objects.filter(
+        referrer=request.auth, is_archived=False
+    ).order_by("-invited_at")
+
+    def fmt_dt(dt):
+        return dt.isoformat() if dt else None
+
+    return {
+        "pro_invites": [
+            {
+                "invite_id": i.pk,
+                "name": i.name,
+                "trade": i.trade,
+                "phone": i.phone,
+                "channel": i.channel,
+                "status": i.status,
+                "click_count": i.click_count,
+                "invited_at": fmt_dt(i.invited_at),
+                "last_resent_at": fmt_dt(i.last_resent_at),
+            }
+            for i in pro_invites
+        ],
+        "friend_invites": [
+            {
+                "invite_id": i.pk,
+                "name": i.name,
+                "phone": i.phone,
+                "channel": i.channel,
+                "status": "followed" if i.followed_at else "pending",
+                "click_count": i.click_count,
+                "invited_at": fmt_dt(i.invited_at),
+                "last_resent_at": fmt_dt(i.last_resent_at),
+            }
+            for i in friend_invites
+        ],
+    }
+
+
+@router.post("/me/invite-pro/{invite_id}/archive", response={200: dict, 404: dict})
+def archive_pro_invite(request, invite_id: int):
+    profile = require_referrer(request)
+    updated = ProInvite.objects.filter(pk=invite_id, invited_by=request.auth).update(is_archived=True)
+    if not updated:
+        return 404, {"detail": "Invite not found."}
+    return 200, {"ok": True}
+
+
+@router.post("/me/invite-friend-single/{invite_id}/archive", response={200: dict, 404: dict})
+def archive_friend_invite(request, invite_id: int):
+    profile = require_referrer(request)
+    updated = FriendInvite.objects.filter(pk=invite_id, referrer=request.auth).update(is_archived=True)
+    if not updated:
+        return 404, {"detail": "Invite not found."}
+    return 200, {"ok": True}
 
 
 @router.post("/me/upload-contacts", response=UploadContactsOut)

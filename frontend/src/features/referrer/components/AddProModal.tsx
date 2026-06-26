@@ -13,7 +13,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 
 import { API_BASE_URL } from "../../../config";
-import { getAccessToken } from "../../../api/tokens";
+import { addReferrerPro, ApiError } from "../../../api/endpoints";
 
 interface ProSearchResult {
   user_id: number;
@@ -29,13 +29,6 @@ interface Props {
   opened: boolean;
   onClose: () => void;
   onAdded: () => void;
-}
-
-function authHeaders(): Record<string, string> {
-  const token = getAccessToken();
-  return token
-    ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
-    : { "Content-Type": "application/json" };
 }
 
 export function AddProModal({ opened, onClose, onAdded }: Props) {
@@ -64,13 +57,8 @@ export function AddProModal({ opened, onClose, onAdded }: Props) {
     setAdding(true);
     setError(null);
     try {
-      const r = await fetch(`${API_BASE_URL}/api/referrer/me/pros`, {
-        method: "POST",
-        headers: authHeaders(),
-        body: JSON.stringify({ pro_handle: selected.handle, endorsement }),
-      });
-      const data = await r.json() as { detail?: string };
-      if (!r.ok) throw new Error(data.detail ?? "Failed to add pro.");
+      const result = await addReferrerPro(selected.handle, endorsement || undefined);
+      if (!result.ok) throw new ApiError(result.status, result.detail ?? "Failed to add pro.");
       onAdded();
       onClose();
       setSelected(null);

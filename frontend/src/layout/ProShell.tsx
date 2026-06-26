@@ -15,6 +15,7 @@ import {
 import {
   IconChartBar,
   IconChevronUp,
+  IconExternalLink,
   IconInbox,
   IconLogout,
   IconNetwork,
@@ -24,7 +25,9 @@ import {
   IconUser,
 } from "@tabler/icons-react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+
+import { getMyProProfile } from "../api/endpoints";
 
 import { useAuth } from "../auth/AuthContext";
 import { GkLogo } from "../brand/GkLogo";
@@ -55,11 +58,18 @@ export function ProShell() {
   const initials = (user?.first_name?.[0] ?? user?.email?.[0] ?? "P").toUpperCase();
   const displayName = [user?.first_name, user?.last_name].filter(Boolean).join(" ") || user?.email || "Pro";
   const avatarSrc = useProAvatar();
+  const [proHandle, setProHandle] = useState<string | null>(null);
 
   useEffect(() => {
     document.title = displayName !== "Pro" ? `${displayName} · gigKraft.com` : "gigKraft.com";
     return () => { document.title = "gigKraft.com"; };
   }, [displayName]);
+
+  useEffect(() => {
+    getMyProProfile()
+      .then((d) => { if (d.handle) setProHandle(d.handle); })
+      .catch(() => undefined);
+  }, []);
 
   return (
     <AppShell navbar={{ width: 240, breakpoint: "sm" }} padding="md">
@@ -92,6 +102,27 @@ export function ProShell() {
             />
           ))}
 
+          {proHandle && (
+            <>
+              <Divider style={{ borderColor: "var(--gk-border)" }} my={4} />
+              <a
+                href={`/pros/${proHandle}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ textDecoration: "none" }}
+              >
+                <NavLink
+                  component="div"
+                  label="Your Page"
+                  leftSection={<IconExternalLink size={18} />}
+                  style={{
+                    borderRadius: 8,
+                    color: "var(--gk-text-sidebar)",
+                  }}
+                />
+              </a>
+            </>
+          )}
         </Stack>
 
         {/* User context at bottom */}

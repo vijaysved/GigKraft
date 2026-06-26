@@ -9,14 +9,8 @@ import {
 } from "@mantine/core";
 import { useEffect, useState } from "react";
 
-import { API_BASE_URL } from "../../../config";
-import { getAccessToken } from "../../../api/tokens";
+import { getReferrerFollowers } from "../../../api/endpoints";
 import type { FollowerOut } from "../types";
-
-function authHeaders(): Record<string, string> {
-  const token = getAccessToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
 
 export function FollowersTab() {
   const [followers, setFollowers] = useState<FollowerOut[]>([]);
@@ -27,16 +21,15 @@ export function FollowersTab() {
 
   async function load(p: number) {
     setLoading(true);
-    const r = await fetch(
-      `${API_BASE_URL}/api/referrer/me/followers?page=${p}&page_size=${PAGE_SIZE}`,
-      { headers: authHeaders() }
-    );
-    if (r.ok) {
-      const data = await r.json() as { total: number; results: FollowerOut[] };
+    try {
+      const data = await getReferrerFollowers(p, PAGE_SIZE);
       setFollowers(data.results);
       setTotal(data.total);
+    } catch {
+      // silently fail — user sees empty state
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   useEffect(() => { load(page); }, [page]);

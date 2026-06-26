@@ -13,6 +13,7 @@ import {
 import { loadGooglePictureUrl, useProAvatar } from "../hooks/useProAvatar";
 import {
   IconChevronUp,
+  IconExternalLink,
   IconHome,
   IconInbox,
   IconLogout,
@@ -81,6 +82,25 @@ export function ReferrerShell() {
               )}
             </RouterNavLink>
           ))}
+
+          <Divider style={{ borderColor: "var(--gk-border)" }} my={4} />
+
+          <a
+            href={`/us/${slug}/refer`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ textDecoration: "none" }}
+          >
+            <NavLink
+              component="div"
+              label="Your Page"
+              leftSection={<IconExternalLink size={18} />}
+              style={{
+                borderRadius: 8,
+                color: "var(--gk-text-sidebar)",
+              }}
+            />
+          </a>
         </Stack>
 
         <Stack gap={0} mt="auto">

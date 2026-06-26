@@ -14,6 +14,8 @@ import { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 
 import { claimAnonymousLead, createLead } from "../../api/endpoints";
+import { getAccessToken } from "../../api/tokens";
+import { API_BASE_URL } from "../../config";
 import { GkLogo } from "../../brand/GkLogo";
 import { useAuth } from "../../auth/AuthContext";
 import { GoogleSignInButton } from "../../components/GoogleSignInButton";
@@ -68,23 +70,33 @@ export function RegisterPage() {
 
   const intent = searchParams.get("intent") ?? "";
   const plan = searchParams.get("plan") ?? "monthly";
+  const returnTo = searchParams.get("returnTo") ?? "";
   const claimLeadId = searchParams.get("claim") ?? sessionStorage.getItem("gk_claim_lead");
+  // Pro invite claim: ?claim_token={token} (from pro card CTA)
+  const claimProToken =
+    searchParams.get("claim_token") ?? sessionStorage.getItem("gk_claim_pro_token") ?? "";
+  // Friend invite: ?inv={token}
+  const invToken =
+    searchParams.get("inv") ?? sessionStorage.getItem("gk_inv_token") ?? "";
   const isSubscribeIntent = intent === "subscribe";
 
   const [role, setRole] = useState<Role | null>(isSubscribeIntent ? "pro" : null);
   const [error, setError] = useState<string | null>(null);
+
+  // Bridge tokens to sessionStorage so they survive the Google OAuth popup
+  useEffect(() => {
+    if (claimProToken) sessionStorage.setItem("gk_claim_pro_token", claimProToken);
+    if (invToken) sessionStorage.setItem("gk_inv_token", invToken);
+  }, [claimProToken, invToken]);
 
   useEffect(() => {
     if (isSubscribeIntent) setRole("pro");
   }, [isSubscribeIntent]);
 
   if (status === "authenticated") {
-    if (isSubscribeIntent) {
-      return <Navigate to="/subscribe" replace />;
-    }
-    if (user?.role === "homeowner") {
-      return <Navigate to="/home/discover" replace />;
-    }
+    if (isSubscribeIntent) return <Navigate to="/subscribe" replace />;
+    if (returnTo) return <Navigate to={returnTo} replace />;
+    if (user?.role === "homeowner") return <Navigate to="/home/discover" replace />;
     return <Navigate to="/member/welcome" replace />;
   }
 
@@ -280,7 +292,9 @@ export function RegisterPage() {
                       if (isSubscribeIntent) {
                         await loginWithGoogle(idToken, "member");
                         navigate("/subscribe", { replace: true });
-                      } else if (role === "homeowner") {
+                        return;
+                      }
+                      if (role === "homeowner") {
                         await loginWithGoogle(idToken, "homeowner");
                         const pending = popPendingLead();
                         if (pending) {
@@ -289,15 +303,47 @@ export function RegisterPage() {
                         } else {
                           navigate("/home/discover", { replace: true });
                         }
-                      } else {
-                        await loginWithGoogle(idToken, "member");
-                        if (claimLeadId) {
-                          // ClaimLeadPage will attempt the explicit link and handle no_pro_profile
-                          navigate(`/claim/${claimLeadId}`, { replace: true });
-                        } else {
-                          navigate("/member/welcome", { replace: true });
-                        }
+                        return;
                       }
+
+                      // Pro or general member flow
+                      await loginWithGoogle(idToken, "member");
+
+                      // Pop sessionStorage tokens (bridge survived OAuth popup)
+                      const savedClaimPro = sessionStorage.getItem("gk_claim_pro_token") ?? "";
+                      const savedInv = sessionStorage.getItem("gk_inv_token") ?? "";
+                      sessionStorage.removeItem("gk_claim_pro_token");
+                      sessionStorage.removeItem("gk_inv_token");
+                      const activeClaimPro = claimProToken || savedClaimPro;
+                      const activeInv = invToken || savedInv;
+
+                      const tok = getAccessToken();
+                      const authHeader = tok ? { Authorization: `Bearer ${tok}` } : {};
+
+                      if (activeClaimPro) {
+                        await fetch(`${API_BASE_URL}/api/referrer/pro-invite/claim/${activeClaimPro}`, {
+                          method: "POST",
+                          headers: authHeader,
+                        }).catch(() => undefined);
+                        navigate("/pro/account", { replace: true });
+                        return;
+                      }
+
+                      if (activeInv) {
+                        await fetch(`${API_BASE_URL}/api/referrer/friend-invite/claim/${activeInv}`, {
+                          method: "POST",
+                          headers: authHeader,
+                        }).catch(() => undefined);
+                        navigate(returnTo || "/member/welcome", { replace: true });
+                        return;
+                      }
+
+                      if (claimLeadId) {
+                        navigate(`/claim/${claimLeadId}`, { replace: true });
+                        return;
+                      }
+
+                      navigate(returnTo || "/member/welcome", { replace: true });
                     } catch {
                       setError("Google sign-up failed. Please try again.");
                     }

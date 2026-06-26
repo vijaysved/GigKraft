@@ -97,3 +97,31 @@ export interface ReferralSentSummaryOut {
   pro_name: string;
   sent_at: string;
 }
+
+export interface InviteListProOut {
+  invite_id: number;
+  name: string;
+  trade: string;
+  phone: string;
+  channel: string;
+  status: string;
+  click_count: number;
+  invited_at: string;
+  last_resent_at: string | null;
+}
+
+export interface InviteListFriendOut {
+  invite_id: number;
+  name: string;
+  phone: string;
+  channel: string;
+  status: string;
+  click_count: number;
+  invited_at: string;
+  last_resent_at: string | null;
+}
+
+export interface InviteListOut {
+  pro_invites: InviteListProOut[];
+  friend_invites: InviteListFriendOut[];
+}

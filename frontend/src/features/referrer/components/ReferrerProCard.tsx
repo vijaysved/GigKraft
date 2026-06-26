@@ -15,7 +15,10 @@ import {
   IconShieldCheck,
 } from "@tabler/icons-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
+import { claimProInvite } from "../../../api/endpoints";
+import { getAccessToken } from "../../../api/tokens";
 import { fallbackAvatar } from "../../../assets/fallbackAvatars";
 import type { ProCardOut } from "../types";
 import { RequestReferralModal } from "./RequestReferralModal";
@@ -27,17 +30,42 @@ interface Props {
   allPros: ProCardOut[];
   isFollower: boolean;
   onNeedFollow: () => void;
+  highlightedProId?: number;
+  claimToken?: string;
 }
 
-export function ReferrerProCard({ pro, slug, referrerName, allPros, isFollower, onNeedFollow }: Props) {
+export function ReferrerProCard({
+  pro,
+  slug,
+  referrerName,
+  allPros,
+  isFollower,
+  onNeedFollow,
+  highlightedProId,
+  claimToken,
+}: Props) {
+  const navigate = useNavigate();
   const [requestOpen, setRequestOpen] = useState(false);
+  const [claiming, setClaiming] = useState(false);
 
-  const cardStyle = {
-    borderColor: "var(--gk-accent-primary)",
-    boxShadow: "0 2px 12px color-mix(in srgb, var(--gk-accent-secondary) 20%, transparent)",
-    position: "relative" as const,
-    overflow: "hidden" as const,
-  };
+  const isHighlighted = !!highlightedProId && pro.id === highlightedProId && pro.is_pending;
+
+  async function handleClaim() {
+    if (!claimToken) return;
+    if (!getAccessToken()) {
+      navigate(`/register?claim_token=${claimToken}&returnTo=/us/${slug}/refer`);
+      return;
+    }
+    setClaiming(true);
+    try {
+      await claimProInvite(claimToken);
+      navigate("/pro/account");
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Could not claim invite. Please try again.");
+    } finally {
+      setClaiming(false);
+    }
+  }
 
   function handleRequestClick() {
     if (!isFollower) {
@@ -46,6 +74,15 @@ export function ReferrerProCard({ pro, slug, referrerName, allPros, isFollower, 
     }
     setRequestOpen(true);
   }
+
+  const cardStyle = {
+    borderColor: isHighlighted ? "var(--gk-accent-primary)" : "var(--gk-accent-primary)",
+    boxShadow: isHighlighted
+      ? "0 0 0 2px var(--gk-accent-primary), 0 4px 16px color-mix(in srgb, var(--gk-accent-primary) 30%, transparent)"
+      : "0 2px 12px color-mix(in srgb, var(--gk-accent-secondary) 20%, transparent)",
+    position: "relative" as const,
+    overflow: "hidden" as const,
+  };
 
   return (
     <>
@@ -174,6 +211,36 @@ export function ReferrerProCard({ pro, slug, referrerName, allPros, isFollower, 
             >
               {pro.request_status === "sent" ? "Referral sent ✓" : "Request pending"}
             </Badge>
+          </>
+        )}
+
+        {isHighlighted && (
+          <>
+            <Divider my={6} style={{ borderColor: "var(--gk-accent-primary)", opacity: 0.4 }} />
+            <button
+              onClick={handleClaim}
+              disabled={claiming}
+              style={{
+                width: "100%",
+                padding: "7px 14px",
+                background: "var(--gk-brand-gradient)",
+                color: "#fff",
+                border: "none",
+                borderRadius: 99,
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: claiming ? "not-allowed" : "pointer",
+                fontFamily: "inherit",
+                letterSpacing: "0.03em",
+                opacity: claiming ? 0.7 : 1,
+                transition: "opacity 0.15s",
+                boxShadow: "0 2px 8px -2px var(--gk-accent-primary)",
+                position: "relative",
+                zIndex: 1,
+              }}
+            >
+              {claiming ? "Claiming…" : "Claim your free profile →"}
+            </button>
           </>
         )}
 

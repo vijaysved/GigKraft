@@ -10,8 +10,7 @@ import {
 } from "@mantine/core";
 import { useState } from "react";
 
-import { API_BASE_URL } from "../../../config";
-import { getAccessToken } from "../../../api/tokens";
+import { sendReferralRequest, verifyFollowerOtp } from "../../../api/endpoints";
 import type { ReferralRequestDetailOut, ReferrerProDashboardOut } from "../types";
 
 interface Props {
@@ -22,17 +21,8 @@ interface Props {
   onSent: () => void;
 }
 
-function authHeaders(): Record<string, string> {
-  const token = getAccessToken();
-  return token
-    ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
-    : { "Content-Type": "application/json" };
-}
-
 export function SendReferralModal({ opened, onClose, request, pros, onSent }: Props) {
-  const [proId, setProId] = useState<string | null>(
-    request.pro_name ? null : null
-  );
+  const [proId, setProId] = useState<string | null>(null);
   const [noteFollower, setNoteFollower] = useState(
     `Hey ${request.follower_name}, I'm connecting you with a pro I trust!`
   );
@@ -52,7 +42,6 @@ export function SendReferralModal({ opened, onClose, request, pros, onSent }: Pr
     .filter((p) => p.is_on_platform || p.is_pending)
     .map((p) => ({ value: String(p.id), label: `${p.name} · ${p.trade}` }));
 
-  // Pre-select the pro if the request already has one
   const defaultProId = pros.find((p) => p.name === request.pro_name);
 
   async function handleSend() {
@@ -61,17 +50,11 @@ export function SendReferralModal({ opened, onClose, request, pros, onSent }: Pr
     setLoading(true);
     setError(null);
     try {
-      const r = await fetch(`${API_BASE_URL}/api/referrer/me/requests/${request.id}/send`, {
-        method: "POST",
-        headers: authHeaders(),
-        body: JSON.stringify({
-          referrer_pro_id: Number(selectedProId),
-          note_to_follower: noteFollower,
-          note_to_pro: notePro,
-        }),
+      const data = await sendReferralRequest(request.id, {
+        referrer_pro_id: Number(selectedProId),
+        note_to_follower: noteFollower,
+        note_to_pro: notePro,
       });
-      const data = await r.json() as { otp_required?: boolean; message?: string; detail?: string };
-      if (!r.ok) throw new Error(data.detail ?? "Failed to send.");
       if (data.otp_required) {
         setOtpRequired(true);
         setOtpMessage(data.message ?? "OTP sent.");
@@ -91,16 +74,7 @@ export function SendReferralModal({ opened, onClose, request, pros, onSent }: Pr
     setOtpLoading(true);
     setOtpError(null);
     try {
-      const r = await fetch(
-        `${API_BASE_URL}/api/referrer/me/requests/${request.id}/verify-follower-otp`,
-        {
-          method: "POST",
-          headers: authHeaders(),
-          body: JSON.stringify({ otp }),
-        }
-      );
-      const data = await r.json() as { verified?: boolean; error?: string; detail?: string };
-      if (!r.ok) throw new Error(data.detail ?? "OTP check failed.");
+      const data = await verifyFollowerOtp(request.id, otp);
       if (!data.verified) {
         setOtpError(data.error === "expired" ? "Code expired. Go back and resend." : "Incorrect code. Try again.");
         return;
