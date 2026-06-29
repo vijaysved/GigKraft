@@ -921,19 +921,50 @@ function BulkUploadPanel({
   const [error, setError] = useState<string | null>(null);
   const [source, setSource] = useState("nextdoor");
   const [preview, setPreview] = useState<BulkPreviewOut | null>(null);
+  const [forcedSet, setForcedSet] = useState<Set<number>>(new Set());
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const parsed = useMemo(() => parseBulkText(rawText), [rawText]);
 
-  // Reset preview whenever the pasted text changes
   const handleTextChange = (text: string) => {
     setRawText(text);
     setPreview(null);
+    setForcedSet(new Set());
     setError(null);
+  };
+
+  const toggleForce = (i: number) => {
+    setForcedSet((prev) => {
+      const next = new Set(prev);
+      next.has(i) ? next.delete(i) : next.add(i);
+      return next;
+    });
+  };
+
+  const handleDeleteExisting = async (existingId: number, i: number) => {
+    setDeletingId(existingId);
+    try {
+      await deleteProspect(existingId);
+      setPreview((prev) => {
+        if (!prev) return prev;
+        const results = prev.results.map((r) =>
+          r.index === i ? { ...r, is_duplicate: false, existing_id: null } : r,
+        );
+        const new_count = results.filter((r) => !r.is_duplicate).length;
+        return { ...prev, results, new_count, existing_count: prev.total - new_count };
+      });
+      setForcedSet((prev) => { const n = new Set(prev); n.delete(i); return n; });
+    } catch {
+      setError("Failed to delete existing prospect.");
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   const handleCheck = async () => {
     if (parsed.length === 0) return;
     setChecking(true);
+    setForcedSet(new Set());
     setError(null);
     try {
       const result = await checkProspectDuplicates(
@@ -949,7 +980,7 @@ function BulkUploadPanel({
 
   const handleSaveAll = async () => {
     if (!preview) return;
-    const toAdd = parsed.filter((_, i) => !preview.results[i]?.is_duplicate);
+    const toAdd = parsed.filter((_, i) => !preview.results[i]?.is_duplicate || forcedSet.has(i));
     if (toAdd.length === 0) return;
     setSaving(true);
     setError(null);
@@ -985,6 +1016,10 @@ function BulkUploadPanel({
     return new Set(preview.results.filter((r: BulkPreviewResult) => r.is_duplicate).map((r: BulkPreviewResult) => r.index));
   }, [preview]);
 
+  const addCount = preview
+    ? parsed.filter((_, i) => !preview.results[i]?.is_duplicate || forcedSet.has(i)).length
+    : 0;
+
   return (
     <Stack>
       {parsed.length > 0 && (
@@ -992,9 +1027,9 @@ function BulkUploadPanel({
           {preview && (
             <Group gap="xs">
               <Badge color="gray" variant="light">{preview.total} total</Badge>
-              <Badge color="green" variant="light">{preview.new_count} new</Badge>
-              {preview.existing_count > 0 && (
-                <Badge color="orange" variant="light">{preview.existing_count} already exist</Badge>
+              <Badge color="green" variant="light">{preview.new_count + forcedSet.size} new</Badge>
+              {preview.existing_count - forcedSet.size > 0 && (
+                <Badge color="orange" variant="light">{preview.existing_count - forcedSet.size} already exist</Badge>
               )}
             </Group>
           )}
@@ -1012,19 +1047,58 @@ function BulkUploadPanel({
               </Table.Thead>
               <Table.Tbody>
                 {parsed.map((p, i) => {
+                  const result = preview?.results[i];
                   const isDup = dupSet.has(i);
+                  const isForced = forcedSet.has(i);
+                  const existingId = result?.existing_id ?? null;
                   return (
                     <Table.Tr
                       key={i}
-                      style={isDup ? { opacity: 0.5, background: "color-mix(in srgb, orange 8%, transparent)" } : undefined}
+                      style={
+                        isDup && !isForced
+                          ? { opacity: 0.55, background: "color-mix(in srgb, orange 8%, transparent)" }
+                          : isForced
+                          ? { background: "color-mix(in srgb, var(--gk-accent-primary) 6%, transparent)" }
+                          : undefined
+                      }
                     >
                       <Table.Td>
                         <Group gap={4} wrap="nowrap">
                           <Text size="xs" fw={p.name ? 500 : undefined} c={p.name ? undefined : "dimmed"}>
                             {p.name || "—"}
                           </Text>
-                          {isDup && (
+                          {isDup && !isForced && (
                             <Badge size="xs" color="orange" variant="light">exists</Badge>
+                          )}
+                          {isForced && (
+                            <Badge size="xs" color="teal" variant="light">will add</Badge>
+                          )}
+                          {isDup && (
+                            <Group gap={4} wrap="nowrap">
+                              <Tooltip label={isForced ? "Cancel override" : "Add anyway with new source"} withArrow>
+                                <Button
+                                  size="compact-xs"
+                                  variant={isForced ? "light" : "subtle"}
+                                  color={isForced ? "teal" : "gray"}
+                                  onClick={() => toggleForce(i)}
+                                >
+                                  {isForced ? "Undo" : "Add anyway"}
+                                </Button>
+                              </Tooltip>
+                              {existingId && (
+                                <Tooltip label="Delete existing record so this adds fresh" withArrow>
+                                  <Button
+                                    size="compact-xs"
+                                    variant="subtle"
+                                    color="red"
+                                    loading={deletingId === existingId}
+                                    onClick={() => handleDeleteExisting(existingId, i)}
+                                  >
+                                    Delete existing
+                                  </Button>
+                                </Tooltip>
+                              )}
+                            </Group>
                           )}
                         </Group>
                       </Table.Td>
@@ -1086,12 +1160,12 @@ function BulkUploadPanel({
           <Button
             onClick={handleSaveAll}
             loading={saving}
-            disabled={preview.new_count === 0}
-            style={preview.new_count > 0 ? { background: "var(--gk-accent-primary)", color: "#000" } : undefined}
+            disabled={addCount === 0}
+            style={addCount > 0 ? { background: "var(--gk-accent-primary)", color: "#000" } : undefined}
           >
-            {preview.new_count > 0
-              ? `Add ${preview.new_count} New Prospect${preview.new_count !== 1 ? "s" : ""}`
-              : "No New Prospects"}
+            {addCount > 0
+              ? `Add ${addCount} Prospect${addCount !== 1 ? "s" : ""}`
+              : "No Prospects to Add"}
           </Button>
         )}
       </Group>
