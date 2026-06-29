@@ -170,6 +170,8 @@ export default function App() {
       <Route path="/review/:handle/:token" element={<ReviewPage />} />
       <Route path="/pros/:id" element={<ProPublicProfilePage />} />
       <Route path="/search" element={<MarketingLayout><SearchPage /></MarketingLayout>} />
+      {/* Clean SEO URL — indexable, no noindex; ZIP extracted from path by SearchPage */}
+      <Route path="/gigs/:state/:cityzip" element={<MarketingLayout><SearchPage /></MarketingLayout>} />
 
       {/* Legacy circle URLs — redirect to new referrer URL */}
       <Route path="/circle/:slug" element={<CircleSlugRedirect />} />

@@ -20,15 +20,26 @@ import {
 } from "@mantine/core";
 import { IconCheck, IconFilter, IconHeart, IconHeartFilled, IconMapPin, IconSearch, IconSend } from "@tabler/icons-react";
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import {
   searchProsPublic,
   submitRfq,
+  submitZipWaitlist,
   trackSitePageView,
   type ProOut,
 } from "../api/endpoints";
+import { LocationBadge } from "../components/LocationBadge";
 import { useFavorites } from "../hooks/useFavorites";
+import { useZipState } from "../hooks/useZipState";
+
+declare function gtag(command: string, ...args: unknown[]): void;
+
+const IS_DEV_MACHINE =
+  localStorage.getItem("gk_dev_mode") === "true" ||
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1";
 
 // ── Trade taxonomy ────────────────────────────────────────────────────────────
 
@@ -544,7 +555,41 @@ export function SearchPage() {
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [activeCategory, setActiveCategory] = useState(searchParams.get("category") ?? "");
   const [activeSubcategory, setActiveSubcategory] = useState(searchParams.get("subcategory") ?? "");
-  const [zipFilter, setZipFilter] = useState(searchParams.get("zip") ?? "");
+  const {
+    zip,
+    setZip,
+    clearZip,
+    source: zipSource,
+    pendingGeoZip,
+    pendingGeoCity,
+    pendingGeoState,
+    confirmGeoZip,
+    declineGeoZip,
+  } = useZipState();
+
+  // Clean URL route: /gigs/:state/:cityzip  (e.g. /gigs/tx/austin-78701)
+  const { cityzip, state: urlState } = useParams<{ state?: string; cityzip?: string }>();
+  const cleanUrlZip = cityzip?.match(/(\d{5})$/)?.[1] ?? "";
+  const cleanUrlCity = cityzip
+    ? cityzip
+        .replace(/-\d{5}$/, "")
+        .split("-")
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(" ")
+    : "";
+  const isCleanUrl = !!cityzip && /^\d{5}$/.test(cleanUrlZip);
+
+  // On clean-URL mount, seed the zip from the path param
+  useEffect(() => {
+    if (isCleanUrl && cleanUrlZip && cleanUrlZip !== zip) {
+      setZip(cleanUrlZip);
+    }
+  // Run once; cityzip is stable for the life of this route render
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cleanUrlZip]);
+
+  // Local display state for the ZIP text input (allows partial typing without triggering search)
+  const [zipInputValue, setZipInputValue] = useState(zip);
 
   // Attribute filters
   const [filterLicensed, setFilterLicensed] = useState(false);
@@ -561,25 +606,54 @@ export function SearchPage() {
   const [hasLoaded, setHasLoaded] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Waitlist lead capture (shown on zero-results after radius expansion)
+  const [waitlistContact, setWaitlistContact] = useState("");
+  const [waitlistSubmitted, setWaitlistSubmitted] = useState(false);
+  const [waitlistLoading, setWaitlistLoading] = useState(false);
+
+  // Keep ZIP text input in sync when zip changes externally (LocationBadge, ServiceAreaBar)
+  const prevZipRef = useRef(zip);
+  useEffect(() => {
+    if (prevZipRef.current !== zip) {
+      setZipInputValue(zip);
+      prevZipRef.current = zip;
+    }
+  }, [zip]);
+
   useEffect(() => {
     trackSitePageView(window.location.href);
+    if (!IS_DEV_MACHINE && typeof gtag !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      gtag("event", "search_page_loaded", {
+        location_source: zipSource,
+        zip_code: zip || null,
+        utm_source: params.get("utm_source"),
+        utm_medium: params.get("utm_medium"),
+        utm_campaign: params.get("utm_campaign"),
+      });
+      if (zip) gtag("set", "user_properties", { active_zip: zip });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (activeTab !== "search") return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      const params: Record<string, string> = { tab: "search" };
-      if (query) params.q = query;
-      if (activeCategory) params.category = activeCategory;
-      if (activeSubcategory) params.subcategory = activeSubcategory;
-      if (zipFilter) params.zip = zipFilter;
-      setSearchParams(params, { replace: true });
+    debounceRef.current = setTimeout(async () => {
+      const urlParams: Record<string, string> = { tab: "search" };
+      if (query) urlParams.q = query;
+      if (activeCategory) urlParams.category = activeCategory;
+      if (activeSubcategory) urlParams.subcategory = activeSubcategory;
+      if (zip) urlParams.zip = zip;
+      setSearchParams(urlParams, { replace: true });
 
       setLoading(true);
-      searchProsPublic({
+      setWaitlistSubmitted(false);
+      setWaitlistContact("");
+
+      const baseArgs = {
         q: query || undefined,
-        zip: zipFilter || undefined,
+        zip: zip || undefined,
         category: activeCategory || undefined,
         subcategory: activeSubcategory || undefined,
         licensed: filterLicensed || undefined,
@@ -587,16 +661,41 @@ export function SearchPage() {
         max_response_hours: filterResponseHours ?? undefined,
         min_krafts: filterMinKrafts ?? undefined,
         min_recs: filterMinRecs ?? undefined,
-      })
-        .then(setPros)
-        .catch(() => setPros([]))
-        .finally(() => { setLoading(false); setHasLoaded(true); });
+      };
+
+      try {
+        let result = await searchProsPublic(baseArgs);
+
+        // Radius expansion: silently retry with wider radius on zero results (only when zip set)
+        if (result.length === 0 && zip) {
+          result = await searchProsPublic({ ...baseArgs, radius: 15 }).catch(() => []);
+        }
+        if (result.length === 0 && zip) {
+          result = await searchProsPublic({ ...baseArgs, radius: 30 }).catch(() => []);
+        }
+
+        setPros(result);
+        if (!IS_DEV_MACHINE && typeof gtag !== "undefined") {
+          gtag("event", "search_performed", {
+            zip_code: zip || null,
+            results_count: result.length,
+            utm_source: searchParams.get("utm_source"),
+            utm_medium: searchParams.get("utm_medium"),
+            utm_campaign: searchParams.get("utm_campaign"),
+          });
+        }
+      } catch {
+        setPros([]);
+      } finally {
+        setLoading(false);
+        setHasLoaded(true);
+      }
     }, 350);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [
-    query, activeCategory, activeSubcategory, zipFilter, activeTab,
+    query, activeCategory, activeSubcategory, zip, activeTab,
     filterLicensed, filterInsured, filterResponseHours, filterMinKrafts, filterMinRecs,
-    setSearchParams,
+    setSearchParams, searchParams,
   ]);
 
   function handleCategoryClick(key: string) {
@@ -616,8 +715,26 @@ export function SearchPage() {
     filterResponseHours != null, filterMinKrafts != null, filterMinRecs != null,
   ].filter(Boolean).length;
 
+  // Dynamic page title + noindex for query-string search URLs
+  const pageTitle = isCleanUrl
+    ? `Pros in ${cleanUrlCity}${urlState ? `, ${urlState.toUpperCase()}` : ""} — GigKraft`
+    : zip
+    ? `Pros near ${zip} — GigKraft`
+    : "Find Local Pros — GigKraft";
+
   return (
     <Box style={{ maxWidth: 1080, margin: "0 auto", padding: "20px 24px 80px" }}>
+      <Helmet>
+        <title>{pageTitle}</title>
+        {!isCleanUrl && zip && <meta name="robots" content="noindex, follow" />}
+        {isCleanUrl && (
+          <meta
+            name="description"
+            content={`Find trusted pros near ${cleanUrlCity}${urlState ? `, ${urlState.toUpperCase()}` : ""} on GigKraft.`}
+          />
+        )}
+      </Helmet>
+
       <Stack gap="md">
         <Group gap="sm" align="baseline" wrap="nowrap">
           <Title order={2} style={{ fontWeight: 800, whiteSpace: "nowrap" }}>Find a Pro</Title>
@@ -638,12 +755,43 @@ export function SearchPage() {
           {/* ── Search tab ── */}
           <Tabs.Panel value="search" pt="lg">
             <Stack gap="md">
-              {/* Coverage area ZIPs — top of panel, acts as quick zip filters */}
+              {/* IP-geo confirmation banner — shown when geo detected a location but user hasn't confirmed */}
+              {pendingGeoZip && !zip && (
+                <Alert
+                  icon={<IconMapPin size={15} />}
+                  color="blue"
+                  variant="light"
+                  style={{ maxWidth: 520 }}
+                >
+                  <Group justify="space-between" align="center" wrap="wrap" gap="xs">
+                    <Text size="sm">
+                      We detected you're near{" "}
+                      <Text component="span" fw={600}>
+                        {pendingGeoCity}{pendingGeoState ? `, ${pendingGeoState}` : ""}
+                      </Text>{" "}
+                      ({pendingGeoZip}).
+                    </Text>
+                    <Group gap="xs">
+                      <Button size="xs" onClick={confirmGeoZip}>
+                        Use this location
+                      </Button>
+                      <Button size="xs" variant="subtle" color="gray" onClick={declineGeoZip}>
+                        Dismiss
+                      </Button>
+                    </Group>
+                  </Group>
+                </Alert>
+              )}
+
+              {/* Location badge — always visible, shows active ZIP with inline change */}
+              <LocationBadge zip={zip} setZip={setZip} clearZip={clearZip} />
+
+              {/* Coverage area ZIPs — quick zip filters derived from result set */}
               {pros.length > 0 && (
                 <ServiceAreaBar
                   pros={pros}
-                  activeZip={zipFilter}
-                  onZipClick={(z) => setZipFilter((cur) => (cur === z ? "" : z))}
+                  activeZip={zip}
+                  onZipClick={(z) => (zip === z ? clearZip() : setZip(z))}
                 />
               )}
 
@@ -659,10 +807,15 @@ export function SearchPage() {
                 <TextInput
                   placeholder="ZIP code"
                   leftSection={<IconMapPin size={16} />}
-                  value={zipFilter}
-                  onChange={(e) => setZipFilter(e.currentTarget.value)}
+                  value={zipInputValue}
+                  onChange={(e) => {
+                    const val = e.currentTarget.value.replace(/\D/g, "").slice(0, 5);
+                    setZipInputValue(val);
+                    if (/^\d{5}$/.test(val)) setZip(val);
+                    else if (val === "") clearZip();
+                  }}
                   style={{ width: 150 }}
-                  maxLength={10}
+                  maxLength={5}
                 />
                 <Button
                   variant={activeFilterCount > 0 ? "filled" : "light"}
@@ -848,9 +1001,51 @@ export function SearchPage() {
               {!hasLoaded && loading ? (
                 <Group justify="center" py="xl"><Loader size="md" /></Group>
               ) : pros.length === 0 && !loading ? (
-                <Text size="sm" c="dimmed" ta="center" py="xl">
-                  No pros found. Try a different search or category.
-                </Text>
+                zip ? (
+                  <Stack align="center" gap="md" py="xl">
+                    <Text size="sm" c="dimmed" ta="center">
+                      No pros found near <Text component="span" fw={600}>{zip}</Text> yet.
+                    </Text>
+                    {waitlistSubmitted ? (
+                      <Alert color="green" icon={<IconCheck size={16} />} style={{ maxWidth: 380 }}>
+                        We'll notify you when pros open up in {zip}.
+                      </Alert>
+                    ) : (
+                      <Stack align="center" gap="xs" style={{ maxWidth: 380, width: "100%" }}>
+                        <Text size="xs" c="dimmed" ta="center">Get notified when gigs open in {zip}</Text>
+                        <Group gap="xs" style={{ width: "100%" }}>
+                          <TextInput
+                            placeholder="Your email or phone"
+                            value={waitlistContact}
+                            onChange={(e) => setWaitlistContact(e.currentTarget.value)}
+                            style={{ flex: 1 }}
+                            size="sm"
+                          />
+                          <Button
+                            size="sm"
+                            loading={waitlistLoading}
+                            leftSection={<IconSend size={14} />}
+                            onClick={async () => {
+                              if (!waitlistContact.trim()) return;
+                              setWaitlistLoading(true);
+                              try {
+                                await submitZipWaitlist({ zip, contact: waitlistContact.trim() });
+                                setWaitlistSubmitted(true);
+                              } catch { /* ignore */ }
+                              setWaitlistLoading(false);
+                            }}
+                          >
+                            Notify me
+                          </Button>
+                        </Group>
+                      </Stack>
+                    )}
+                  </Stack>
+                ) : (
+                  <Text size="sm" c="dimmed" ta="center" py="xl">
+                    No pros found. Try a different search or ZIP code.
+                  </Text>
+                )
               ) : (
                 <Stack gap="xs" style={{ opacity: loading ? 0.55 : 1, transition: "opacity 0.18s" }}>
                   <Group gap="xs" align="center">
@@ -877,7 +1072,7 @@ export function SearchPage() {
 
           {/* ── Type tab ── */}
           <Tabs.Panel value="type" pt="lg">
-            <RfqForm initialCategory={activeCategory} initialZip={zipFilter} />
+            <RfqForm initialCategory={activeCategory} initialZip={zip} />
           </Tabs.Panel>
         </Tabs>
       </Stack>

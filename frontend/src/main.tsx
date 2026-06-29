@@ -6,6 +6,7 @@ import "./theme/theme.css";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { HelmetProvider } from "react-helmet-async";
 import { BrowserRouter } from "react-router-dom";
 
 import App from "./App";
@@ -15,17 +16,19 @@ import { ThemeProvider } from "./theme/ThemeProvider";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <GoogleOAuthProvider
-      clientId={GOOGLE_CLIENT_ID}
-      onScriptLoadError={() => console.error("[GigKraft] Google script failed to load")}
-    >
-      <ThemeProvider>
-        <AuthProvider>
-          <BrowserRouter>
-            <App />
-          </BrowserRouter>
-        </AuthProvider>
-      </ThemeProvider>
-    </GoogleOAuthProvider>
+    <HelmetProvider>
+      <GoogleOAuthProvider
+        clientId={GOOGLE_CLIENT_ID}
+        onScriptLoadError={() => console.error("[GigKraft] Google script failed to load")}
+      >
+        <ThemeProvider>
+          <AuthProvider>
+            <BrowserRouter>
+              <App />
+            </BrowserRouter>
+          </AuthProvider>
+        </ThemeProvider>
+      </GoogleOAuthProvider>
+    </HelmetProvider>
   </StrictMode>,
 );

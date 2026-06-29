@@ -25,7 +25,7 @@ from accounts.auth import jwt_auth
 from accounts.models import HomeownerProfile, ProProfile, User
 from common import notify
 from common.permissions import require_homeowner, require_pro
-from leads.models import Lead, Message, Quote
+from leads.models import Lead, Message, Quote, ZipWaitlistEntry
 from nodes.models import Node
 from referrals.models import ReferrerPro
 
@@ -513,6 +513,30 @@ def create_anonymous_lead(request, payload: AnonLeadIn):
         Message.objects.create(lead=lead, sender=anon_user, body=payload.detail)
     notify.notify_user(pro.user, f"Anonymous quote request: {lead.job_title}")
     return 201, {"id": lead.id, "status": lead.status}
+
+
+class ZipWaitlistIn(Schema):
+    zip: str
+    contact: str
+
+
+@public_router.post("/zip-waitlist", response={201: dict, 400: ErrorOut}, auth=None)
+def join_zip_waitlist(request, payload: ZipWaitlistIn):
+    """Capture visitor email/phone for a ZIP with no pros yet."""
+    import re
+    if not re.match(r"^\d{5}$", payload.zip):
+        return 400, {"detail": "Invalid ZIP code."}
+    contact = payload.contact.strip()
+    if not contact:
+        return 400, {"detail": "Contact is required."}
+    # Validate: must be an email or a 10-digit phone
+    email_re = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+    phone_re = re.compile(r"^\+?1?\d{10}$")
+    digits_only = re.sub(r"\D", "", contact)
+    if not email_re.match(contact) and not phone_re.match(digits_only):
+        return 400, {"detail": "Contact must be a valid email or 10-digit phone number."}
+    ZipWaitlistEntry.objects.create(zip=payload.zip, contact=contact)
+    return 201, {"ok": True}
 
 
 @router.post("/{lead_id}/archive", response=LeadOut)

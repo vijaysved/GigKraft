@@ -123,6 +123,21 @@ class QuoteRequest(models.Model):
         return f"RFQ#{self.pk} {self.category} {self.zip_code}"
 
 
+class ZipWaitlistEntry(models.Model):
+    """Email/phone captured when a visitor searches a ZIP with zero pro results."""
+
+    zip = models.CharField(max_length=5)
+    contact = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+    notified_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"ZipWaitlist {self.zip} {self.contact}"
+
+
 class Quote(models.Model):
     """A structured quote sent by the pro inside a lead chat."""
 

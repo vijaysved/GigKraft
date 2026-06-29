@@ -1283,6 +1283,7 @@ export async function searchProsPublic(params: {
   q?: string;
   trade?: string;
   zip?: string;
+  radius?: number;
   category?: string;
   subcategory?: string;
   licensed?: boolean;
@@ -1295,6 +1296,7 @@ export async function searchProsPublic(params: {
   if (params.q) q.q = params.q;
   if (params.trade) q.trade = params.trade;
   if (params.zip) q.zip = params.zip;
+  if (params.radius != null) q.radius = String(params.radius);
   if (params.category) q.category = params.category;
   if (params.subcategory) q.subcategory = params.subcategory;
   if (params.licensed) q.licensed = "true";
@@ -1306,6 +1308,42 @@ export async function searchProsPublic(params: {
   const { data, response } = await client.GET(`/api/pros/search${qs}` as never);
   if (!data) throw new ApiError(response.status, "Failed to search pros.");
   return data as ProOut[];
+}
+
+export async function submitZipWaitlist(payload: { zip: string; contact: string }): Promise<void> {
+  const { response } = await client.POST("/api/leads/zip-waitlist" as never, { body: payload } as never);
+  if (!response.ok) throw new ApiError(response.status, "Failed to submit waitlist entry.");
+}
+
+export interface GeoZipOut {
+  zip: string;
+  city: string;
+  state: string;
+}
+
+export async function fetchGeoZip(): Promise<GeoZipOut | null> {
+  try {
+    const { data } = await client.GET("/api/public/geo/zip" as never);
+    return (data as unknown as GeoZipOut) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export interface LocationInfoOut {
+  zip: string;
+  city: string;
+  state: string;
+  pros_count: number;
+}
+
+export async function getLocationInfo(zip: string): Promise<LocationInfoOut | null> {
+  try {
+    const { data } = await client.GET(`/api/public/location/${zip}` as never);
+    return (data as unknown as LocationInfoOut) ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export interface RfqPayload {
