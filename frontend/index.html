@@ -12,8 +12,22 @@
       rel="stylesheet"
     />
     <script async src="https://js.stripe.com/v3/pricing-table.js"></script>
+    <script>
+      /* Dev-mode activation — runs before any ES module so IS_DEV_MACHINE sees the right value.
+         Navigate to ?_gk_dev=1 to set, ?_gk_dev=0 to clear. The set-dev-mode.bat does this automatically. */
+      (function () {
+        var p = new URLSearchParams(location.search);
+        var flag = p.get('_gk_dev');
+        if (flag === '1') localStorage.setItem('gk_dev_mode', 'true');
+        if (flag === '0') localStorage.removeItem('gk_dev_mode');
+        if (flag !== null) {
+          p.delete('_gk_dev');
+          history.replaceState(null, '', location.pathname + (p.toString() ? '?' + p : '') + location.hash);
+        }
+      })();
+    </script>
     <script type="text/javascript">
-      if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+      if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1' && localStorage.getItem('gk_dev_mode') !== 'true') {
         (function(c,l,a,r,i,t,y){
           c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
           t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
