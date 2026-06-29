@@ -16,6 +16,11 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_FROM = "vijay@gigkraft.com"
 AUDIT_BCC = "oddlynicellc@gmail.com"
+INTERNAL_DOMAIN = "gigkraft.com"
+
+
+def _is_internal(addr: str) -> bool:
+    return addr.strip().lower().endswith(f"@{INTERNAL_DOMAIN}")
 
 
 def send_email(
@@ -35,6 +40,9 @@ def send_email(
     Otherwise a plain-text-to-HTML fallback is auto-generated from body.
     When track_token is provided, an invisible 1×1 pixel is embedded so we can
     detect when the recipient opens the email.
+
+    Internal @gigkraft.com CC addresses receive a separate copy WITHOUT the
+    tracking pixel so admin opens don't falsely trigger "Opened" status.
     """
     cc_list = list(cc or [])
     bcc_list = list(bcc or [])
@@ -56,14 +64,17 @@ def send_email(
         actual_to = dev_override
         logger.info("[DEV EMAIL] redirecting %s → %s", to, dev_override)
 
-    # Build HTML — use provided html_body or fall back to escaped plain text
+    # Build base HTML — use provided html_body or fall back to escaped plain text
     if html_body:
-        final_html = html_body
+        base_html = html_body
     else:
         import html as _html
         body_escaped = _html.escape(body).replace("\n", "<br>")
-        final_html = f"<div style='font-family:sans-serif;line-height:1.6'>{body_escaped}</div>"
+        base_html = f"<div style='font-family:sans-serif;line-height:1.6'>{body_escaped}</div>"
 
+    # Tracked HTML (with pixel) goes to the prospect only.
+    # Internal @gigkraft.com CC recipients get base_html (no pixel) so their
+    # opens don't fire the tracking endpoint and mark the email as "Opened".
     if track_token:
         base_url = os.environ.get("BACKEND_URL", "https://gigkraft.com")
         pixel = (
@@ -71,22 +82,42 @@ def send_email(
             f'width="1" height="1" style="display:none;opacity:0;position:absolute" '
             f'alt="" />'
         )
-        final_html = final_html + "\n" + pixel
+        tracked_html = base_html + "\n" + pixel
+    else:
+        tracked_html = base_html
+
+    # Split CC: internal addresses receive an untracked copy
+    internal_cc = [e for e in cc_list if _is_internal(e)]
+    external_cc = [e for e in cc_list if not _is_internal(e)]
 
     import resend  # lazy import — optional in mock mode
 
     resend.api_key = api_key
+
+    # Main send — prospect + external CC, with tracking pixel
     params: dict = {
         "from": from_addr,
         "to": [actual_to],
         "subject": subject,
         "text": body,
-        "html": final_html,
+        "html": tracked_html,
     }
-    if cc_list:
-        params["cc"] = cc_list
+    if external_cc:
+        params["cc"] = external_cc
     if bcc_list:
         params["bcc"] = bcc_list
 
     response = resend.Emails.send(params)
-    return getattr(response, "id", "") or ""
+    resend_id = getattr(response, "id", "") or ""
+
+    # Untracked copy for internal @gigkraft.com addresses
+    if internal_cc:
+        resend.Emails.send({
+            "from": from_addr,
+            "to": internal_cc,
+            "subject": subject,
+            "text": body,
+            "html": base_html,
+        })
+
+    return resend_id
