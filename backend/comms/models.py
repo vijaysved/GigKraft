@@ -103,3 +103,21 @@ class OutreachLog(models.Model):
 
     def __str__(self):
         return f"OutreachLog#{self.pk} via {self.channel} at {self.sent_at.date()}"
+
+
+class OutreachEvent(models.Model):
+    """Every individual email-open or profile-view event for an OutreachLog."""
+
+    class EventType(models.TextChoices):
+        EMAIL_OPEN = "email_open", "Email Open"
+        PROFILE_VIEW = "profile_view", "Profile View"
+
+    log = models.ForeignKey(OutreachLog, on_delete=models.CASCADE, related_name="events")
+    event_type = models.CharField(max_length=20, choices=EventType.choices)
+    occurred_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["occurred_at"]
+
+    def __str__(self):
+        return f"{self.event_type} on log#{self.log_id} at {self.occurred_at}"

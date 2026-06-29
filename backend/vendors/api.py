@@ -559,14 +559,16 @@ def send_step(request, prospect_id: int, data: SendStepIn):
 
 @public_router.get("/pixel/{token}", auth=None)
 def track_email_open(request, token: str):
-    from comms.models import OutreachLog
+    from comms.models import OutreachLog, OutreachEvent
     try:
-        log = OutreachLog.objects.filter(
-            email_track_token=_uuid.UUID(token), read_at__isnull=True
-        ).first()
+        uid = _uuid.UUID(token)
+        log = OutreachLog.objects.filter(email_track_token=uid).first()
         if log:
-            log.read_at = timezone.now()
-            log.save(update_fields=["read_at"])
+            now = timezone.now()
+            if not log.read_at:
+                log.read_at = now
+                log.save(update_fields=["read_at"])
+            OutreachEvent.objects.create(log=log, event_type="email_open", occurred_at=now)
     except (ValueError, AttributeError):
         pass
     resp = HttpResponse(_PIXEL_GIF, content_type="image/gif")
@@ -622,10 +624,13 @@ def track_example_click(request, token: str):
         uid = None
 
     if uid:
+        from comms.models import OutreachEvent
         log = OutreachLog.objects.filter(link_click_token=uid).first()
-        if log and not log.example_clicked_at:
-            log.example_clicked_at = now
-            log.save(update_fields=["example_clicked_at"])
+        if log:
+            if not log.example_clicked_at:
+                log.example_clicked_at = now
+                log.save(update_fields=["example_clicked_at"])
+            OutreachEvent.objects.create(log=log, event_type="profile_view", occurred_at=now)
 
     return HttpResponseRedirect(GK_EXAMPLE_URL)
 

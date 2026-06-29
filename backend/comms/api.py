@@ -15,7 +15,7 @@ from ninja import Router, Schema
 
 from accounts.auth import jwt_auth
 from common.permissions import require_gk_admin
-from comms.models import MessageTemplate, OutreachLog
+from comms.models import MessageTemplate, OutreachLog, OutreachEvent
 from comms.services import send_email as _send_email
 from vendors.models import Prospect
 
@@ -190,6 +190,11 @@ def send_email_endpoint(request, payload: SendEmailIn):
 # ── Outreach Logs ─────────────────────────────────────────────────────────────
 
 
+class LogEventOut(Schema):
+    event_type: str
+    occurred_at: str
+
+
 class LogOut(Schema):
     id: int
     channel: str
@@ -206,6 +211,7 @@ class LogOut(Schema):
     read_at: Optional[str]
     link_clicked_at: Optional[str]
     example_clicked_at: Optional[str]
+    events: list[LogEventOut]
 
 
 class LogIn(Schema):
@@ -218,6 +224,9 @@ class LogIn(Schema):
 
 
 def _ser_log(log: OutreachLog) -> dict:
+    events = getattr(log, "_prefetched_events", None)
+    if events is None:
+        events = list(log.events.all())
     return {
         "id": log.id,
         "channel": log.channel,
@@ -234,6 +243,7 @@ def _ser_log(log: OutreachLog) -> dict:
         "read_at": log.read_at.isoformat() if log.read_at else None,
         "link_clicked_at": log.link_clicked_at.isoformat() if log.link_clicked_at else None,
         "example_clicked_at": log.example_clicked_at.isoformat() if log.example_clicked_at else None,
+        "events": [{"event_type": e.event_type, "occurred_at": e.occurred_at.isoformat()} for e in events],
     }
 
 
@@ -242,7 +252,7 @@ def list_logs(request, prospect_id: int):
     require_gk_admin(request)
     if not Prospect.objects.filter(pk=prospect_id).exists():
         return 404, {"detail": "Prospect not found."}
-    logs = OutreachLog.objects.filter(prospect_id=prospect_id).select_related("template")
+    logs = OutreachLog.objects.filter(prospect_id=prospect_id).select_related("template").prefetch_related("events")
     return 200, [_ser_log(lg) for lg in logs]
 
 

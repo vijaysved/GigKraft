@@ -1045,6 +1045,11 @@ export async function sendEmail(payload: SendEmailIn): Promise<SendEmailOut> {
 
 // ---------- Comms — Outreach Logs ----------
 
+export interface OutreachEvent {
+  event_type: "email_open" | "profile_view";
+  occurred_at: string;
+}
+
 export interface OutreachLog {
   id: number;
   channel: string;
@@ -1061,6 +1066,7 @@ export interface OutreachLog {
   read_at: string | null;
   link_clicked_at: string | null;
   example_clicked_at: string | null;
+  events: OutreachEvent[];
 }
 
 export interface LogIn {

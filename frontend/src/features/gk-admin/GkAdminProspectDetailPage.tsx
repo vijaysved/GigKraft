@@ -108,11 +108,13 @@ function buildTimeline(
 
   for (const log of logs) {
     items.push({ key: `log-${log.id}`, kind: "log", ts: new Date(log.sent_at), log });
-    if (log.channel === "email" && log.read_at) {
-      items.push({ key: `log-open-${log.id}`, kind: "email_open", ts: new Date(log.read_at), log });
-    }
-    if (log.example_clicked_at) {
-      items.push({ key: `log-profile-${log.id}`, kind: "profile_view", ts: new Date(log.example_clicked_at), log });
+    for (let i = 0; i < (log.events ?? []).length; i++) {
+      const ev = log.events[i];
+      if (ev.event_type === "email_open") {
+        items.push({ key: `log-open-${log.id}-${i}`, kind: "email_open", ts: new Date(ev.occurred_at), log });
+      } else if (ev.event_type === "profile_view") {
+        items.push({ key: `log-profile-${log.id}-${i}`, kind: "profile_view", ts: new Date(ev.occurred_at), log });
+      }
     }
   }
 
@@ -338,7 +340,7 @@ function TLRow({ item, isLast }: { item: TLItem; isLast: boolean }) {
               size="xs" c="dimmed"
               style={{ width: 130, flexShrink: 0, paddingLeft: 8, paddingRight: 12, lineHeight: 1.4 }}
             >
-              {fmtDateTime(log.read_at!)}
+              {fmtDateTime(item.ts.toISOString())}
             </Text>
             <StatusPill kind="opened" />
             {log.link_clicked_at && (
