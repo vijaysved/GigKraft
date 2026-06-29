@@ -13,6 +13,7 @@ class Prospect(models.Model):
         CONVERTED = "converted", "Converted"
         ON_HOLD = "on_hold", "On Hold"
         ABANDONED = "abandoned", "Abandoned"
+        ARCHIVED = "archived", "Archived"
 
     class LeadSource(models.TextChoices):
         NEXTDOOR = "nextdoor", "Nextdoor"

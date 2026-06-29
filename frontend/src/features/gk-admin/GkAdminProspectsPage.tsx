@@ -12,6 +12,7 @@ import {
   Group,
   Loader,
   Modal,
+  Popover,
   Select,
   SimpleGrid,
   Stack,
@@ -31,6 +32,7 @@ import {
 } from "recharts";
 import { useDebouncedValue, useDisclosure } from "@mantine/hooks";
 import {
+  IconArchive,
   IconArrowsSort,
   IconBrandWhatsapp,
   IconChartBar,
@@ -92,6 +94,7 @@ const STATUS_COLORS: Record<string, string> = {
   converted: "green",
   on_hold: "orange",
   abandoned: "gray",
+  archived: "red",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -101,6 +104,7 @@ const STATUS_LABELS: Record<string, string> = {
   converted: "Converted",
   on_hold: "On Hold",
   abandoned: "Abandoned",
+  archived: "Archived",
 };
 
 const SOURCE_COLORS: Record<string, string> = {
@@ -118,6 +122,7 @@ const STATUS_OPTIONS = [
   { value: "converted", label: "Converted" },
   { value: "on_hold", label: "On Hold" },
   { value: "abandoned", label: "Abandoned" },
+  { value: "archived", label: "Archived" },
 ];
 
 const SOURCE_OPTIONS = [
@@ -436,6 +441,7 @@ const STATUS_PIE: Record<string, { label: string; color: string }> = {
   converted:   { label: "Converted",   color: "#69DB7C" },
   on_hold:     { label: "On Hold",     color: "#FFA94D" },
   abandoned:   { label: "Abandoned",   color: "#ADB5BD" },
+  archived:    { label: "Archived",    color: "#FA5252" },
 };
 
 const SOURCE_PIE: Record<string, { label: string; color: string }> = {
@@ -1257,6 +1263,55 @@ function ProspectDrawer({
   );
 }
 
+// ── Source Badge Picker ───────────────────────────────────────────────────────
+
+function SourceBadgePicker({
+  prospect,
+  onUpdate,
+}: {
+  prospect: Prospect;
+  onUpdate: (updated: Prospect) => void;
+}) {
+  const [opened, setOpened] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const handleChange = async (value: string | null) => {
+    if (!value || value === prospect.source) { setOpened(false); return; }
+    setSaving(true);
+    try {
+      const updated = await updateProspect(prospect.id, { source: value });
+      onUpdate(updated);
+    } catch { /* ignore */ }
+    finally { setSaving(false); setOpened(false); }
+  };
+
+  return (
+    <Popover opened={opened} onChange={setOpened} withinPortal position="bottom-start">
+      <Popover.Target>
+        <Badge
+          color={SOURCE_COLORS[prospect.source] ?? "gray"}
+          size="xs"
+          variant="light"
+          style={{ cursor: "pointer" }}
+          onClick={() => setOpened((o) => !o)}
+        >
+          {prospect.source}
+        </Badge>
+      </Popover.Target>
+      <Popover.Dropdown p="xs">
+        <Select
+          data={SOURCE_OPTIONS}
+          value={prospect.source}
+          onChange={handleChange}
+          size="xs"
+          w={150}
+          disabled={saving}
+        />
+      </Popover.Dropdown>
+    </Popover>
+  );
+}
+
 // ── Prospects Tab (merged Action Queue + All Prospects) ───────────────────────
 
 function ProspectsTab() {
@@ -1284,7 +1339,7 @@ function ProspectsTab() {
   const displayed = useMemo(() => {
     let result = sorted;
     if (!statusFilter) {
-      result = result.filter((p) => p.status !== "abandoned");
+      result = result.filter((p) => p.status !== "abandoned" && p.status !== "archived");
     }
     if (stepFilters.length > 0) {
       result = result.filter((p) => stepFilters.includes(String(p.current_sequence_step)));
@@ -1654,6 +1709,13 @@ function ProspectsTab() {
                               </Tooltip>
                             </>
                           )}
+                          {p.status !== "archived" && (
+                            <Tooltip label="Archive">
+                              <ActionIcon color="red" variant="subtle" size="xs" loading={isActionLoading} onClick={() => updateStatus(p.id, "archived")}>
+                                <IconArchive size={10} />
+                              </ActionIcon>
+                            </Tooltip>
+                          )}
                           <Tooltip label="Edit">
                             <ActionIcon size="xs" variant="subtle" onClick={() => openEdit(p)}>
                               <IconEdit size={10} />
@@ -1721,9 +1783,7 @@ function ProspectsTab() {
                         <Text size="xs">{p.primary_zip || "—"}</Text>
                       </Table.Td>
                       <Table.Td>
-                        <Badge color={SOURCE_COLORS[p.source] ?? "gray"} size="xs" variant="light">
-                          {p.source}
-                        </Badge>
+                        <SourceBadgePicker prospect={p} onUpdate={handleSaved} />
                       </Table.Td>
                       <Table.Td>
                         <Badge color={STATUS_COLORS[p.status]} size="xs">
