@@ -15,7 +15,7 @@ import {
   Tooltip,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { IconArrowLeft, IconMail, IconBrandWhatsapp, IconRefresh } from "@tabler/icons-react";
+import { IconArrowLeft, IconBrandWhatsapp, IconChevronDown, IconChevronUp, IconMail, IconRefresh } from "@tabler/icons-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -88,15 +88,13 @@ function renderTemplate(body: string, p: Prospect): string {
 
 // ── Timeline item types ───────────────────────────────────────────────────────
 
-type TLKind = "created" | "wa_step" | "log";
+type TLKind = "created" | "wa_step" | "log" | "email_open";
 
 interface TLItem {
   key: string;
   kind: TLKind;
   ts: Date;
-  // for "log"
   log?: OutreachLog;
-  // for "wa_step"
   waStep?: number;
   waText?: string;
 }
@@ -108,12 +106,14 @@ function buildTimeline(
 ): TLItem[] {
   const items: TLItem[] = [];
 
-  // Outreach logs (email, manual notes, etc.)
   for (const log of logs) {
     items.push({ key: `log-${log.id}`, kind: "log", ts: new Date(log.sent_at), log });
+    // Email opens are a separate event in the timeline
+    if (log.channel === "email" && log.read_at) {
+      items.push({ key: `log-open-${log.id}`, kind: "email_open", ts: new Date(log.read_at), log });
+    }
   }
 
-  // WhatsApp journey steps — synthesised (advanceProspectStep doesn't create a log)
   for (const step of prospect.journey ?? []) {
     if (step.channel === "whatsapp" && step.sent_at) {
       const tmpl = waTemplates.find((t) => t.kind === `sequence_${step.step}`);
@@ -128,12 +128,7 @@ function buildTimeline(
     }
   }
 
-  // "Created" entry — always oldest
-  items.push({
-    key: "created",
-    kind: "created",
-    ts: new Date(prospect.created_at),
-  });
+  items.push({ key: "created", kind: "created", ts: new Date(prospect.created_at) });
 
   return items.sort((a, b) => b.ts.getTime() - a.ts.getTime());
 }
@@ -144,6 +139,7 @@ const DOT_COLORS: Record<TLKind | "note_input", string> = {
   created: "var(--mantine-color-gray-4)",
   wa_step: "var(--mantine-color-teal-5)",
   log: "var(--mantine-color-blue-5)",
+  email_open: "var(--mantine-color-grape-5)",
   note_input: "var(--mantine-color-yellow-5)",
 };
 
@@ -203,31 +199,15 @@ const STATUS_PILL_STYLES: Record<string, { label: string; color: string }> = {
   created: { label: "Created", color: "var(--mantine-color-gray-5)" },
   sent:    { label: "Sent",    color: "var(--mantine-color-blue-5)" },
   sent_wa: { label: "Sent",   color: "var(--mantine-color-teal-5)" },
-  read:    { label: "Read",   color: "var(--mantine-color-grape-5)" },
+  opened:  { label: "Opened", color: "var(--mantine-color-grape-5)" },
   note:    { label: "Note",   color: "var(--mantine-color-yellow-6)" },
 };
 
 function StatusPill({ kind }: { kind: keyof typeof STATUS_PILL_STYLES }) {
   const s = STATUS_PILL_STYLES[kind];
   return (
-    <Box
-      style={{
-        width: 68,
-        flexShrink: 0,
-        paddingTop: 2,
-        paddingRight: 10,
-      }}
-    >
-      <Text
-        size="xs"
-        fw={600}
-        style={{
-          color: s.color,
-          letterSpacing: "0.02em",
-          textTransform: "uppercase",
-          fontSize: 10,
-        }}
-      >
+    <Box style={{ width: 68, flexShrink: 0, paddingTop: 2, paddingRight: 10 }}>
+      <Text size="xs" fw={600} style={{ color: s.color }}>
         {s.label}
       </Text>
     </Box>
@@ -322,155 +302,132 @@ function NoteInputRow({
 function TLRow({ item, isLast }: { item: TLItem; isLast: boolean }) {
   const [expanded, setExpanded] = useState(false);
 
+  // Non-expandable: just a header line (time + status)
   if (item.kind === "created") {
     return (
       <Box style={{ display: "flex", gap: 0, alignItems: "flex-start" }}>
         <DotCol color={DOT_COLORS.created} isLast={isLast} />
-        <Text
-          size="xs"
-          c="dimmed"
-          style={{ width: 130, flexShrink: 0, paddingTop: 1, paddingLeft: 8, paddingRight: 12, lineHeight: 1.4 }}
-        >
-          {fmtDateTime(item.ts.toISOString())}
-        </Text>
-        <StatusPill kind="created" />
-        <Box style={{ flex: 1, paddingBottom: isLast ? 0 : 20 }}>
-          <Text size="xs" c="dimmed">Prospect added</Text>
+        <Box style={{ flex: 1, paddingBottom: isLast ? 0 : 16 }}>
+          <Box style={{ display: "flex", alignItems: "center" }}>
+            <Text
+              size="xs" c="dimmed"
+              style={{ width: 130, flexShrink: 0, paddingLeft: 8, paddingRight: 12, lineHeight: 1.4 }}
+            >
+              {fmtDateTime(item.ts.toISOString())}
+            </Text>
+            <StatusPill kind="created" />
+          </Box>
         </Box>
       </Box>
     );
   }
 
-  if (item.kind === "wa_step") {
-    const bodyText = item.waText ?? "";
-    const truncatable = bodyText.length > 220;
+  // Non-expandable: email opened event
+  if (item.kind === "email_open") {
+    const log = item.log!;
     return (
       <Box style={{ display: "flex", gap: 0, alignItems: "flex-start" }}>
-        <DotCol color={DOT_COLORS.wa_step} isLast={isLast} />
-        <Text
-          size="xs"
-          c="dimmed"
-          style={{ width: 130, flexShrink: 0, paddingTop: 1, paddingLeft: 8, paddingRight: 12, lineHeight: 1.4 }}
-        >
-          {fmtDateTime(item.ts.toISOString())}
-        </Text>
-        <StatusPill kind="sent_wa" />
-        <Box style={{ flex: 1, paddingBottom: isLast ? 0 : 20 }}>
-          <Badge size="xs" color="teal" variant="light" mb={4}>WhatsApp step {item.waStep}</Badge>
-          {bodyText ? (
-            <>
-              <Text
-                size="xs"
-                c="dimmed"
-                style={{
-                  whiteSpace: "pre-wrap",
-                  overflow: "hidden",
-                  display: "-webkit-box",
-                  WebkitLineClamp: expanded ? undefined : 3,
-                  WebkitBoxOrient: "vertical" as React.CSSProperties["WebkitBoxOrient"],
-                }}
-              >
-                {bodyText}
-              </Text>
-              {truncatable && (
-                <Text
-                  size="xs"
-                  mt={2}
-                  style={{ cursor: "pointer", color: "var(--gk-accent-primary)" }}
-                  onClick={() => setExpanded((v) => !v)}
-                >
-                  {expanded ? "Show less" : "Show more"}
-                </Text>
+        <DotCol color={DOT_COLORS.email_open} isLast={isLast} />
+        <Box style={{ flex: 1, paddingBottom: isLast ? 0 : 16 }}>
+          <Box style={{ display: "flex", alignItems: "center" }}>
+            <Text
+              size="xs" c="dimmed"
+              style={{ width: 130, flexShrink: 0, paddingLeft: 8, paddingRight: 12, lineHeight: 1.4 }}
+            >
+              {fmtDateTime(log.read_at!)}
+            </Text>
+            <StatusPill kind="opened" />
+            {log.link_clicked_at && (
+              <Badge size="xs" color="green" variant="dot" style={{ marginLeft: 6 }}>Link clicked</Badge>
+            )}
+          </Box>
+        </Box>
+      </Box>
+    );
+  }
+
+  // Expandable: WhatsApp step
+  if (item.kind === "wa_step") {
+    const bodyText = item.waText ?? "";
+    return (
+      <Box style={{ display: "flex", gap: 0, alignItems: "flex-start" }}>
+        <DotCol color={DOT_COLORS.wa_step} isLast={isLast} minLineHeight={expanded ? 80 : 32} />
+        <Box style={{ flex: 1 }}>
+          <Box
+            style={{ display: "flex", alignItems: "center", cursor: "pointer", paddingBottom: expanded ? 8 : (isLast ? 0 : 16) }}
+            onClick={() => setExpanded((v) => !v)}
+          >
+            <Text
+              size="xs" c="dimmed"
+              style={{ width: 130, flexShrink: 0, paddingLeft: 8, paddingRight: 12, lineHeight: 1.4 }}
+            >
+              {fmtDateTime(item.ts.toISOString())}
+            </Text>
+            <StatusPill kind="sent_wa" />
+            <Box style={{ paddingTop: 1, color: "var(--mantine-color-gray-5)" }}>
+              {expanded ? <IconChevronUp size={12} /> : <IconChevronDown size={12} />}
+            </Box>
+          </Box>
+          {expanded && (
+            <Box style={{ paddingLeft: 198, paddingBottom: isLast ? 0 : 16 }}>
+              <Badge size="xs" color="teal" variant="light" mb={6}>WhatsApp step {item.waStep}</Badge>
+              {bodyText ? (
+                <Text size="xs" c="dimmed" style={{ whiteSpace: "pre-wrap" }}>{bodyText}</Text>
+              ) : (
+                <Text size="xs" c="dimmed">WhatsApp message sent</Text>
               )}
-            </>
-          ) : (
-            <Text size="xs" c="dimmed">WhatsApp message sent</Text>
+            </Box>
           )}
         </Box>
       </Box>
     );
   }
 
-  // kind === "log"
+  // Expandable: outreach log (email / whatsapp / note)
   const log = item.log!;
   const isWa = log.channel === "whatsapp";
   const isNote = log.channel === "other";
   const dotColor = dotColorForLog(log.channel);
   const channelLabel = isWa ? "WhatsApp" : isNote ? "Note" : log.channel === "email" ? "Email" : log.channel;
   const bodyText = log.body_sent || log.notes || "";
-  const truncatable = bodyText.length > 220;
-  const statusKind = isNote
-    ? "note"
-    : isWa
-    ? "sent_wa"
-    : log.read_at
-    ? "read"
-    : "sent";
+  const statusKind = isNote ? "note" : isWa ? "sent_wa" : "sent";
 
   return (
     <Box style={{ display: "flex", gap: 0, alignItems: "flex-start" }}>
-      <DotCol color={dotColor} isLast={isLast} />
-      <Box
-        style={{ width: 130, flexShrink: 0, paddingTop: 1, paddingLeft: 8, paddingRight: 12 }}
-      >
-        <Text size="xs" c="dimmed" style={{ lineHeight: 1.4 }}>
-          {fmtDateTime(log.sent_at)}
-        </Text>
-        {log.read_at && (
-          <Text size="xs" style={{ lineHeight: 1.4, color: "var(--mantine-color-grape-5)" }}>
-            Opened {fmtDateTime(log.read_at)}
-          </Text>
-        )}
-      </Box>
-      <StatusPill kind={statusKind} />
-      <Box style={{ flex: 1, paddingBottom: isLast ? 0 : 20 }}>
-        <Group gap={6} mb={4} wrap="nowrap">
-          <Badge
-            size="xs"
-            color={isWa ? "teal" : isNote ? "gray" : "blue"}
-            variant="light"
+      <DotCol color={dotColor} isLast={isLast} minLineHeight={expanded ? 80 : 32} />
+      <Box style={{ flex: 1 }}>
+        <Box
+          style={{ display: "flex", alignItems: "center", cursor: "pointer", paddingBottom: expanded ? 8 : (isLast ? 0 : 16) }}
+          onClick={() => setExpanded((v) => !v)}
+        >
+          <Text
+            size="xs" c="dimmed"
+            style={{ width: 130, flexShrink: 0, paddingLeft: 8, paddingRight: 12, lineHeight: 1.4 }}
           >
-            {channelLabel}
-          </Badge>
-          {log.template_name && !isNote && (
-            <Text size="xs" c="dimmed" truncate>{log.template_name}</Text>
-          )}
-          {log.read_at && (
-            <Badge size="xs" color="grape" variant="dot">Opened</Badge>
-          )}
-          {log.link_clicked_at && (
-            <Badge size="xs" color="green" variant="dot">Link clicked</Badge>
-          )}
-        </Group>
-        {log.subject_sent && (
-          <Text size="xs" fw={600} mb={2}>{log.subject_sent}</Text>
-        )}
-        {bodyText && (
-          <>
-            <Text
-              size="xs"
-              c="dimmed"
-              style={{
-                whiteSpace: "pre-wrap",
-                overflow: "hidden",
-                display: "-webkit-box",
-                WebkitLineClamp: expanded ? undefined : 3,
-                WebkitBoxOrient: "vertical" as React.CSSProperties["WebkitBoxOrient"],
-              }}
-            >
-              {bodyText}
-            </Text>
-            {truncatable && (
-              <Text
-                size="xs"
-                mt={2}
-                style={{ cursor: "pointer", color: "var(--gk-accent-primary)" }}
-                onClick={() => setExpanded((v) => !v)}
-              >
-                {expanded ? "Show less" : "Show more"}
-              </Text>
+            {fmtDateTime(log.sent_at)}
+          </Text>
+          <StatusPill kind={statusKind} />
+          <Box style={{ paddingTop: 1, color: "var(--mantine-color-gray-5)" }}>
+            {expanded ? <IconChevronUp size={12} /> : <IconChevronDown size={12} />}
+          </Box>
+        </Box>
+        {expanded && (
+          <Box style={{ paddingLeft: 198, paddingBottom: isLast ? 0 : 16 }}>
+            <Group gap={6} mb={4} wrap="nowrap">
+              <Badge size="xs" color={isWa ? "teal" : isNote ? "gray" : "blue"} variant="light">
+                {channelLabel}
+              </Badge>
+              {log.template_name && !isNote && (
+                <Text size="xs" c="dimmed" truncate>{log.template_name}</Text>
+              )}
+            </Group>
+            {log.subject_sent && (
+              <Text size="xs" fw={600} mb={4}>{log.subject_sent}</Text>
             )}
-          </>
+            {bodyText && (
+              <Text size="xs" c="dimmed" style={{ whiteSpace: "pre-wrap" }}>{bodyText}</Text>
+            )}
+          </Box>
         )}
       </Box>
     </Box>
