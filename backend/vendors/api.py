@@ -419,12 +419,15 @@ def start_sequence(request, prospect_id: int):
         template = _get_template("sequence_1", "email", p.source)
         if template:
             link_click_token = _uuid.uuid4()
-            subject, body = template.render(p.template_vars_for_log(link_click_token))
+            vars_ = p.template_vars_for_log(link_click_token)
+            subject, body, html_body = template.render_all(vars_)
             track_token = _uuid.uuid4()
             cc = ["satish@gigkraft.com"] if p.source == "trade_school" else None
             try:
                 resend_id = _send_email(
-                    to=p.email, subject=subject, body=body, track_token=str(track_token), cc=cc
+                    to=p.email, subject=subject, body=body,
+                    html_body=html_body or None,
+                    track_token=str(track_token), cc=cc,
                 )
                 p.save(update_fields=["status", "current_sequence_step", "last_contacted_at", "updated_at"])
                 OutreachLog.objects.create(
