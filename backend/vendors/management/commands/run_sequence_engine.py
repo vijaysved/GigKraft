@@ -88,12 +88,15 @@ class Command(BaseCommand):
             )
             return
 
-        subject, body = template.render(prospect.template_vars)
         track_token = uuid.uuid4()
+        link_click_token = uuid.uuid4()
+        subject, body, html_body = template.render_all(prospect.template_vars_for_log(link_click_token))
 
         try:
             resend_id = send_email(
-                to=prospect.email, subject=subject, body=body, track_token=str(track_token)
+                to=prospect.email, subject=subject, body=body,
+                html_body=html_body or None,
+                track_token=str(track_token),
             )
             prospect.current_sequence_step = step
             prospect.last_contacted_at = now
@@ -108,6 +111,7 @@ class Command(BaseCommand):
                 resend_id=resend_id,
                 sequence_step=step,
                 email_track_token=track_token,
+                link_click_token=link_click_token,
             )
             self.stdout.write(f"  Step {step} sent: {prospect.prospect_id} → {prospect.email}")
         except Exception as exc:

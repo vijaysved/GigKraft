@@ -506,12 +506,15 @@ def send_step(request, prospect_id: int, data: SendStepIn):
         template = _get_template(f"sequence_{data.step}", "email", p.source)
         if not template:
             return 400, {"detail": f"No default email template found for step {data.step}."}
-        subject, body = template.render(p.template_vars_for_log(link_click_token))
+        vars_ = p.template_vars_for_log(link_click_token)
+        subject, body, html_body = template.render_all(vars_)
         email_track_token = _uuid.uuid4()
         cc = ["satish@gigkraft.com"] if p.source == "trade_school" else None
         try:
             resend_id = _send_email(
-                to=p.email, subject=subject, body=body, track_token=str(email_track_token), cc=cc
+                to=p.email, subject=subject, body=body,
+                html_body=html_body or None,
+                track_token=str(email_track_token), cc=cc,
             )
         except Exception as exc:
             return 500, {"detail": f"Email send failed: {exc}"}
