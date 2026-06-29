@@ -30,6 +30,7 @@ class MessageTemplate(models.Model):
     source = models.CharField(max_length=32, blank=True, default="", db_index=True)
     subject = models.CharField(max_length=300, blank=True, default="")  # email only
     body = models.TextField()
+    html_body = models.TextField(blank=True, default="")
     is_default = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -48,6 +49,14 @@ class MessageTemplate(models.Model):
             subject = subject.replace("{{" + key + "}}", val)
             body = body.replace("{{" + key + "}}", val)
         return subject, body
+
+    def render_all(self, vars_: dict) -> tuple[str, str, str]:
+        """Return (rendered_subject, rendered_body, rendered_html_body)."""
+        subject, body = self.render(vars_)
+        html_body = self.html_body
+        for key, val in vars_.items():
+            html_body = html_body.replace("{{" + key + "}}", val)
+        return subject, body, html_body
 
 
 class OutreachLog(models.Model):

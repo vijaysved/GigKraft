@@ -36,6 +36,7 @@ class TemplateOut(Schema):
     kind: str
     subject: str
     body: str
+    html_body: str
     is_default: bool
     created_at: str
     updated_at: str
@@ -67,6 +68,7 @@ def _ser_template(t: MessageTemplate) -> dict:
         "kind": t.kind,
         "subject": t.subject,
         "body": t.body,
+        "html_body": t.html_body,
         "is_default": t.is_default,
         "created_at": t.created_at.isoformat(),
         "updated_at": t.updated_at.isoformat(),
@@ -142,25 +144,28 @@ def send_email_endpoint(request, payload: SendEmailIn):
 
     email_track_token = _uuid.uuid4()
     link_click_token = _uuid.uuid4()
+
+    # Resolve prospect + template early so we can render HTML server-side
+    prospect = Prospect.objects.filter(pk=payload.prospect_id).first() if payload.prospect_id else None
+    template = MessageTemplate.objects.filter(pk=payload.template_id).first() if payload.template_id else None
+
+    rendered_html: str | None = None
+    if template and template.html_body and prospect:
+        vars_ = prospect.template_vars_for_log(str(link_click_token))
+        _, _, rendered_html = template.render_all(vars_)
+
     try:
         resend_id = _send_email(
             to=payload.to,
             subject=payload.subject,
             body=payload.body,
+            html_body=rendered_html,
             cc=payload.cc or None,
             bcc=payload.bcc or None,
             track_token=str(email_track_token),
         )
     except Exception as exc:
         return 500, {"detail": f"Email send failed: {exc}"}
-
-    prospect = None
-    if payload.prospect_id:
-        prospect = Prospect.objects.filter(pk=payload.prospect_id).first()
-
-    template = None
-    if payload.template_id:
-        template = MessageTemplate.objects.filter(pk=payload.template_id).first()
 
     log = OutreachLog.objects.create(
         prospect=prospect,

@@ -23,6 +23,7 @@ def send_email(
     to: str,
     subject: str,
     body: str,
+    html_body: str | None = None,
     cc: list[str] | None = None,
     bcc: list[str] | None = None,
     from_addr: str = DEFAULT_FROM,
@@ -30,8 +31,10 @@ def send_email(
 ) -> str:
     """Send an email. Returns the Resend message ID (or a mock/dev ID).
 
-    When track_token is provided, an invisible 1×1 pixel is embedded in the HTML
-    version so we can detect when the recipient opens the email.
+    When html_body is provided it is used as-is (with tracking pixel appended).
+    Otherwise a plain-text-to-HTML fallback is auto-generated from body.
+    When track_token is provided, an invisible 1×1 pixel is embedded so we can
+    detect when the recipient opens the email.
     """
     cc_list = list(cc or [])
     bcc_list = list(bcc or [])
@@ -53,10 +56,14 @@ def send_email(
         actual_to = dev_override
         logger.info("[DEV EMAIL] redirecting %s → %s", to, dev_override)
 
-    # Build HTML version — preserves whitespace formatting and embeds tracking pixel
-    import html as _html
-    body_escaped = _html.escape(body).replace("\n", "<br>")
-    html_parts = [f"<div style='font-family:sans-serif;line-height:1.6'>{body_escaped}</div>"]
+    # Build HTML — use provided html_body or fall back to escaped plain text
+    if html_body:
+        final_html = html_body
+    else:
+        import html as _html
+        body_escaped = _html.escape(body).replace("\n", "<br>")
+        final_html = f"<div style='font-family:sans-serif;line-height:1.6'>{body_escaped}</div>"
+
     if track_token:
         base_url = os.environ.get("BACKEND_URL", "https://gigkraft.com")
         pixel = (
@@ -64,8 +71,7 @@ def send_email(
             f'width="1" height="1" style="display:none;opacity:0;position:absolute" '
             f'alt="" />'
         )
-        html_parts.append(pixel)
-    html_body = "\n".join(html_parts)
+        final_html = final_html + "\n" + pixel
 
     import resend  # lazy import — optional in mock mode
 
@@ -75,7 +81,7 @@ def send_email(
         "to": [actual_to],
         "subject": subject,
         "text": body,
-        "html": html_body,
+        "html": final_html,
     }
     if cc_list:
         params["cc"] = cc_list
