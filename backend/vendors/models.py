@@ -19,6 +19,7 @@ class Prospect(models.Model):
         CRAIGSLIST = "craigslist", "Craigslist"
         WHATSAPP = "whatsapp", "WhatsApp"
         DIRECT = "direct", "Direct"
+        TRADE_SCHOOL = "trade_school", "Trade School"
 
     class Role(models.TextChoices):
         PRO = "pro", "Pro"

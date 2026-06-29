@@ -108,6 +108,7 @@ const SOURCE_COLORS: Record<string, string> = {
   craigslist: "violet",
   whatsapp: "green",
   direct: "blue",
+  trade_school: "orange",
 };
 
 const STATUS_OPTIONS = [
@@ -124,6 +125,7 @@ const SOURCE_OPTIONS = [
   { value: "craigslist", label: "Craigslist" },
   { value: "whatsapp", label: "WhatsApp" },
   { value: "direct", label: "Direct" },
+  { value: "trade_school", label: "Trade School" },
 ];
 
 const CHAT_TEMPLATES: Record<number, (p: Prospect) => string> = {

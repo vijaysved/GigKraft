@@ -372,6 +372,17 @@ def delete_prospect(request, prospect_id: int):
     return 204, None
 
 
+# ── Sequence helpers ─────────────────────────────────────────────────────────
+
+def _get_template(kind: str, channel: str, source: str):
+    """Return the source-specific template if one exists, else the global default."""
+    from comms.models import MessageTemplate
+    return (
+        MessageTemplate.objects.filter(kind=kind, channel=channel, source=source, is_default=True).first()
+        or MessageTemplate.objects.filter(kind=kind, channel=channel, source="", is_default=True).first()
+    )
+
+
 # ── Sequence actions ──────────────────────────────────────────────────────────
 
 @router.post("/{prospect_id}/start-sequence", response={200: ProspectOut, 400: ErrorOut, 404: ErrorOut})
@@ -392,14 +403,15 @@ def start_sequence(request, prospect_id: int):
     p.last_contacted_at = now
 
     if p.email:
-        template = MessageTemplate.objects.filter(kind="sequence_1", channel="email", is_default=True).first()
+        template = _get_template("sequence_1", "email", p.source)
         if template:
             link_click_token = _uuid.uuid4()
             subject, body = template.render(p.template_vars_for_log(link_click_token))
             track_token = _uuid.uuid4()
+            cc = ["satish@gigkraft.com"] if p.source == "trade_school" else None
             try:
                 resend_id = _send_email(
-                    to=p.email, subject=subject, body=body, track_token=str(track_token)
+                    to=p.email, subject=subject, body=body, track_token=str(track_token), cc=cc
                 )
                 p.save(update_fields=["status", "current_sequence_step", "last_contacted_at", "updated_at"])
                 OutreachLog.objects.create(
@@ -480,16 +492,15 @@ def send_step(request, prospect_id: int, data: SendStepIn):
     if data.channel == "email":
         if not p.email:
             return 400, {"detail": "Prospect has no email address."}
-        template = MessageTemplate.objects.filter(
-            kind=f"sequence_{data.step}", channel="email", is_default=True
-        ).first()
+        template = _get_template(f"sequence_{data.step}", "email", p.source)
         if not template:
             return 400, {"detail": f"No default email template found for step {data.step}."}
         subject, body = template.render(p.template_vars_for_log(link_click_token))
         email_track_token = _uuid.uuid4()
+        cc = ["satish@gigkraft.com"] if p.source == "trade_school" else None
         try:
             resend_id = _send_email(
-                to=p.email, subject=subject, body=body, track_token=str(email_track_token)
+                to=p.email, subject=subject, body=body, track_token=str(email_track_token), cc=cc
             )
         except Exception as exc:
             return 500, {"detail": f"Email send failed: {exc}"}

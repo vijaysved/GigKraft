@@ -27,6 +27,7 @@ class MessageTemplate(models.Model):
     name = models.CharField(max_length=120)
     channel = models.CharField(max_length=10, choices=Channel.choices, default=Channel.EMAIL)
     kind = models.CharField(max_length=20, choices=Kind.choices, default=Kind.INTRO)
+    source = models.CharField(max_length=32, blank=True, default="", db_index=True)
     subject = models.CharField(max_length=300, blank=True, default="")  # email only
     body = models.TextField()
     is_default = models.BooleanField(default=False)
