@@ -1058,6 +1058,7 @@ export interface OutreachLog {
   template_name: string | null;
   read_at: string | null;
   link_clicked_at: string | null;
+  example_clicked_at: string | null;
 }
 
 export interface LogIn {

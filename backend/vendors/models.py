@@ -83,12 +83,14 @@ class Prospect(models.Model):
         base_url = os.environ.get("BACKEND_URL", "https://gigkraft.com")
         token = link_click_token if link_click_token else self.signup_link_token
         signup_link = f"{base_url}/api/prospects/track/{token}"
+        example_link = f"{base_url}/api/prospects/track-example/{token}"
         return {
             "name": self.name,
             "source": self.get_source_display(),
             "primaryZip": self.primary_zip,
             "neighborhood": self.neighborhood or self.primary_zip,
             "signup_link": signup_link,
+            "example_link": example_link,
             # legacy keys for existing manual templates
             "prospect_id": self.prospect_id,
             "contact_person": self.name,

@@ -205,6 +205,7 @@ class LogOut(Schema):
     template_name: Optional[str]
     read_at: Optional[str]
     link_clicked_at: Optional[str]
+    example_clicked_at: Optional[str]
 
 
 class LogIn(Schema):
@@ -232,6 +233,7 @@ def _ser_log(log: OutreachLog) -> dict:
         "template_name": log.template.name if log.template_id else None,
         "read_at": log.read_at.isoformat() if log.read_at else None,
         "link_clicked_at": log.link_clicked_at.isoformat() if log.link_clicked_at else None,
+        "example_clicked_at": log.example_clicked_at.isoformat() if log.example_clicked_at else None,
     }
 
 

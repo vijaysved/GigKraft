@@ -88,7 +88,7 @@ function renderTemplate(body: string, p: Prospect): string {
 
 // ── Timeline item types ───────────────────────────────────────────────────────
 
-type TLKind = "created" | "wa_step" | "log" | "email_open";
+type TLKind = "created" | "wa_step" | "log" | "email_open" | "profile_view";
 
 interface TLItem {
   key: string;
@@ -108,9 +108,11 @@ function buildTimeline(
 
   for (const log of logs) {
     items.push({ key: `log-${log.id}`, kind: "log", ts: new Date(log.sent_at), log });
-    // Email opens are a separate event in the timeline
     if (log.channel === "email" && log.read_at) {
       items.push({ key: `log-open-${log.id}`, kind: "email_open", ts: new Date(log.read_at), log });
+    }
+    if (log.example_clicked_at) {
+      items.push({ key: `log-profile-${log.id}`, kind: "profile_view", ts: new Date(log.example_clicked_at), log });
     }
   }
 
@@ -140,6 +142,7 @@ const DOT_COLORS: Record<TLKind | "note_input", string> = {
   wa_step: "var(--mantine-color-teal-5)",
   log: "var(--mantine-color-blue-5)",
   email_open: "var(--mantine-color-grape-5)",
+  profile_view: "var(--mantine-color-orange-5)",
   note_input: "var(--mantine-color-yellow-5)",
 };
 
@@ -196,11 +199,12 @@ function DotCol({
 // ── Status pill (sits between time and content in every row) ─────────────────
 
 const STATUS_PILL_STYLES: Record<string, { label: string; color: string }> = {
-  created: { label: "Created", color: "var(--mantine-color-gray-5)" },
-  sent:    { label: "Sent",    color: "var(--mantine-color-blue-5)" },
-  sent_wa: { label: "Sent",   color: "var(--mantine-color-teal-5)" },
-  opened:  { label: "Opened", color: "var(--mantine-color-grape-5)" },
-  note:    { label: "Note",   color: "var(--mantine-color-yellow-6)" },
+  created:      { label: "Created",     color: "var(--mantine-color-gray-5)"   },
+  sent:         { label: "Sent",        color: "var(--mantine-color-blue-5)"   },
+  sent_wa:      { label: "Sent",        color: "var(--mantine-color-teal-5)"   },
+  opened:       { label: "Opened",      color: "var(--mantine-color-grape-5)"  },
+  profile_view: { label: "Profile Viewed", color: "var(--mantine-color-orange-5)" },
+  note:         { label: "Note",        color: "var(--mantine-color-yellow-6)" },
 };
 
 function StatusPill({ kind }: { kind: keyof typeof STATUS_PILL_STYLES }) {
@@ -340,6 +344,26 @@ function TLRow({ item, isLast }: { item: TLItem; isLast: boolean }) {
             {log.link_clicked_at && (
               <Badge size="xs" color="green" variant="dot" style={{ marginLeft: 6 }}>Link clicked</Badge>
             )}
+          </Box>
+        </Box>
+      </Box>
+    );
+  }
+
+  // Non-expandable: prospect viewed the example profile page
+  if (item.kind === "profile_view") {
+    return (
+      <Box style={{ display: "flex", gap: 0, alignItems: "flex-start" }}>
+        <DotCol color={DOT_COLORS.profile_view} isLast={isLast} />
+        <Box style={{ flex: 1, paddingBottom: isLast ? 0 : 16 }}>
+          <Box style={{ display: "flex", alignItems: "center" }}>
+            <Text
+              size="xs" c="dimmed"
+              style={{ width: 130, flexShrink: 0, paddingLeft: 8, paddingRight: 12, lineHeight: 1.4 }}
+            >
+              {fmtDateTime(item.ts.toISOString())}
+            </Text>
+            <StatusPill kind="profile_view" />
           </Box>
         </Box>
       </Box>

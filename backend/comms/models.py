@@ -96,6 +96,7 @@ class OutreachLog(models.Model):
     read_at = models.DateTimeField(null=True, blank=True)
     link_click_token = models.UUIDField(default=uuid.uuid4, unique=True, null=True, editable=False)
     link_clicked_at = models.DateTimeField(null=True, blank=True)
+    example_clicked_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-sent_at"]

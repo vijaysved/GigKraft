@@ -606,6 +606,28 @@ def track_signup_click(request, token: str):
     return HttpResponseRedirect(signup_url)
 
 
+# ── Public: example-profile click tracking ───────────────────────────────────
+
+GK_EXAMPLE_URL = "https://www.gigkraft.com/pros/template-pro"
+
+@public_router.get("/track-example/{token}", auth=None)
+def track_example_click(request, token: str):
+    from comms.models import OutreachLog
+    now = timezone.now()
+    try:
+        uid = _uuid.UUID(token)
+    except (ValueError, AttributeError):
+        uid = None
+
+    if uid:
+        log = OutreachLog.objects.filter(link_click_token=uid).first()
+        if log and not log.example_clicked_at:
+            log.example_clicked_at = now
+            log.save(update_fields=["example_clicked_at"])
+
+    return HttpResponseRedirect(GK_EXAMPLE_URL)
+
+
 # ── Public: legacy page-view tracking ────────────────────────────────────────
 
 class TrackViewIn(Schema):
