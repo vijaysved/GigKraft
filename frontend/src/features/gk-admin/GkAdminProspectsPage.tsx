@@ -1708,20 +1708,27 @@ function ProspectsTab() {
                       </Table.Td>
                       <Table.Td>
                         <Stack gap={0}>
-                          <Text
-                            size="xs"
-                            fw={600}
-                            component={Link}
-                            to={`/gk-admin/prospects/${p.prospect_id}`}
-                            style={{
-                              color: p.email_bounced
-                                ? "var(--mantine-color-red-6)"
-                                : "var(--gk-accent-primary)",
-                              textDecoration: "none",
-                            }}
-                          >
-                            {p.name}
-                          </Text>
+                          <Group gap={4} wrap="nowrap">
+                            <Text
+                              size="xs"
+                              fw={600}
+                              component={Link}
+                              to={`/gk-admin/prospects/${p.prospect_id}`}
+                              style={{
+                                color: p.email_bounced
+                                  ? "var(--mantine-color-red-6)"
+                                  : "var(--gk-accent-primary)",
+                                textDecoration: "none",
+                              }}
+                            >
+                              {p.name}
+                            </Text>
+                            {p.journey?.some(s => s.channel === "email" && !!s.read_at) && (
+                              <Tooltip label="Email opened" withArrow>
+                                <IconMailOpened size={11} color="var(--mantine-color-grape-5)" />
+                              </Tooltip>
+                            )}
+                          </Group>
                           <Text c="dimmed" ff="monospace" style={{ fontSize: 10 }}>{p.prospect_id}</Text>
                         </Stack>
                       </Table.Td>
