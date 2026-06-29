@@ -678,6 +678,8 @@ export interface StepJourney {
   sent_at: string | null;
   channel: string | null;  // "email" | "whatsapp" | null
   read_at: string | null;  // non-null = email was opened (pixel fired)
+  link_clicked_at: string | null;
+  example_clicked_at: string | null;  // non-null = recipient viewed the example pro profile
   email_count: number;
   whatsapp_count: number;
 }

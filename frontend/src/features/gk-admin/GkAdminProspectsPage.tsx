@@ -42,6 +42,7 @@ import {
   IconClockHour4,
   IconCopy,
   IconEdit,
+  IconEye,
   IconMail,
   IconMailOpened,
   IconMessage,
@@ -235,9 +236,9 @@ function JourneyBlocks({
   onResend?: (step: number, channel: "email" | "whatsapp" | "sms") => void;
 }) {
   const steps: StepJourney[] = journey.length === 3 ? journey : [
-    { step: 1, sent_at: null, channel: null, read_at: null, email_count: 0, whatsapp_count: 0 },
-    { step: 2, sent_at: null, channel: null, read_at: null, email_count: 0, whatsapp_count: 0 },
-    { step: 3, sent_at: null, channel: null, read_at: null, email_count: 0, whatsapp_count: 0 },
+    { step: 1, sent_at: null, channel: null, read_at: null, link_clicked_at: null, example_clicked_at: null, email_count: 0, whatsapp_count: 0 },
+    { step: 2, sent_at: null, channel: null, read_at: null, link_clicked_at: null, example_clicked_at: null, email_count: 0, whatsapp_count: 0 },
+    { step: 3, sent_at: null, channel: null, read_at: null, link_clicked_at: null, example_clicked_at: null, email_count: 0, whatsapp_count: 0 },
   ];
 
   return (
@@ -580,9 +581,9 @@ function DashboardTab() {
                   <Text size="sm" c="dimmed">Step {step}</Text>
                   <JourneyBlocks
                     journey={[
-                      { step: 1, sent_at: Number(step) >= 1 ? "x" : null, channel: "email", read_at: null, email_count: 0, whatsapp_count: 0 },
-                      { step: 2, sent_at: Number(step) >= 2 ? "x" : null, channel: "email", read_at: null, email_count: 0, whatsapp_count: 0 },
-                      { step: 3, sent_at: Number(step) >= 3 ? "x" : null, channel: "email", read_at: null, email_count: 0, whatsapp_count: 0 },
+                      { step: 1, sent_at: Number(step) >= 1 ? "x" : null, channel: "email", read_at: null, link_clicked_at: null, example_clicked_at: null, email_count: 0, whatsapp_count: 0 },
+                      { step: 2, sent_at: Number(step) >= 2 ? "x" : null, channel: "email", read_at: null, link_clicked_at: null, example_clicked_at: null, email_count: 0, whatsapp_count: 0 },
+                      { step: 3, sent_at: Number(step) >= 3 ? "x" : null, channel: "email", read_at: null, link_clicked_at: null, example_clicked_at: null, email_count: 0, whatsapp_count: 0 },
                     ]}
                     currentStep={Number(step)}
                   />
@@ -1726,6 +1727,11 @@ function ProspectsTab() {
                             {p.journey?.some(s => s.channel === "email" && !!s.read_at) && (
                               <Tooltip label="Email opened" withArrow>
                                 <IconMailOpened size={11} color="var(--mantine-color-grape-5)" />
+                              </Tooltip>
+                            )}
+                            {p.journey?.some(s => !!s.example_clicked_at) && (
+                              <Tooltip label="Profile viewed" withArrow>
+                                <IconEye size={11} color="var(--mantine-color-orange-5)" />
                               </Tooltip>
                             )}
                           </Group>

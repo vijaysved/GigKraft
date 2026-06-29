@@ -56,6 +56,7 @@ class StepJourney(Schema):
     channel: Optional[str]
     read_at: Optional[str]
     link_clicked_at: Optional[str]
+    example_clicked_at: Optional[str]
     email_count: int = 0
     whatsapp_count: int = 0
 
@@ -168,6 +169,7 @@ def _build_journey(sequence_logs) -> list[dict]:
             "channel": recent.channel if recent else None,
             "read_at": recent.read_at.isoformat() if recent and recent.read_at else None,
             "link_clicked_at": recent.link_clicked_at.isoformat() if recent and recent.link_clicked_at else None,
+            "example_clicked_at": recent.example_clicked_at.isoformat() if recent and recent.example_clicked_at else None,
             "email_count": email_count,
             "whatsapp_count": whatsapp_count,
         })
