@@ -108,13 +108,23 @@ function buildTimeline(
 
   for (const log of logs) {
     items.push({ key: `log-${log.id}`, kind: "log", ts: new Date(log.sent_at), log });
-    for (let i = 0; i < (log.events ?? []).length; i++) {
-      const ev = log.events[i];
+    const events = log.events ?? [];
+    const hasOpenEvents = events.some(e => e.event_type === "email_open");
+    const hasProfileEvents = events.some(e => e.event_type === "profile_view");
+    for (let i = 0; i < events.length; i++) {
+      const ev = events[i];
       if (ev.event_type === "email_open") {
         items.push({ key: `log-open-${log.id}-${i}`, kind: "email_open", ts: new Date(ev.occurred_at), log });
       } else if (ev.event_type === "profile_view") {
         items.push({ key: `log-profile-${log.id}-${i}`, kind: "profile_view", ts: new Date(ev.occurred_at), log });
       }
+    }
+    // Fallback for logs created before the OutreachEvent table existed
+    if (!hasOpenEvents && log.read_at) {
+      items.push({ key: `log-open-${log.id}-legacy`, kind: "email_open", ts: new Date(log.read_at), log });
+    }
+    if (!hasProfileEvents && log.example_clicked_at) {
+      items.push({ key: `log-profile-${log.id}-legacy`, kind: "profile_view", ts: new Date(log.example_clicked_at), log });
     }
   }
 
