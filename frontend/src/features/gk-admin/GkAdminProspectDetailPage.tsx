@@ -197,6 +197,43 @@ function DotCol({
   );
 }
 
+// ── Status pill (sits between time and content in every row) ─────────────────
+
+const STATUS_PILL_STYLES: Record<string, { label: string; color: string }> = {
+  created: { label: "Created", color: "var(--mantine-color-gray-5)" },
+  sent:    { label: "Sent",    color: "var(--mantine-color-blue-5)" },
+  sent_wa: { label: "Sent",   color: "var(--mantine-color-teal-5)" },
+  read:    { label: "Read",   color: "var(--mantine-color-grape-5)" },
+  note:    { label: "Note",   color: "var(--mantine-color-yellow-6)" },
+};
+
+function StatusPill({ kind }: { kind: keyof typeof STATUS_PILL_STYLES }) {
+  const s = STATUS_PILL_STYLES[kind];
+  return (
+    <Box
+      style={{
+        width: 68,
+        flexShrink: 0,
+        paddingTop: 2,
+        paddingRight: 10,
+      }}
+    >
+      <Text
+        size="xs"
+        fw={600}
+        style={{
+          color: s.color,
+          letterSpacing: "0.02em",
+          textTransform: "uppercase",
+          fontSize: 10,
+        }}
+      >
+        {s.label}
+      </Text>
+    </Box>
+  );
+}
+
 // ── Note input row (inline in timeline) ───────────────────────────────────────
 
 function NoteInputRow({
@@ -244,6 +281,8 @@ function NoteInputRow({
       >
         {now}
       </Text>
+
+      <Box style={{ width: 68, flexShrink: 0 }} />
 
       <Box style={{ flex: 1, paddingBottom: isLast ? 0 : 20 }}>
         <Textarea
@@ -294,6 +333,7 @@ function TLRow({ item, isLast }: { item: TLItem; isLast: boolean }) {
         >
           {fmtDateTime(item.ts.toISOString())}
         </Text>
+        <StatusPill kind="created" />
         <Box style={{ flex: 1, paddingBottom: isLast ? 0 : 20 }}>
           <Text size="xs" c="dimmed">Prospect added</Text>
         </Box>
@@ -314,6 +354,7 @@ function TLRow({ item, isLast }: { item: TLItem; isLast: boolean }) {
         >
           {fmtDateTime(item.ts.toISOString())}
         </Text>
+        <StatusPill kind="sent_wa" />
         <Box style={{ flex: 1, paddingBottom: isLast ? 0 : 20 }}>
           <Badge size="xs" color="teal" variant="light" mb={4}>WhatsApp step {item.waStep}</Badge>
           {bodyText ? (
@@ -358,6 +399,13 @@ function TLRow({ item, isLast }: { item: TLItem; isLast: boolean }) {
   const channelLabel = isWa ? "WhatsApp" : isNote ? "Note" : log.channel === "email" ? "Email" : log.channel;
   const bodyText = log.body_sent || log.notes || "";
   const truncatable = bodyText.length > 220;
+  const statusKind = isNote
+    ? "note"
+    : isWa
+    ? "sent_wa"
+    : log.read_at
+    ? "read"
+    : "sent";
 
   return (
     <Box style={{ display: "flex", gap: 0, alignItems: "flex-start" }}>
@@ -374,6 +422,7 @@ function TLRow({ item, isLast }: { item: TLItem; isLast: boolean }) {
           </Text>
         )}
       </Box>
+      <StatusPill kind={statusKind} />
       <Box style={{ flex: 1, paddingBottom: isLast ? 0 : 20 }}>
         <Group gap={6} mb={4} wrap="nowrap">
           <Badge
