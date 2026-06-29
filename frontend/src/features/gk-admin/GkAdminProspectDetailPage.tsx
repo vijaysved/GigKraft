@@ -22,7 +22,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   addOutreachLog,
   ApiError,
-  getProspect,
+  getProspectByGkId,
   listOutreachLogs,
   listTemplates,
   updateProspect,
@@ -43,6 +43,7 @@ const STATUS_OPTIONS = [
   { value: "converted", label: "Converted" },
   { value: "on_hold", label: "On Hold" },
   { value: "abandoned", label: "Abandoned" },
+  { value: "archived", label: "Archived" },
 ];
 
 const SOURCE_COLORS: Record<string, string> = {
@@ -361,13 +362,18 @@ function TLRow({ item, isLast }: { item: TLItem; isLast: boolean }) {
   return (
     <Box style={{ display: "flex", gap: 0, alignItems: "flex-start" }}>
       <DotCol color={dotColor} isLast={isLast} />
-      <Text
-        size="xs"
-        c="dimmed"
-        style={{ width: 130, flexShrink: 0, paddingTop: 1, paddingLeft: 8, paddingRight: 12, lineHeight: 1.4 }}
+      <Box
+        style={{ width: 130, flexShrink: 0, paddingTop: 1, paddingLeft: 8, paddingRight: 12 }}
       >
-        {fmtDateTime(log.sent_at)}
-      </Text>
+        <Text size="xs" c="dimmed" style={{ lineHeight: 1.4 }}>
+          {fmtDateTime(log.sent_at)}
+        </Text>
+        {log.read_at && (
+          <Text size="xs" style={{ lineHeight: 1.4, color: "var(--mantine-color-grape-5)" }}>
+            Opened {fmtDateTime(log.read_at)}
+          </Text>
+        )}
+      </Box>
       <Box style={{ flex: 1, paddingBottom: isLast ? 0 : 20 }}>
         <Group gap={6} mb={4} wrap="nowrap">
           <Badge
@@ -425,7 +431,7 @@ function TLRow({ item, isLast }: { item: TLItem; isLast: boolean }) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export function GkAdminProspectDetailPage() {
-  const { id } = useParams<{ id: string }>();
+  const { prospectId } = useParams<{ prospectId: string }>();
   const navigate = useNavigate();
   const [prospect, setProspect] = useState<Prospect | null>(null);
   const [logs, setLogs] = useState<OutreachLog[]>([]);
@@ -437,25 +443,26 @@ export function GkAdminProspectDetailPage() {
   const [resendLoading, setResendLoading] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!id) return;
-    const numId = parseInt(id, 10);
+    if (!prospectId) return;
     setLoading(true);
 
-    Promise.all([
-      getProspect(numId),
-      listOutreachLogs(numId),
-      listTemplates({ channel: "whatsapp" }),
-      listTemplates({ channel: "email" }),
-    ])
-      .then(([p, l, waTmpl, emailTmpl]) => {
+    getProspectByGkId(prospectId)
+      .then((p) => {
         setProspect(p);
+        return Promise.all([
+          listOutreachLogs(p.id),
+          listTemplates({ channel: "whatsapp" }),
+          listTemplates({ channel: "email" }),
+        ]);
+      })
+      .then(([l, waTmpl, emailTmpl]) => {
         setLogs(l);
         setWaTemplates(waTmpl);
         setEmailTemplates(emailTmpl);
       })
       .catch((e) => setError(e instanceof ApiError ? e.message : "Failed to load."))
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [prospectId]);
 
   const handleStatusChange = async (status: string | null) => {
     if (!prospect || !status) return;

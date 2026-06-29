@@ -764,6 +764,12 @@ export async function getProspect(id: number): Promise<Prospect> {
   return data as Prospect;
 }
 
+export async function getProspectByGkId(gkId: string): Promise<Prospect> {
+  const { data, error, response } = await client.GET(`/api/prospects/by-gkid/${gkId}` as never);
+  if (!data) throw new ApiError(response.status, detailOf(error, "Prospect not found."));
+  return data as Prospect;
+}
+
 export async function createProspect(body: ProspectIn): Promise<Prospect> {
   const { data, error, response } = await client.POST("/api/prospects" as never, {
     body,

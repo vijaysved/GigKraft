@@ -337,6 +337,17 @@ def create_prospect(request, payload: ProspectIn):
     return 201, _serialize(p)
 
 
+# ── Lookup by GK-xxx slug (must stay above /{prospect_id: int}) ───────────────
+
+@router.get("/by-gkid/{gk_id}", response={200: ProspectOut, 404: ErrorOut})
+def get_prospect_by_gkid(request, gk_id: str):
+    require_gk_admin(request)
+    p = _qs_with_logs().filter(prospect_id__iexact=gk_id).first()
+    if p is None:
+        return 404, {"detail": "Prospect not found."}
+    return 200, _serialize(p)
+
+
 # ── Detail / Update / Delete ──────────────────────────────────────────────────
 
 @router.get("/{prospect_id}", response={200: ProspectOut, 404: ErrorOut})

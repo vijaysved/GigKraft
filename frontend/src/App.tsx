@@ -204,7 +204,7 @@ export default function App() {
         <Route path="nodes" element={<GkAdminNodesPage />} />
         <Route path="safety" element={<GkAdminSafetyPage />} />
         <Route path="prospects" element={<GkAdminProspectsPage />} />
-        <Route path="prospects/:id" element={<GkAdminProspectDetailPage />} />
+        <Route path="prospects/:prospectId" element={<GkAdminProspectDetailPage />} />
         <Route path="stripe" element={<GkAdminStripePage />} />
         <Route path="site-config" element={<GkAdminSiteConfigPage />} />
       </Route>

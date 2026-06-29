@@ -1712,7 +1712,7 @@ function ProspectsTab() {
                             size="xs"
                             fw={600}
                             component={Link}
-                            to={`/gk-admin/prospects/${p.id}`}
+                            to={`/gk-admin/prospects/${p.prospect_id}`}
                             style={{ color: "var(--gk-accent-primary)", textDecoration: "none" }}
                           >
                             {p.name}
