@@ -36,6 +36,7 @@ class Prospect(models.Model):
     source = models.CharField(max_length=20, choices=LeadSource.choices, default=LeadSource.NEXTDOOR)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PROSPECT)
     current_sequence_step = models.PositiveSmallIntegerField(default=0)
+    email_bounced = models.BooleanField(default=False)
     last_contacted_at = models.DateTimeField(null=True, blank=True)
     signup_link_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     link_clicked_at = models.DateTimeField(null=True, blank=True)

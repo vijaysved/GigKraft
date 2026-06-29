@@ -72,6 +72,7 @@ class ProspectOut(Schema):
     source: str
     status: str
     current_sequence_step: int
+    email_bounced: bool
     last_contacted_at: Optional[str]
     signup_link_token: str
     link_clicked_at: Optional[str]
@@ -187,6 +188,7 @@ def _serialize(p: Prospect) -> dict:
         "source": p.source,
         "status": p.status,
         "current_sequence_step": p.current_sequence_step,
+        "email_bounced": p.email_bounced,
         "last_contacted_at": p.last_contacted_at.isoformat() if p.last_contacted_at else None,
         "signup_link_token": str(p.signup_link_token),
         "link_clicked_at": p.link_clicked_at.isoformat() if p.link_clicked_at else None,

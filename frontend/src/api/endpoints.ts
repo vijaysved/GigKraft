@@ -694,6 +694,7 @@ export interface Prospect {
   source: string;
   status: string;
   current_sequence_step: number;
+  email_bounced: boolean;
   last_contacted_at: string | null;
   signup_link_token: string;
   link_clicked_at: string | null;

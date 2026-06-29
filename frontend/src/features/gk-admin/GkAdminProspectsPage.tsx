@@ -1713,7 +1713,12 @@ function ProspectsTab() {
                             fw={600}
                             component={Link}
                             to={`/gk-admin/prospects/${p.prospect_id}`}
-                            style={{ color: "var(--gk-accent-primary)", textDecoration: "none" }}
+                            style={{
+                              color: p.email_bounced
+                                ? "var(--mantine-color-red-6)"
+                                : "var(--gk-accent-primary)",
+                              textDecoration: "none",
+                            }}
                           >
                             {p.name}
                           </Text>
