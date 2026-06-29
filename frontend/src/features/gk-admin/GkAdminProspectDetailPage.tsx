@@ -424,9 +424,25 @@ function TLRow({ item, isLast }: { item: TLItem; isLast: boolean }) {
             {log.subject_sent && (
               <Text size="xs" fw={600} mb={4}>{log.subject_sent}</Text>
             )}
-            {bodyText && (
+            {log.html_body_sent ? (
+              <Box
+                style={{
+                  border: "1px solid var(--gk-border)",
+                  borderRadius: 6,
+                  overflow: "hidden",
+                  marginTop: 4,
+                }}
+              >
+                <iframe
+                  srcDoc={log.html_body_sent}
+                  style={{ width: "100%", height: 420, border: "none", display: "block" }}
+                  sandbox="allow-same-origin"
+                  title="Email preview"
+                />
+              </Box>
+            ) : bodyText ? (
               <Text size="xs" c="dimmed" style={{ whiteSpace: "pre-wrap" }}>{bodyText}</Text>
-            )}
+            ) : null}
           </Box>
         )}
       </Box>

@@ -87,6 +87,7 @@ class OutreachLog(models.Model):
     cc_addresses = models.CharField(max_length=500, blank=True, default="")
     subject_sent = models.CharField(max_length=300, blank=True, default="")
     body_sent = models.TextField(blank=True, default="")
+    html_body_sent = models.TextField(blank=True, default="")
     resend_id = models.CharField(max_length=100, blank=True, default="")
     notes = models.TextField(blank=True, default="")
     sent_at = models.DateTimeField(default=timezone.now)

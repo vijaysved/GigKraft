@@ -108,6 +108,7 @@ class Command(BaseCommand):
                 to_address=prospect.email,
                 subject_sent=subject,
                 body_sent=body,
+                html_body_sent=html_body or "",
                 resend_id=resend_id,
                 sequence_step=step,
                 email_track_token=track_token,

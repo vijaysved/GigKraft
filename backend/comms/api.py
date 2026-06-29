@@ -197,6 +197,7 @@ class LogOut(Schema):
     cc_addresses: str
     subject_sent: str
     body_sent: str
+    html_body_sent: str
     resend_id: str
     notes: str
     sent_at: str
@@ -223,6 +224,7 @@ def _ser_log(log: OutreachLog) -> dict:
         "cc_addresses": log.cc_addresses,
         "subject_sent": log.subject_sent,
         "body_sent": log.body_sent,
+        "html_body_sent": log.html_body_sent,
         "resend_id": log.resend_id,
         "notes": log.notes,
         "sent_at": log.sent_at.isoformat(),

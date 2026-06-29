@@ -1050,6 +1050,7 @@ export interface OutreachLog {
   cc_addresses: string;
   subject_sent: string;
   body_sent: string;
+  html_body_sent: string;
   resend_id: string;
   notes: string;
   sent_at: string;

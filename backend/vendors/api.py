@@ -433,6 +433,7 @@ def start_sequence(request, prospect_id: int):
                 OutreachLog.objects.create(
                     prospect=p, template=template, channel="email",
                     to_address=p.email, subject_sent=subject, body_sent=body,
+                    html_body_sent=html_body or "",
                     resend_id=resend_id, sequence_step=1, email_track_token=track_token,
                     link_click_token=link_click_token,
                 )
@@ -526,6 +527,7 @@ def send_step(request, prospect_id: int, data: SendStepIn):
         OutreachLog.objects.create(
             prospect=p, template=template, channel="email",
             to_address=p.email, subject_sent=subject, body_sent=body,
+            html_body_sent=html_body or "",
             resend_id=resend_id, sequence_step=data.step,
             email_track_token=email_track_token, link_click_token=link_click_token,
         )
