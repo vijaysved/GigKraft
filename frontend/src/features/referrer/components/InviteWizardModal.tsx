@@ -76,6 +76,16 @@ function buildSmsLink(phone: string, body: string) {
   return `sms:${phone}?body=${encodeURIComponent(body)}`;
 }
 
+function buildMailtoLink(email: string, subject: string, body: string) {
+  return `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
+const EMAIL_SUBJECTS: Record<InviteScenario, string> = {
+  pro: "You're invited to GigKraft",
+  friend: "Check out GigKraft",
+  circle: "Join my circle on GigKraft",
+};
+
 interface Props {
   opened: boolean;
   onClose: () => void;
@@ -174,8 +184,12 @@ export function InviteWizardModal({ opened, onClose, scenario, slug, senderName,
         // swap the placeholder preview link for the real token-bearing link.
         const finalBody = message.replace(previewLink, finalLink);
 
-        if (r.phone) {
-          window.open(channel === "whatsapp" ? buildWaLink(r.phone, finalBody) : buildSmsLink(r.phone, finalBody), "_blank");
+        if (channel === "email" && r.email) {
+          window.open(buildMailtoLink(r.email, EMAIL_SUBJECTS[scenario], finalBody), "_blank");
+        } else if (channel === "whatsapp" && r.phone) {
+          window.open(buildWaLink(r.phone, finalBody), "_blank");
+        } else if (channel === "sms" && r.phone) {
+          window.open(buildSmsLink(r.phone, finalBody), "_blank");
         }
         sent++;
       } catch {
@@ -264,7 +278,11 @@ export function InviteWizardModal({ opened, onClose, scenario, slug, senderName,
 
             <Select
               label="Send via"
-              data={[{ value: "whatsapp", label: "WhatsApp" }, { value: "sms", label: "SMS" }]}
+              data={[
+                { value: "whatsapp", label: "WhatsApp" },
+                { value: "sms", label: "SMS" },
+                { value: "email", label: "Email" },
+              ]}
               value={channel}
               onChange={(v) => setChannel(v ?? "whatsapp")}
             />
@@ -305,7 +323,10 @@ export function InviteWizardModal({ opened, onClose, scenario, slug, senderName,
                 p="sm"
                 style={{
                   borderRadius: 12,
-                  background: channel === "whatsapp" ? "#dcf8c6" : "var(--mantine-color-blue-0)",
+                  background:
+                    channel === "whatsapp" ? "#dcf8c6"
+                    : channel === "email" ? "var(--mantine-color-gray-1)"
+                    : "var(--mantine-color-blue-0)",
                   whiteSpace: "pre-wrap",
                 }}
               >
