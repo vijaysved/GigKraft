@@ -50,17 +50,6 @@ jobs:
           branch: "automation/openapi-schema-sync"
           base: "main"
 
-      # If there were no schema changes, redeploy frontend immediately so it
-      # picks up any backend behaviour changes without waiting for a code push.
-      - name: Trigger Frontend Redeploy (schema unchanged)
-        if: steps.git-check.outputs.changed == 0
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-        working-directory: frontend
-        run: |
-          npm ci
-          npx vercel pull --yes --environment=production --token=$VERCEL_TOKEN
-          npx vercel build --prod --token=$VERCEL_TOKEN
-          npx vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN
+      # No separate redeploy step when the schema is unchanged: Vercel's native
+      # GitHub integration already redeploys production on every push to main,
+      # independent of this workflow.
