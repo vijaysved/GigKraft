@@ -152,6 +152,31 @@ class ReferrerPro(models.Model):
         return self.pro is None
 
 
+class CircleAddNotice(models.Model):
+    """One-way inbox notice telling an on-platform pro a referrer added them to
+    their circle. Deliberately separate from leads.Lead — that model represents
+    a homeowner's job posting (node, SLA timer, quote states) and isn't a fit
+    for a simple "X added you" notice."""
+
+    referrer = models.ForeignKey(
+        "accounts.User", on_delete=models.CASCADE, related_name="circle_add_notices_sent"
+    )
+    pro = models.ForeignKey(
+        "accounts.ProProfile", on_delete=models.CASCADE, related_name="circle_add_notices"
+    )
+    referrer_pro = models.ForeignKey(
+        ReferrerPro, null=True, blank=True, on_delete=models.SET_NULL, related_name="notices"
+    )
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"CircleAddNotice<{self.referrer} -> {self.pro}>"
+
+
 class ReferrerFollower(models.Model):
     """Anonymous (cookie-based) follower of a referrer's page."""
 

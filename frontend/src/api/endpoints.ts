@@ -1630,6 +1630,25 @@ export async function getInviteContactTimeline(
   return (data ?? []) as InviteTimelineEventOut[];
 }
 
+export interface CircleAddNoticeOut {
+  id: number;
+  referrer_name: string;
+  referrer_slug: string;
+  referrer_avatar_url: string;
+  is_read: boolean;
+  created_at: string;
+}
+
+export async function listCircleNotices(): Promise<CircleAddNoticeOut[]> {
+  const { data, response } = await _get("/api/pros/me/circle-notices");
+  if (!response.ok) throw new ApiError(response.status, "Failed to load circle notices.");
+  return (data ?? []) as CircleAddNoticeOut[];
+}
+
+export async function markCircleNoticeRead(id: number): Promise<void> {
+  await _post(`/api/pros/me/circle-notices/${id}/read`);
+}
+
 export async function updateProInvite(
   id: number,
   patch: { name?: string; phone?: string; email?: string },

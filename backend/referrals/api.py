@@ -20,6 +20,7 @@ from comms.services import send_email as _send_email
 from common.notify import send_sms
 from common.permissions import require_referrer
 from referrals.models import (
+    CircleAddNotice,
     CircleShareInvite,
     FriendInvite,
     InviteEvent,
@@ -945,6 +946,7 @@ def add_pro(request, payload: AddProIn):
         endorsement=payload.endorsement or "",
         display_order=max_order,
     )
+    CircleAddNotice.objects.create(referrer=request.auth, pro=pro, referrer_pro=rp)
     return 201, _serialize_referrer_pro(rp)
 
 

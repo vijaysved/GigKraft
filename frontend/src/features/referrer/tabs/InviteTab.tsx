@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { useAuth } from "../../../auth/AuthContext";
+import { AddProByContactModal } from "../components/AddProByContactModal";
 import { InviteTimeline } from "../components/InviteTimeline";
 import { InviteWizardModal } from "../components/InviteWizardModal";
 import type { InviteScenario } from "../types";
@@ -59,7 +60,10 @@ export function InviteTab() {
   const { user } = useAuth();
   const senderName = user?.first_name || "";
 
-  const [wizardScenario, setWizardScenario] = useState<InviteScenario | null>(null);
+  // "Invite a Pro" is the same flow as "Add a Pro" on My Pros — lookup-first, falls
+  // back to the wizard only when the contact isn't already on GigKraft.
+  const [addProOpen, setAddProOpen] = useState(false);
+  const [wizardScenario, setWizardScenario] = useState<Exclude<InviteScenario, "pro"> | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   return (
@@ -67,7 +71,7 @@ export function InviteTab() {
 
       {/* ── Three action buttons ──────────────────────────────────── */}
       <Group gap="sm" wrap="wrap">
-        <button style={primaryBtn} onClick={() => setWizardScenario("pro")}>
+        <button style={primaryBtn} onClick={() => setAddProOpen(true)}>
           <IconUserPlus size={15} />
           Invite a Pro
         </button>
@@ -81,13 +85,19 @@ export function InviteTab() {
         </button>
       </Group>
 
-      {/* ── Unified activity timeline ────────────────────────────── */}
+      {/* ── Unified contacts list ────────────────────────────────── */}
       <Stack gap="xs">
         <Title order={5} style={{ color: "var(--gk-text-secondary, #555)" }}>
-          Activity
+          Contacts
         </Title>
         <InviteTimeline refreshKey={refreshKey} />
       </Stack>
+
+      <AddProByContactModal
+        opened={addProOpen}
+        onClose={() => setAddProOpen(false)}
+        onAdded={() => setRefreshKey((k) => k + 1)}
+      />
 
       {wizardScenario && (
         <InviteWizardModal

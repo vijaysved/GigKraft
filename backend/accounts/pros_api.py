@@ -22,6 +22,7 @@ from common.permissions import require_pro
 from krafts.models import Kraft
 from leads.models import Lead, Quote
 from recommendations.models import Recommendation
+from referrals.models import CircleAddNotice
 
 router = Router(tags=["pros"], auth=jwt_auth)
 public_router = Router(tags=["pros"])
@@ -275,6 +276,46 @@ def pro_detail(request, pro_id: int):
     if pro is None:
         return 404, {"detail": "Pro not found."}
     return 200, serialize_pro(pro)
+
+
+# --- Circle-add notices (inbox notice when a referrer adds this pro) ---
+
+class CircleAddNoticeOut(Schema):
+    id: int
+    referrer_name: str
+    referrer_slug: str
+    referrer_avatar_url: str
+    is_read: bool
+    created_at: str
+
+
+@router.get("/me/circle-notices", response=list[CircleAddNoticeOut])
+def list_circle_notices(request):
+    pro = require_pro(request)
+    notices = CircleAddNotice.objects.select_related(
+        "referrer", "referrer__referrer_profile"
+    ).filter(pro=pro)
+    out = []
+    for n in notices:
+        profile = getattr(n.referrer, "referrer_profile", None)
+        out.append({
+            "id": n.pk,
+            "referrer_name": f"{n.referrer.first_name} {n.referrer.last_name}".strip() or "A GigKraft member",
+            "referrer_slug": profile.slug if profile else "",
+            "referrer_avatar_url": profile.avatar_url if profile else "",
+            "is_read": n.is_read,
+            "created_at": n.created_at.isoformat(),
+        })
+    return out
+
+
+@router.post("/me/circle-notices/{notice_id}/read", response={200: dict, 404: ErrorOut})
+def mark_circle_notice_read(request, notice_id: int):
+    pro = require_pro(request)
+    updated = CircleAddNotice.objects.filter(pk=notice_id, pro=pro).update(is_read=True)
+    if not updated:
+        return 404, {"detail": "Notice not found."}
+    return 200, {"ok": True}
 
 
 # --- Performance & analytics (screen 1.11) ---

@@ -25,9 +25,10 @@ import {
   getReferrerMe,
   lookupReferrerPro,
   addReferrerPro,
-  inviteReferrerPro,
   type FoundProOut,
 } from "../../../api/endpoints";
+import { useAuth } from "../../../auth/AuthContext";
+import { InviteWizardModal } from "./InviteWizardModal";
 
 const TRADE_OPTIONS = [
   "Plumbing", "Electrical", "HVAC", "Roofing", "Painting", "Carpentry",
@@ -102,6 +103,9 @@ function FieldRow({
 }
 
 export function AddProByContactModal({ opened, onClose, onAdded }: Props) {
+  const { user } = useAuth();
+  const senderName = user?.first_name || "";
+
   // ── Form fields ──
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -121,13 +125,33 @@ export function AddProByContactModal({ opened, onClose, onAdded }: Props) {
   const [acting, setActing] = useState(false);
   const [result, setResult] = useState<ResultState | null>(null);
 
-  // ── Load default zip ──
+  // ── Referrer slug (needed by the invite wizard for link-building) + default zip ──
+  const [slug, setSlug] = useState("");
   useEffect(() => {
     if (!opened) return;
     getReferrerMe()
-      .then((data) => { if (data.profile.default_zip) setZip(data.profile.default_zip); })
+      .then((data) => {
+        if (data.profile.default_zip) setZip(data.profile.default_zip);
+        setSlug(data.profile.slug);
+      })
       .catch(() => {});
   }, [opened]);
+
+  // ── Not on platform — hand off to the real Invite-a-Pro wizard (channel + message + send) ──
+  const [wizardOpen, setWizardOpen] = useState(false);
+
+  function openWizard() {
+    setWizardOpen(true);
+  }
+
+  function handleWizardSent() {
+    onAdded();
+  }
+
+  function handleWizardClose() {
+    setWizardOpen(false);
+    handleClose();
+  }
 
   async function tryAutoFillTrade(p: string, e: string) {
     if (!p.trim() && !e.trim()) return;
@@ -178,62 +202,24 @@ export function AddProByContactModal({ opened, onClose, onAdded }: Props) {
     }
   }
 
-  // ── Step 2: Add to list — routes internally based on whether they have a pro profile ──
+  // ── Step 2: Add to list — found-on-platform pros are added directly (and notified
+  // via their inbox, server-side); everyone else hands off to the invite wizard. ──
   async function handleAdd() {
     if (!foundPro) return;
-    setActing(true);
-    try {
-      if (foundPro.is_pro) {
-        const res = await addReferrerPro(foundPro.handle);
-        if (res.ok) {
-          onAdded();
-          setResult({ kind: "added", title: "Added!", body: `${foundPro.name} has been added to your list.` });
-        } else if (res.status === 409) {
-          setResult({ kind: "already_on_list", title: "Already on your list", body: `${foundPro.name} is already on your list.` });
-        } else {
-          setResult({ kind: "error", title: "Couldn't add", body: res.detail ?? "Something went wrong." });
-        }
-      } else {
-        const res = await inviteReferrerPro({
-          name: foundPro.name,
-          trade: trade.trim() || "Professional",
-          phone: phone.trim() || undefined,
-          email: email.trim() || undefined,
-        });
-        if (res.ok) {
-          onAdded();
-          setResult({ kind: "invited", title: "Added to your list!", body: `${foundPro.name} has been added. They'll get a notification to complete their profile.` });
-        } else if (res.status === 409) {
-          setResult({ kind: "already_on_list", title: "Already on your list", body: `${foundPro.name} is already on your list.` });
-        } else {
-          setResult({ kind: "error", title: "Couldn't add", body: res.detail ?? "Something went wrong." });
-        }
-      }
-    } catch (e) {
-      setResult({ kind: "error", title: "Something went wrong", body: e instanceof Error ? e.message : "Please try again." });
-    } finally {
-      setActing(false);
-      setStep("result");
+    if (!foundPro.is_pro) {
+      openWizard();
+      return;
     }
-  }
-
-  // ── Step 2b: Invite a brand-new contact (not in GigKraft at all) ──
-  async function handleInvite() {
     setActing(true);
     try {
-      const res = await inviteReferrerPro({
-        name: name.trim(),
-        trade: trade.trim() || "Professional",
-        phone: phone.replace(/\D/g, "") || undefined,
-        email: email.trim() || undefined,
-      });
+      const res = await addReferrerPro(foundPro.handle);
       if (res.ok) {
         onAdded();
-        setResult({ kind: "invited", title: "Invite sent!", body: `${name.trim()} has been invited to join GigKraft.` });
+        setResult({ kind: "added", title: "Added!", body: `${foundPro.name} has been added to your list — they'll see it in their GigKraft inbox.` });
       } else if (res.status === 409) {
-        setResult({ kind: "already_on_list", title: "Already on your list", body: res.detail ?? `${name.trim()} is already on your list.` });
+        setResult({ kind: "already_on_list", title: "Already on your list", body: `${foundPro.name} is already on your list.` });
       } else {
-        setResult({ kind: "error", title: "Couldn't send invite", body: res.detail ?? "Something went wrong." });
+        setResult({ kind: "error", title: "Couldn't add", body: res.detail ?? "Something went wrong." });
       }
     } catch (e) {
       setResult({ kind: "error", title: "Something went wrong", body: e instanceof Error ? e.message : "Please try again." });
@@ -378,8 +364,7 @@ export function AddProByContactModal({ opened, onClose, onAdded }: Props) {
             <Button
               flex={1}
               radius="xl"
-              loading={acting}
-              onClick={() => void handleInvite()}
+              onClick={openWizard}
               style={{ background: "var(--gk-brand-gradient)", color: "#fff" }}
               leftSection={<IconMailForward size={15} color="#fff" />}
             >
@@ -470,24 +455,38 @@ export function AddProByContactModal({ opened, onClose, onAdded }: Props) {
   }
 
   return (
-    <Modal
-      opened={opened}
-      onClose={handleClose}
-      title="Add a Pro"
-      centered
-      size="sm"
-      styles={{
-        content: {
-          border: "1.5px solid var(--gk-accent-primary)",
-          boxShadow: "6px 6px 0 var(--gk-accent-secondary)",
-          borderRadius: 10,
-        },
-      }}
-    >
-      <Stack gap="sm">
-        <Divider style={{ borderColor: "var(--gk-accent-secondary)" }} />
-        {renderContent()}
-      </Stack>
-    </Modal>
+    <>
+      <Modal
+        opened={opened && !wizardOpen}
+        onClose={handleClose}
+        title="Add a Pro"
+        centered
+        size="sm"
+        styles={{
+          content: {
+            border: "1.5px solid var(--gk-accent-primary)",
+            boxShadow: "6px 6px 0 var(--gk-accent-secondary)",
+            borderRadius: 10,
+          },
+        }}
+      >
+        <Stack gap="sm">
+          <Divider style={{ borderColor: "var(--gk-accent-secondary)" }} />
+          {renderContent()}
+        </Stack>
+      </Modal>
+
+      {wizardOpen && (
+        <InviteWizardModal
+          opened
+          onClose={handleWizardClose}
+          scenario="pro"
+          slug={slug}
+          senderName={senderName}
+          onSent={handleWizardSent}
+          initialRecipient={{ name: name.trim(), trade: trade.trim(), phone: phone.trim(), email: email.trim() }}
+        />
+      )}
+    </>
   );
 }

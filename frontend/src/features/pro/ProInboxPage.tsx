@@ -34,11 +34,13 @@ import {
   IconSend,
   IconStar,
   IconTrash,
+  IconUsersGroup,
 } from "@tabler/icons-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 
 import {
+  type CircleAddNoticeOut,
   type InboxLead,
   type InboxMessage,
   type InboxQuote,
@@ -49,8 +51,10 @@ import {
   completeLead,
   composeMessage,
   getLead,
+  listCircleNotices,
   listLeadMessages,
   listLeads,
+  markCircleNoticeRead,
   sendLeadMessage,
   sendLeadQuote,
 } from "../../api/endpoints";
@@ -74,12 +78,13 @@ function RoleBadge({ role }: { role: string }) {
 }
 
 // ── Thread tab labels ─────────────────────────────────────────────────────────
-type TabKey = "lead" | "chat" | "request" | "sent" | "feedback";
+type TabKey = "lead" | "chat" | "request" | "sent" | "circle" | "feedback";
 const TABS: { key: TabKey; label: string; icon: typeof IconFileInvoice }[] = [
   { key: "lead",     label: "Leads / Quotes", icon: IconFileInvoice },
   { key: "chat",     label: "Chats", icon: IconMessage },
   { key: "request",  label: "Requests", icon: IconClipboardList },
   { key: "sent",     label: "Sent", icon: IconSend },
+  { key: "circle",   label: "Circle", icon: IconUsersGroup },
   { key: "feedback", label: "Feedback", icon: IconStar },
 ];
 
@@ -698,8 +703,12 @@ export function ProInboxPage() {
 
   const fb = useMyFeedback(activeTab === "feedback");
 
+  const [notices, setNotices] = useState<CircleAddNoticeOut[]>([]);
+  const [noticesLoading, setNoticesLoading] = useState(false);
+  const [selectedNoticeId, setSelectedNoticeId] = useState<number | null>(null);
+
   useEffect(() => {
-    if (activeTab === "feedback") return;
+    if (activeTab === "feedback" || activeTab === "circle") return;
     void (async () => {
       setLoading(true);
       try {
@@ -712,6 +721,28 @@ export function ProInboxPage() {
       }
     })();
   }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== "circle") return;
+    void (async () => {
+      setNoticesLoading(true);
+      try {
+        setNotices(await listCircleNotices());
+      } finally {
+        setNoticesLoading(false);
+      }
+    })();
+  }, [activeTab]);
+
+  function handleSelectNotice(notice: CircleAddNoticeOut) {
+    setSelectedNoticeId(notice.id);
+    if (!notice.is_read) {
+      void markCircleNoticeRead(notice.id);
+      setNotices((prev) => prev.map((n) => (n.id === notice.id ? { ...n, is_read: true } : n)));
+    }
+  }
+
+  const selectedNotice = notices.find((n) => n.id === selectedNoticeId) ?? null;
 
   const selected = threads.find((t) => t.id === selectedId) ?? null;
 
@@ -733,12 +764,13 @@ export function ProInboxPage() {
     navigate(`/pro/inbox/${lead.id}`, { replace: true });
   }
 
-  const tabCounts: Record<TabKey, number> = { lead: 0, chat: 0, request: 0, sent: 0, feedback: 0 };
+  const tabCounts: Record<TabKey, number> = { lead: 0, chat: 0, request: 0, sent: 0, circle: 0, feedback: 0 };
   for (const t of threads) {
     if (t.unread_hint > 0 && t.thread_type in tabCounts) {
       tabCounts[t.thread_type as TabKey]++;
     }
   }
+  tabCounts.circle = notices.filter((n) => !n.is_read).length;
 
   return (
     <Stack h="calc(100vh - 48px)" gap={0} style={{ minHeight: 0 }}>
@@ -814,6 +846,42 @@ export function ProInboxPage() {
                 selectedId={fb.selectedId}
                 onSelect={fb.setSelectedId}
               />
+            ) : activeTab === "circle" ? (
+              noticesLoading ? (
+                <Stack align="center" pt="xl"><Loader size="sm" /></Stack>
+              ) : notices.length === 0 ? (
+                <GkEmptyState
+                  title="No circle notices yet"
+                  description="When a referrer adds you to their circle, it shows up here."
+                />
+              ) : (
+                <Stack gap={2}>
+                  {notices.map((n) => (
+                    <Box
+                      key={n.id}
+                      px="sm"
+                      py={8}
+                      onClick={() => handleSelectNotice(n)}
+                      style={{
+                        cursor: "pointer",
+                        borderRadius: 8,
+                        background: selectedNoticeId === n.id ? "var(--gk-bg-hover, #f1f3f5)" : "transparent",
+                      }}
+                    >
+                      <Group gap={8} wrap="nowrap">
+                        <Avatar src={n.referrer_avatar_url || undefined} radius="xl" size={32}>
+                          {n.referrer_name[0]?.toUpperCase()}
+                        </Avatar>
+                        <Box style={{ flex: 1, minWidth: 0 }}>
+                          <Text size="sm" fw={n.is_read ? 400 : 700} truncate>{n.referrer_name}</Text>
+                          <Text size="xs" c="dimmed" truncate>Added you to their circle</Text>
+                        </Box>
+                        {!n.is_read && <Box style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--mantine-color-blue-5)", flexShrink: 0 }} />}
+                      </Group>
+                    </Box>
+                  ))}
+                </Stack>
+              )
             ) : loading ? (
               <Stack align="center" pt="xl"><Loader size="sm" /></Stack>
             ) : threads.length === 0 ? (
@@ -847,7 +915,7 @@ export function ProInboxPage() {
           </ScrollArea>
         </Box>
 
-        {/* Right pane — chat or feedback detail */}
+        {/* Right pane — chat, feedback, or circle-notice detail */}
         <Box style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
           {activeTab === "feedback" ? (
             fb.selected ? (
@@ -855,6 +923,33 @@ export function ProInboxPage() {
             ) : (
               <Stack align="center" justify="center" h="100%" gap="sm">
                 <Text size="sm" c="dimmed">Select a feedback item to view details.</Text>
+              </Stack>
+            )
+          ) : activeTab === "circle" ? (
+            selectedNotice ? (
+              <Stack align="center" justify="center" h="100%" gap="sm" p="lg">
+                <Avatar src={selectedNotice.referrer_avatar_url || undefined} radius="xl" size={64}>
+                  {selectedNotice.referrer_name[0]?.toUpperCase()}
+                </Avatar>
+                <Title order={4}>{selectedNotice.referrer_name}</Title>
+                <Text size="sm" c="dimmed" ta="center">
+                  Added you to their circle on {new Date(selectedNotice.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}.
+                </Text>
+                {selectedNotice.referrer_slug && (
+                  <Button
+                    component={Link}
+                    to={`/us/${selectedNotice.referrer_slug}/refer`}
+                    target="_blank"
+                    size="xs"
+                    variant="light"
+                  >
+                    View their page
+                  </Button>
+                )}
+              </Stack>
+            ) : (
+              <Stack align="center" justify="center" h="100%" gap="sm">
+                <Text size="sm" c="dimmed">Select a notice to view details.</Text>
               </Stack>
             )
           ) : selected ? (

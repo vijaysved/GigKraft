@@ -84,12 +84,14 @@ interface Props {
   slug: string;
   senderName: string;
   onSent: () => void;
+  /** Pre-fills the first recipient — used when arriving from a contact lookup that found no match. */
+  initialRecipient?: Partial<Recipient>;
 }
 
-export function InviteWizardModal({ opened, onClose, scenario, slug, senderName, onSent }: Props) {
+export function InviteWizardModal({ opened, onClose, scenario, slug, senderName, onSent, initialRecipient }: Props) {
   const meta = SCENARIO_META[scenario];
   const [step, setStep] = useState(0);
-  const [recipients, setRecipients] = useState<Recipient[]>([{ ...EMPTY_RECIPIENT }]);
+  const [recipients, setRecipients] = useState<Recipient[]>([{ ...EMPTY_RECIPIENT, ...initialRecipient }]);
   const [channel, setChannel] = useState("whatsapp");
   const [message, setMessage] = useState("");
   const [messageTouched, setMessageTouched] = useState(false);
