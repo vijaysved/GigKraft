@@ -74,6 +74,8 @@ class ProInvite(models.Model):
     message_body = models.TextField(blank=True, default="")
     token = models.CharField(max_length=64, unique=True, db_index=True, default=_generate_token)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)
+    email_track_token = models.UUIDField(null=True, blank=True, unique=True, editable=False)
+    email_opened_at = models.DateTimeField(null=True, blank=True)
     click_count = models.PositiveIntegerField(default=0)
     is_archived = models.BooleanField(default=False)
     invited_at = models.DateTimeField(auto_now_add=True)
@@ -276,6 +278,8 @@ class FriendInvite(models.Model):
     channel = models.CharField(max_length=10, blank=True, default="")
     message_body = models.TextField(blank=True, default="")
     token = models.CharField(max_length=32, unique=True, db_index=True, default=_generate_token)
+    email_track_token = models.UUIDField(null=True, blank=True, unique=True, editable=False)
+    email_opened_at = models.DateTimeField(null=True, blank=True)
     click_count = models.PositiveIntegerField(default=0)
     is_archived = models.BooleanField(default=False)
     invited_at = models.DateTimeField(auto_now_add=True)
@@ -302,6 +306,8 @@ class CircleShareInvite(models.Model):
     channel = models.CharField(max_length=10, blank=True, default="")
     message_body = models.TextField(blank=True, default="")
     token = models.CharField(max_length=32, unique=True, db_index=True, default=_generate_token)
+    email_track_token = models.UUIDField(null=True, blank=True, unique=True, editable=False)
+    email_opened_at = models.DateTimeField(null=True, blank=True)
     click_count = models.PositiveIntegerField(default=0)
     is_archived = models.BooleanField(default=False)
     invited_at = models.DateTimeField(auto_now_add=True)
@@ -327,6 +333,7 @@ class InviteEvent(models.Model):
     class EventType(models.TextChoices):
         SENT = "sent", "Sent"
         RESENT = "resent", "Resent"
+        OPENED = "opened", "Email Opened"
         CLICKED = "clicked", "Link Clicked"
         JOINED = "joined", "Joined / Claimed / Followed"
 

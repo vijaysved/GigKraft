@@ -77,16 +77,6 @@ function buildSmsLink(phone: string, body: string) {
   return `sms:${phone}?body=${encodeURIComponent(body)}`;
 }
 
-function buildMailtoLink(email: string, subject: string, body: string) {
-  return `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-}
-
-const EMAIL_SUBJECTS: Record<InviteScenario, string> = {
-  pro: "You're invited to GigKraft",
-  friend: "Check out GigKraft",
-  circle: "Join my circle on GigKraft",
-};
-
 interface Props {
   opened: boolean;
   onClose: () => void;
@@ -185,9 +175,9 @@ export function InviteWizardModal({ opened, onClose, scenario, slug, senderName,
         // swap the placeholder preview link for the real token-bearing link.
         const finalBody = message.replace(previewLink, finalLink);
 
-        if (channel === "email" && r.email) {
-          window.open(buildMailtoLink(r.email, EMAIL_SUBJECTS[scenario], finalBody), "_blank");
-        } else if (channel === "whatsapp" && r.phone) {
+        // Email is sent server-side (support@gigkraft.com via Resend) as part of the
+        // create call above — only WhatsApp/SMS need a client-side deep link handoff.
+        if (channel === "whatsapp" && r.phone) {
           window.open(buildWaLink(r.phone, finalBody), "_blank");
         } else if (channel === "sms" && r.phone) {
           window.open(buildSmsLink(r.phone, finalBody), "_blank");

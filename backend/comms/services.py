@@ -33,6 +33,7 @@ def send_email(
     bcc: list[str] | None = None,
     from_addr: str = DEFAULT_FROM,
     track_token: str | None = None,
+    pixel_path: str = "/api/prospects/pixel",
 ) -> str:
     """Send an email. Returns the Resend message ID (or a mock/dev ID).
 
@@ -78,7 +79,7 @@ def send_email(
     if track_token:
         base_url = os.environ.get("BACKEND_URL", "https://gigkraft.com")
         pixel = (
-            f'<img src="{base_url}/api/prospects/pixel/{track_token}" '
+            f'<img src="{base_url}{pixel_path}/{track_token}" '
             f'width="1" height="1" style="display:none;opacity:0;position:absolute" '
             f'alt="" />'
         )

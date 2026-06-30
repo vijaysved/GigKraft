@@ -8,12 +8,14 @@ from datetime import timedelta
 from typing import Optional
 
 from django.db import transaction
+from django.http import HttpResponse
 from django.utils import timezone
 from ninja import File, Router, Schema, UploadedFile
 from ninja.errors import HttpError
 
 from accounts.auth import jwt_auth, optional_jwt
 from accounts.models import HomeownerProfile, ProProfile, User
+from comms.services import send_email as _send_email
 from common.notify import send_sms
 from common.permissions import require_referrer
 from referrals.models import (
@@ -183,6 +185,61 @@ def _log_invite_event(scenario: str, invite_id: int, event_type: str, message_bo
     InviteEvent.objects.create(
         scenario=scenario, invite_id=invite_id, event_type=event_type, message_body=message_body,
     )
+
+
+INVITE_FROM_ADDR = "support@gigkraft.com"
+
+EMAIL_SUBJECTS = {
+    "pro": "You're invited to GigKraft",
+    "friend": "Check out GigKraft",
+    "circle": "Join my circle on GigKraft",
+}
+
+CLAIM_PARAMS = {"pro": "claim", "friend": "inv", "circle": "circle"}
+
+# Smallest valid 1x1 transparent GIF — mirrors vendors/api.py's prospect open-tracking pixel.
+_PIXEL_GIF = bytes([
+    0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x01, 0x00,
+    0x01, 0x00, 0x80, 0x00, 0x00, 0xff, 0xff, 0xff,
+    0x00, 0x00, 0x00, 0x21, 0xf9, 0x04, 0x01, 0x00,
+    0x00, 0x00, 0x00, 0x2c, 0x00, 0x00, 0x00, 0x00,
+    0x01, 0x00, 0x01, 0x00, 0x00, 0x02, 0x02, 0x44,
+    0x01, 0x00, 0x3b,
+])
+
+INVITE_EMAIL_MODELS = {
+    InviteEvent.Scenario.PRO: ProInvite,
+    InviteEvent.Scenario.FRIEND: FriendInvite,
+    InviteEvent.Scenario.CIRCLE: CircleShareInvite,
+}
+
+
+def _send_invite_email(*, scenario: str, email: str, message_body: str, slug: str, token: str) -> Optional[uuid.UUID]:
+    """Send the invite via Resend (mirrors comms.services email flow used for prospects).
+
+    Returns the open-tracking token on success, or None if there's nothing to send
+    or the send failed (failure never blocks invite creation).
+    """
+    if not email or not message_body:
+        return None
+
+    placeholder = f"gigkraft.com/us/{slug}/refer"
+    final_link = f"https://gigkraft.com/us/{slug}/refer?{CLAIM_PARAMS[scenario]}={token}"
+    final_body = message_body.replace(placeholder, final_link)
+
+    track_token = uuid.uuid4()
+    try:
+        _send_email(
+            to=email,
+            subject=EMAIL_SUBJECTS[scenario],
+            body=final_body,
+            from_addr=INVITE_FROM_ADDR,
+            track_token=str(track_token),
+            pixel_path="/api/referrer/invite-pixel",
+        )
+    except Exception:
+        return None
+    return track_token
 
 
 # ---------------------------------------------------------------------------
@@ -990,6 +1047,15 @@ def invite_pro(request, payload: InviteProIn):
     )
     _log_invite_event(InviteEvent.Scenario.PRO, invite.pk, InviteEvent.EventType.SENT, invite.message_body)
 
+    if payload.channel == "email":
+        track_token = _send_invite_email(
+            scenario=InviteEvent.Scenario.PRO, email=invite.email,
+            message_body=invite.message_body, slug=profile.slug, token=invite.token,
+        )
+        if track_token:
+            invite.email_track_token = track_token
+            invite.save(update_fields=["email_track_token"])
+
     max_order = ReferrerPro.objects.filter(referrer=request.auth).count()
     rp = ReferrerPro.objects.create(
         referrer=request.auth,
@@ -1022,6 +1088,15 @@ def resend_pro_invite(request, invite_id: int):
     invite.last_resent_at = timezone.now()
     invite.save(update_fields=["last_resent_at"])
     _log_invite_event(InviteEvent.Scenario.PRO, invite.pk, InviteEvent.EventType.RESENT, invite.message_body)
+
+    if invite.channel == "email":
+        track_token = _send_invite_email(
+            scenario=InviteEvent.Scenario.PRO, email=invite.email,
+            message_body=invite.message_body, slug=profile.slug, token=invite.token,
+        )
+        if track_token:
+            invite.email_track_token = track_token
+            invite.save(update_fields=["email_track_token"])
 
     return 200, {
         "ok": True,
@@ -1069,6 +1144,16 @@ def invite_friend_single(request, payload: InviteFriendSingleIn):
         message_body=payload.message or "",
     )
     _log_invite_event(InviteEvent.Scenario.FRIEND, fi.pk, InviteEvent.EventType.SENT, fi.message_body)
+
+    if payload.channel == "email":
+        track_token = _send_invite_email(
+            scenario=InviteEvent.Scenario.FRIEND, email=fi.email,
+            message_body=fi.message_body, slug=profile.slug, token=fi.token,
+        )
+        if track_token:
+            fi.email_track_token = track_token
+            fi.save(update_fields=["email_track_token"])
+
     return 201, {
         "invite_id": fi.pk,
         "token": fi.token,
@@ -1092,6 +1177,15 @@ def resend_friend_invite(request, invite_id: int):
     fi.last_resent_at = timezone.now()
     fi.save(update_fields=["last_resent_at"])
     _log_invite_event(InviteEvent.Scenario.FRIEND, fi.pk, InviteEvent.EventType.RESENT, fi.message_body)
+
+    if fi.channel == "email":
+        track_token = _send_invite_email(
+            scenario=InviteEvent.Scenario.FRIEND, email=fi.email,
+            message_body=fi.message_body, slug=profile.slug, token=fi.token,
+        )
+        if track_token:
+            fi.email_track_token = track_token
+            fi.save(update_fields=["email_track_token"])
 
     return 200, {
         "ok": True,
@@ -1117,6 +1211,16 @@ def share_circle(request, payload: InviteCircleShareIn):
         message_body=payload.message or "",
     )
     _log_invite_event(InviteEvent.Scenario.CIRCLE, cs.pk, InviteEvent.EventType.SENT, cs.message_body)
+
+    if payload.channel == "email":
+        track_token = _send_invite_email(
+            scenario=InviteEvent.Scenario.CIRCLE, email=cs.email,
+            message_body=cs.message_body, slug=profile.slug, token=cs.token,
+        )
+        if track_token:
+            cs.email_track_token = track_token
+            cs.save(update_fields=["email_track_token"])
+
     return 201, {
         "invite_id": cs.pk,
         "token": cs.token,
@@ -1140,6 +1244,15 @@ def resend_circle_share(request, invite_id: int):
     cs.last_resent_at = timezone.now()
     cs.save(update_fields=["last_resent_at"])
     _log_invite_event(InviteEvent.Scenario.CIRCLE, cs.pk, InviteEvent.EventType.RESENT, cs.message_body)
+
+    if cs.channel == "email":
+        track_token = _send_invite_email(
+            scenario=InviteEvent.Scenario.CIRCLE, email=cs.email,
+            message_body=cs.message_body, slug=profile.slug, token=cs.token,
+        )
+        if track_token:
+            cs.email_track_token = track_token
+            cs.save(update_fields=["email_track_token"])
 
     return 200, {
         "ok": True,
@@ -1166,6 +1279,29 @@ def circle_share_click(request, token: str):
         CircleShareInvite.objects.filter(pk=cs.pk).update(click_count=_F("click_count") + 1)
         _log_invite_event(InviteEvent.Scenario.CIRCLE, cs.pk, InviteEvent.EventType.CLICKED)
     return 200, {}
+
+
+@public_router.get("/invite-pixel/{token}", auth=None)
+def invite_pixel(request, token: str):
+    """Public. 1x1 GIF — records an email-open event for any of the three invite types."""
+    try:
+        track_uuid = uuid.UUID(token)
+    except ValueError:
+        track_uuid = None
+
+    if track_uuid:
+        for scenario, model in INVITE_EMAIL_MODELS.items():
+            obj = model.objects.filter(email_track_token=track_uuid).first()
+            if obj:
+                if not obj.email_opened_at:
+                    obj.email_opened_at = timezone.now()
+                    obj.save(update_fields=["email_opened_at"])
+                _log_invite_event(scenario, obj.pk, InviteEvent.EventType.OPENED)
+                break
+
+    resp = HttpResponse(_PIXEL_GIF, content_type="image/gif")
+    resp["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return resp
 
 
 # ---------------------------------------------------------------------------
@@ -1344,7 +1480,7 @@ def list_invites(request):
                 "phone": i.phone,
                 "email": i.email,
                 "channel": i.channel,
-                "status": i.status,
+                "status": i.status if i.status != ProInvite.Status.PENDING or not i.email_opened_at else "opened",
                 "click_count": i.click_count,
                 "invited_at": fmt_dt(i.invited_at),
                 "last_resent_at": fmt_dt(i.last_resent_at),
@@ -1358,7 +1494,7 @@ def list_invites(request):
                 "phone": i.phone,
                 "email": i.email,
                 "channel": i.channel,
-                "status": "followed" if i.followed_at else "pending",
+                "status": "followed" if i.followed_at else ("opened" if i.email_opened_at else "pending"),
                 "click_count": i.click_count,
                 "invited_at": fmt_dt(i.invited_at),
                 "last_resent_at": fmt_dt(i.last_resent_at),
@@ -1372,7 +1508,7 @@ def list_invites(request):
                 "phone": i.phone,
                 "email": i.email,
                 "channel": i.channel,
-                "status": "clicked" if i.click_count > 0 else "pending",
+                "status": "clicked" if i.click_count > 0 else ("opened" if i.email_opened_at else "pending"),
                 "click_count": i.click_count,
                 "invited_at": fmt_dt(i.invited_at),
                 "last_resent_at": fmt_dt(i.last_resent_at),

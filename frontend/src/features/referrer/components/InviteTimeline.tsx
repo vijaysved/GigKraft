@@ -58,18 +58,18 @@ const SCENARIO_LABELS: Record<InviteScenario, string> = {
 
 function statusMeta(item: UnifiedInvite): { label: string; color: string; isTerminal: boolean } {
   if (item.scenario === "pro") {
-    return item.status === "claimed"
-      ? { label: "Joined", color: "green", isTerminal: true }
-      : { label: "Pending", color: "gray", isTerminal: false };
+    if (item.status === "claimed") return { label: "Joined", color: "green", isTerminal: true };
+    if (item.status === "opened") return { label: "Opened", color: "grape", isTerminal: false };
+    return { label: "Pending", color: "gray", isTerminal: false };
   }
   if (item.scenario === "friend") {
-    return item.status === "followed"
-      ? { label: "Following", color: "teal", isTerminal: true }
-      : { label: "Pending", color: "gray", isTerminal: false };
+    if (item.status === "followed") return { label: "Following", color: "teal", isTerminal: true };
+    if (item.status === "opened") return { label: "Opened", color: "grape", isTerminal: false };
+    return { label: "Pending", color: "gray", isTerminal: false };
   }
-  return item.status === "clicked"
-    ? { label: "Clicked", color: "blue", isTerminal: false }
-    : { label: "Sent", color: "gray", isTerminal: false };
+  if (item.status === "clicked") return { label: "Clicked", color: "indigo", isTerminal: false };
+  if (item.status === "opened") return { label: "Opened", color: "grape", isTerminal: false };
+  return { label: "Sent", color: "gray", isTerminal: false };
 }
 
 function DotCol({ color, isLast }: { color: string; isLast: boolean }) {

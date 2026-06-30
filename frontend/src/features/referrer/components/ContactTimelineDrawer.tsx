@@ -15,7 +15,8 @@ const SCENARIO_LABELS: Record<UnifiedInvite["scenario"], string> = {
 const EVENT_META: Record<InviteTimelineEventOut["event_type"], { label: string; color: string }> = {
   sent: { label: "Sent", color: "var(--mantine-color-blue-5)" },
   resent: { label: "Resent", color: "var(--mantine-color-teal-5)" },
-  clicked: { label: "Link Clicked", color: "var(--mantine-color-grape-5)" },
+  opened: { label: "Opened", color: "var(--mantine-color-grape-5)" },
+  clicked: { label: "Link Clicked", color: "var(--mantine-color-indigo-5)" },
   joined: { label: "Joined", color: "var(--mantine-color-green-6)" },
 };
 

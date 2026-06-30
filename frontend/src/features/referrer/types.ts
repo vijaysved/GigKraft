@@ -144,7 +144,7 @@ export interface InviteListOut {
 export type InviteScenario = "pro" | "friend" | "circle";
 
 export interface InviteTimelineEventOut {
-  event_type: "sent" | "resent" | "clicked" | "joined";
+  event_type: "sent" | "resent" | "opened" | "clicked" | "joined";
   message_body: string | null;
   occurred_at: string;
 }
