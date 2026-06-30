@@ -103,6 +103,7 @@ export interface InviteListProOut {
   name: string;
   trade: string;
   phone: string;
+  email: string;
   channel: string;
   status: string;
   click_count: number;
@@ -114,6 +115,7 @@ export interface InviteListFriendOut {
   invite_id: number;
   name: string;
   phone: string;
+  email: string;
   channel: string;
   status: string;
   click_count: number;

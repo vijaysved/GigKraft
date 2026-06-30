@@ -21,11 +21,13 @@ import {
   IconBrandWhatsapp,
   IconCheck,
   IconCopy,
+  IconPencil,
   IconRefresh,
   IconSend,
   IconShare,
   IconUserPlus,
   IconUsers,
+  IconX,
 } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
@@ -38,6 +40,8 @@ import {
   getInviteList,
   resendFriendInvite,
   resendProInvite,
+  updateFriendInvite,
+  updateProInvite,
 } from "../../../api/endpoints";
 import type { InviteListOut, InviteListProOut, InviteListFriendOut } from "../types";
 
@@ -139,6 +143,12 @@ export function InviteTab() {
 
   // Per-row action state: `pro-{id}` or `friend-{id}` → "loading" | "done" | "error"
   const [rowState, setRowState] = useState<Record<string, string>>({});
+
+  // Inline contact edit state
+  const [editing, setEditing] = useState<{ type: "pro" | "friend"; id: number } | null>(null);
+  const [editDraft, setEditDraft] = useState({ name: "", phone: "", email: "" });
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
 
   useEffect(() => {
     loadInvites();
@@ -253,6 +263,43 @@ export function InviteTab() {
     setRowState((s) => ({ ...s, [key]: "" }));
   }
 
+  // ── Inline contact edit ────────────────────────────────────────────────────
+
+  function startEdit(type: "pro" | "friend", inv: { invite_id: number; name: string; phone: string; email: string }) {
+    setEditing({ type, id: inv.invite_id });
+    setEditDraft({ name: inv.name, phone: inv.phone, email: inv.email });
+    setEditError(null);
+  }
+
+  function cancelEdit() {
+    setEditing(null);
+    setEditError(null);
+  }
+
+  async function saveEdit() {
+    if (!editing) return;
+    const name = editDraft.name.trim();
+    const phone = editDraft.phone.trim();
+    const email = editDraft.email.trim();
+    if (!name) { setEditError("Name is required."); return; }
+    if (!phone && !email) { setEditError("Phone or email is required."); return; }
+    setEditSaving(true);
+    setEditError(null);
+    try {
+      if (editing.type === "pro") {
+        await updateProInvite(editing.id, { name, phone, email });
+      } else {
+        await updateFriendInvite(editing.id, { name, phone, email });
+      }
+      setEditing(null);
+      await loadInvites();
+    } catch (e) {
+      setEditError(e instanceof Error ? e.message : "Failed to save.");
+    } finally {
+      setEditSaving(false);
+    }
+  }
+
   // ── Shared table helpers ───────────────────────────────────────────────────
 
   const pageUrl = `gigkraft.com/us/${slug}/refer`;
@@ -292,11 +339,12 @@ export function InviteTab() {
           </Text>
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <Table striped highlightOnHover withTableBorder fz="sm" style={{ minWidth: 560 }}>
+            <Table striped highlightOnHover withTableBorder fz="sm" style={{ minWidth: 700 }}>
               <Table.Thead>
                 <Table.Tr>
                   <Table.Th>Name</Table.Th>
                   <Table.Th>Phone</Table.Th>
+                  <Table.Th>Email</Table.Th>
                   <Table.Th>Via</Table.Th>
                   <Table.Th>Status</Table.Th>
                   <Table.Th>Clicks</Table.Th>
@@ -312,10 +360,67 @@ export function InviteTab() {
                   const resending = rowState[resendKey] === "loading";
                   const archiving = rowState[archKey] === "loading";
                   const eligible = canResend(inv) && !joined;
+                  const isEditingRow = editing?.type === "pro" && editing.id === inv.invite_id;
+                  if (isEditingRow) {
+                    return (
+                      <Table.Tr key={inv.invite_id}>
+                        <Table.Td>
+                          <TextInput
+                            size="xs" placeholder="Name" value={editDraft.name}
+                            onChange={(e) => setEditDraft((d) => ({ ...d, name: e.target.value }))}
+                          />
+                        </Table.Td>
+                        <Table.Td>
+                          <TextInput
+                            size="xs" placeholder="Phone" value={editDraft.phone}
+                            onChange={(e) => setEditDraft((d) => ({ ...d, phone: e.target.value }))}
+                          />
+                        </Table.Td>
+                        <Table.Td>
+                          <TextInput
+                            size="xs" placeholder="Email" value={editDraft.email}
+                            onChange={(e) => setEditDraft((d) => ({ ...d, email: e.target.value }))}
+                          />
+                        </Table.Td>
+                        <Table.Td style={{ textTransform: "capitalize" }}>{inv.channel || "—"}</Table.Td>
+                        <Table.Td>
+                          <Badge color={joined ? "green" : "gray"} variant="light" size="sm">
+                            {joined ? "Joined" : "Pending"}
+                          </Badge>
+                        </Table.Td>
+                        <Table.Td ta="center">{inv.click_count}</Table.Td>
+                        <Table.Td c="dimmed">{relativeTime(inv.invited_at)}</Table.Td>
+                        <Table.Td>
+                          <Stack gap={2}>
+                            <Group gap={4} wrap="nowrap">
+                              <Tooltip label="Save" withArrow>
+                                <ActionIcon size="sm" variant="subtle" color="green" loading={editSaving} onClick={saveEdit}>
+                                  <IconCheck size={13} />
+                                </ActionIcon>
+                              </Tooltip>
+                              <Tooltip label="Cancel" withArrow>
+                                <ActionIcon size="sm" variant="subtle" color="gray" disabled={editSaving} onClick={cancelEdit}>
+                                  <IconX size={13} />
+                                </ActionIcon>
+                              </Tooltip>
+                            </Group>
+                            {editError && <Text size="xs" c="red">{editError}</Text>}
+                          </Stack>
+                        </Table.Td>
+                      </Table.Tr>
+                    );
+                  }
                   return (
                     <Table.Tr key={inv.invite_id}>
-                      <Table.Td fw={500}>{inv.name}</Table.Td>
-                      <Table.Td c="dimmed">{maskPhone(inv.phone)}</Table.Td>
+                      <Table.Td fw={500} onClick={() => startEdit("pro", inv)} style={{ cursor: "pointer" }}>
+                        {inv.name}
+                      </Table.Td>
+                      <Table.Td c="dimmed" onClick={() => startEdit("pro", inv)} style={{ cursor: "pointer" }}>
+                        {maskPhone(inv.phone)}
+                      </Table.Td>
+                      <Table.Td c="dimmed" onClick={() => startEdit("pro", inv)} style={{ cursor: "pointer" }}>
+                        {inv.email || "—"}
+                      </Table.Td>
                       <Table.Td style={{ textTransform: "capitalize" }}>{inv.channel || "—"}</Table.Td>
                       <Table.Td>
                         <Badge color={joined ? "green" : "gray"} variant="light" size="sm">
@@ -326,6 +431,11 @@ export function InviteTab() {
                       <Table.Td c="dimmed">{relativeTime(inv.invited_at)}</Table.Td>
                       <Table.Td>
                         <Group gap={4} wrap="nowrap">
+                          <Tooltip label="Edit" withArrow>
+                            <ActionIcon size="sm" variant="subtle" color="gray" onClick={() => startEdit("pro", inv)}>
+                              <IconPencil size={13} />
+                            </ActionIcon>
+                          </Tooltip>
                           <Tooltip label={eligible ? "Resend" : joined ? "Joined" : "Wait 24h"} withArrow>
                             <ActionIcon
                               size="sm" variant="subtle" color="blue"
@@ -371,11 +481,12 @@ export function InviteTab() {
           </Text>
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <Table striped highlightOnHover withTableBorder fz="sm" style={{ minWidth: 520 }}>
+            <Table striped highlightOnHover withTableBorder fz="sm" style={{ minWidth: 660 }}>
               <Table.Thead>
                 <Table.Tr>
                   <Table.Th>Name</Table.Th>
                   <Table.Th>Phone</Table.Th>
+                  <Table.Th>Email</Table.Th>
                   <Table.Th>Via</Table.Th>
                   <Table.Th>Status</Table.Th>
                   <Table.Th>Clicks</Table.Th>
@@ -391,10 +502,67 @@ export function InviteTab() {
                   const resending = rowState[resendKey] === "loading";
                   const archiving = rowState[archKey] === "loading";
                   const eligible = canResend(inv) && !following;
+                  const isEditingRow = editing?.type === "friend" && editing.id === inv.invite_id;
+                  if (isEditingRow) {
+                    return (
+                      <Table.Tr key={inv.invite_id}>
+                        <Table.Td>
+                          <TextInput
+                            size="xs" placeholder="Name" value={editDraft.name}
+                            onChange={(e) => setEditDraft((d) => ({ ...d, name: e.target.value }))}
+                          />
+                        </Table.Td>
+                        <Table.Td>
+                          <TextInput
+                            size="xs" placeholder="Phone" value={editDraft.phone}
+                            onChange={(e) => setEditDraft((d) => ({ ...d, phone: e.target.value }))}
+                          />
+                        </Table.Td>
+                        <Table.Td>
+                          <TextInput
+                            size="xs" placeholder="Email" value={editDraft.email}
+                            onChange={(e) => setEditDraft((d) => ({ ...d, email: e.target.value }))}
+                          />
+                        </Table.Td>
+                        <Table.Td style={{ textTransform: "capitalize" }}>{inv.channel || "—"}</Table.Td>
+                        <Table.Td>
+                          <Badge color={following ? "teal" : "gray"} variant="light" size="sm">
+                            {following ? "Following" : "Pending"}
+                          </Badge>
+                        </Table.Td>
+                        <Table.Td ta="center">{inv.click_count}</Table.Td>
+                        <Table.Td c="dimmed">{relativeTime(inv.invited_at)}</Table.Td>
+                        <Table.Td>
+                          <Stack gap={2}>
+                            <Group gap={4} wrap="nowrap">
+                              <Tooltip label="Save" withArrow>
+                                <ActionIcon size="sm" variant="subtle" color="green" loading={editSaving} onClick={saveEdit}>
+                                  <IconCheck size={13} />
+                                </ActionIcon>
+                              </Tooltip>
+                              <Tooltip label="Cancel" withArrow>
+                                <ActionIcon size="sm" variant="subtle" color="gray" disabled={editSaving} onClick={cancelEdit}>
+                                  <IconX size={13} />
+                                </ActionIcon>
+                              </Tooltip>
+                            </Group>
+                            {editError && <Text size="xs" c="red">{editError}</Text>}
+                          </Stack>
+                        </Table.Td>
+                      </Table.Tr>
+                    );
+                  }
                   return (
                     <Table.Tr key={inv.invite_id}>
-                      <Table.Td fw={500}>{inv.name}</Table.Td>
-                      <Table.Td c="dimmed">{maskPhone(inv.phone)}</Table.Td>
+                      <Table.Td fw={500} onClick={() => startEdit("friend", inv)} style={{ cursor: "pointer" }}>
+                        {inv.name}
+                      </Table.Td>
+                      <Table.Td c="dimmed" onClick={() => startEdit("friend", inv)} style={{ cursor: "pointer" }}>
+                        {maskPhone(inv.phone)}
+                      </Table.Td>
+                      <Table.Td c="dimmed" onClick={() => startEdit("friend", inv)} style={{ cursor: "pointer" }}>
+                        {inv.email || "—"}
+                      </Table.Td>
                       <Table.Td style={{ textTransform: "capitalize" }}>{inv.channel || "—"}</Table.Td>
                       <Table.Td>
                         <Badge color={following ? "teal" : "gray"} variant="light" size="sm">
@@ -405,6 +573,11 @@ export function InviteTab() {
                       <Table.Td c="dimmed">{relativeTime(inv.invited_at)}</Table.Td>
                       <Table.Td>
                         <Group gap={4} wrap="nowrap">
+                          <Tooltip label="Edit" withArrow>
+                            <ActionIcon size="sm" variant="subtle" color="gray" onClick={() => startEdit("friend", inv)}>
+                              <IconPencil size={13} />
+                            </ActionIcon>
+                          </Tooltip>
                           <Tooltip label={eligible ? "Resend" : following ? "Following" : "Wait 24h"} withArrow>
                             <ActionIcon
                               size="sm" variant="subtle" color="blue"

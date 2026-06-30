@@ -7,6 +7,8 @@ import type {
   FollowerOut,
   ReferralRequestDetailOut,
   InviteListOut,
+  InviteListProOut,
+  InviteListFriendOut,
 } from "../features/referrer/types";
 
 export type HealthOut = components["schemas"]["HealthOut"];
@@ -1587,6 +1589,29 @@ export async function archiveProInvite(id: number): Promise<void> {
 
 export async function archiveFriendInvite(id: number): Promise<void> {
   await _post(`/api/referrer/me/invite-friend-single/${id}/archive`);
+}
+
+export async function updateProInvite(
+  id: number,
+  patch: { name?: string; phone?: string; email?: string },
+): Promise<InviteListProOut> {
+  const { data, error, response } = await client.PATCH(`/api/referrer/me/invite-pro/${id}` as never, {
+    body: patch,
+  } as never);
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to update invite."));
+  return data as InviteListProOut;
+}
+
+export async function updateFriendInvite(
+  id: number,
+  patch: { name?: string; phone?: string; email?: string },
+): Promise<InviteListFriendOut> {
+  const { data, error, response } = await client.PATCH(
+    `/api/referrer/me/invite-friend-single/${id}` as never,
+    { body: patch } as never,
+  );
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to update invite."));
+  return data as InviteListFriendOut;
 }
 
 export async function claimProInvite(token: string): Promise<void> {

@@ -388,6 +388,7 @@ class InviteListProOut(Schema):
     name: str
     trade: str
     phone: str
+    email: str
     channel: str
     status: str
     click_count: int
@@ -399,6 +400,7 @@ class InviteListFriendOut(Schema):
     invite_id: int
     name: str
     phone: str
+    email: str
     channel: str
     status: str
     click_count: int
@@ -409,6 +411,18 @@ class InviteListFriendOut(Schema):
 class InviteListOut(Schema):
     pro_invites: list[InviteListProOut]
     friend_invites: list[InviteListFriendOut]
+
+
+class UpdateProInviteIn(Schema):
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+
+
+class UpdateFriendInviteIn(Schema):
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
 
 
 class MatchedContactOut(Schema):
@@ -1191,6 +1205,7 @@ def list_invites(request):
                 "name": i.name,
                 "trade": i.trade,
                 "phone": i.phone,
+                "email": i.email,
                 "channel": i.channel,
                 "status": i.status,
                 "click_count": i.click_count,
@@ -1204,6 +1219,7 @@ def list_invites(request):
                 "invite_id": i.pk,
                 "name": i.name,
                 "phone": i.phone,
+                "email": i.email,
                 "channel": i.channel,
                 "status": "followed" if i.followed_at else "pending",
                 "click_count": i.click_count,
@@ -1212,6 +1228,75 @@ def list_invites(request):
             }
             for i in friend_invites
         ],
+    }
+
+
+@router.patch("/me/invite-pro/{invite_id}", response={200: InviteListProOut, 404: dict, 422: dict})
+def update_pro_invite(request, invite_id: int, payload: UpdateProInviteIn):
+    profile = require_referrer(request)
+    invite = ProInvite.objects.filter(pk=invite_id, invited_by=request.auth).first()
+    if not invite:
+        return 404, {"detail": "Invite not found."}
+
+    data = payload.dict(exclude_unset=True)
+    name = data.get("name", invite.name).strip()
+    phone = data.get("phone", invite.phone).strip() if data.get("phone", invite.phone) else ""
+    email = data.get("email", invite.email).strip() if data.get("email", invite.email) else ""
+    if not name:
+        return 422, {"detail": "Name is required."}
+    if not phone and not email:
+        return 422, {"detail": "Phone or email is required."}
+
+    invite.name = name
+    invite.phone = phone
+    invite.email = email
+    invite.save(update_fields=["name", "phone", "email"])
+
+    return 200, {
+        "invite_id": invite.pk,
+        "name": invite.name,
+        "trade": invite.trade,
+        "phone": invite.phone,
+        "email": invite.email,
+        "channel": invite.channel,
+        "status": invite.status,
+        "click_count": invite.click_count,
+        "invited_at": invite.invited_at.isoformat() if invite.invited_at else None,
+        "last_resent_at": invite.last_resent_at.isoformat() if invite.last_resent_at else None,
+    }
+
+
+@router.patch("/me/invite-friend-single/{invite_id}", response={200: InviteListFriendOut, 404: dict, 422: dict})
+def update_friend_invite(request, invite_id: int, payload: UpdateFriendInviteIn):
+    profile = require_referrer(request)
+    invite = FriendInvite.objects.filter(pk=invite_id, referrer=request.auth).first()
+    if not invite:
+        return 404, {"detail": "Invite not found."}
+
+    data = payload.dict(exclude_unset=True)
+    name = data.get("name", invite.name).strip()
+    phone = data.get("phone", invite.phone).strip() if data.get("phone", invite.phone) else ""
+    email = data.get("email", invite.email).strip() if data.get("email", invite.email) else ""
+    if not name:
+        return 422, {"detail": "Name is required."}
+    if not phone and not email:
+        return 422, {"detail": "Phone or email is required."}
+
+    invite.name = name
+    invite.phone = phone
+    invite.email = email
+    invite.save(update_fields=["name", "phone", "email"])
+
+    return 200, {
+        "invite_id": invite.pk,
+        "name": invite.name,
+        "phone": invite.phone,
+        "email": invite.email,
+        "channel": invite.channel,
+        "status": "followed" if invite.followed_at else "pending",
+        "click_count": invite.click_count,
+        "invited_at": invite.invited_at.isoformat() if invite.invited_at else None,
+        "last_resent_at": invite.last_resent_at.isoformat() if invite.last_resent_at else None,
     }
 
 
