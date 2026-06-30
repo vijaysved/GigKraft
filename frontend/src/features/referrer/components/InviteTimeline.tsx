@@ -132,11 +132,6 @@ export function InviteTimeline({ refreshKey }: { refreshKey: number }) {
   const [rowState, setRowState] = useState<Record<string, "loading" | "">>({});
   const [selected, setSelected] = useState<UnifiedInvite | null>(null);
 
-  useEffect(() => {
-    void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refreshKey]);
-
   async function load() {
     setLoading(true);
     try {
@@ -165,6 +160,10 @@ export function InviteTimeline({ refreshKey }: { refreshKey: number }) {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    void load();
+  }, [refreshKey]);
 
   async function handleResend(item: UnifiedInvite) {
     const key = `${item.scenario}-${item.invite_id}`;
