@@ -9,6 +9,7 @@ import {
   TextInput,
   Title,
 } from "@mantine/core";
+import { IconSend, IconStar } from "@tabler/icons-react";
 import { useState } from "react";
 
 import { GkEmptyState } from "../../components/GkEmptyState";
@@ -35,8 +36,12 @@ export function ProRecommendationsPage() {
 
       <Tabs defaultValue="outbound">
         <Tabs.List>
-          <Tabs.Tab value="outbound">Request review</Tabs.Tab>
-          <Tabs.Tab value="inbound" rightSection={<Badge size="xs">{MOCK_INBOUND.length}</Badge>}>
+          <Tabs.Tab value="outbound" leftSection={<IconSend size={15} />}>Request review</Tabs.Tab>
+          <Tabs.Tab
+            value="inbound"
+            leftSection={<IconStar size={15} />}
+            rightSection={<Badge size="xs">{MOCK_INBOUND.length}</Badge>}
+          >
             Pending moderation
           </Tabs.Tab>
         </Tabs.List>

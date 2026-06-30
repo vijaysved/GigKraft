@@ -534,12 +534,10 @@ export function ReferrerAccountPage() {
 
       <Tabs value={activeTab} onChange={(v) => setSearchParams(v ? { tab: v } : {})} color="var(--gk-accent-primary)">
         <Tabs.List style={{ borderColor: "var(--gk-accent-primary)", borderBottomWidth: 2 }}>
-          <Tabs.Tab value="inbox" leftSection={<IconInbox size={15} />}
-            style={{ color: activeTab === "inbox" ? "var(--gk-accent-primary)" : "var(--gk-accent-secondary)" }}>
+          <Tabs.Tab value="inbox" leftSection={<IconInbox size={15} />}>
             Inbox
           </Tabs.Tab>
-          <Tabs.Tab value="account" leftSection={<IconUser size={15} />}
-            style={{ color: activeTab === "account" ? "var(--gk-accent-primary)" : "var(--gk-accent-secondary)" }}>
+          <Tabs.Tab value="account" leftSection={<IconUser size={15} />}>
             Account
           </Tabs.Tab>
         </Tabs.List>

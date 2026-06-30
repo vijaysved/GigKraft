@@ -14,7 +14,7 @@ import {
   Title,
   ThemeIcon,
 } from "@mantine/core";
-import { IconChartBar } from "@tabler/icons-react";
+import { IconChartBar, IconChartLine } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 
 import { getProDashboard, getProMarket, type DashboardData, type MarketData } from "../../api/endpoints";
@@ -410,10 +410,10 @@ export function ProDashboardPage() {
         color="var(--gk-accent-primary)"
       >
         <Tabs.List style={{ borderColor: "var(--gk-accent-primary)", borderBottomWidth: 2 }}>
-          <Tabs.Tab value="performance" style={{ color: activeTab === "performance" ? "var(--gk-accent-primary)" : "var(--gk-accent-secondary)" }}>
+          <Tabs.Tab value="performance" leftSection={<IconChartBar size={15} />}>
             My Performance
           </Tabs.Tab>
-          <Tabs.Tab value="market" style={{ color: activeTab === "market" ? "var(--gk-accent-primary)" : "var(--gk-accent-secondary)" }}>
+          <Tabs.Tab value="market" leftSection={<IconChartLine size={15} />}>
             Market & Comparison
           </Tabs.Tab>
         </Tabs.List>

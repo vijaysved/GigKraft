@@ -23,12 +23,16 @@ import {
   IconCamera,
   IconCheck,
   IconExternalLink,
+  IconFileText,
+  IconHelp,
   IconLock,
   IconMail,
   IconMapPin,
   IconPencil,
   IconPhone,
+  IconSettings,
   IconUpload,
+  IconUser,
   IconX,
 } from "@tabler/icons-react";
 import { useEffect, useRef, useState } from "react";
@@ -448,10 +452,10 @@ export function HomeAccountPage() {
     <Stack maw={860}>
       <Tabs value={activeTab} onChange={(v) => setSearchParams(v ? { tab: v } : {})} color="var(--gk-accent-primary)">
         <Tabs.List style={{ borderColor: "var(--gk-accent-primary)", borderBottomWidth: 2 }}>
-          <Tabs.Tab value="profile" style={{ color: activeTab === "profile" ? "var(--gk-accent-primary)" : "var(--gk-accent-secondary)" }}>Profile</Tabs.Tab>
-          <Tabs.Tab value="settings" style={{ color: activeTab === "settings" ? "var(--gk-accent-primary)" : "var(--gk-accent-secondary)" }}>Settings</Tabs.Tab>
-          <Tabs.Tab value="terms" style={{ color: activeTab === "terms" ? "var(--gk-accent-primary)" : "var(--gk-accent-secondary)" }}>Terms</Tabs.Tab>
-          <Tabs.Tab value="faq" style={{ color: activeTab === "faq" ? "var(--gk-accent-primary)" : "var(--gk-accent-secondary)" }}>FAQ</Tabs.Tab>
+          <Tabs.Tab value="profile" leftSection={<IconUser size={15} />}>Profile</Tabs.Tab>
+          <Tabs.Tab value="settings" leftSection={<IconSettings size={15} />}>Settings</Tabs.Tab>
+          <Tabs.Tab value="terms" leftSection={<IconFileText size={15} />}>Terms</Tabs.Tab>
+          <Tabs.Tab value="faq" leftSection={<IconHelp size={15} />}>FAQ</Tabs.Tab>
         </Tabs.List>
 
         {/* ══════════════════ PROFILE TAB ══════════════════ */}

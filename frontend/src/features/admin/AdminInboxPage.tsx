@@ -21,7 +21,10 @@ import {
 } from "@mantine/core";
 import {
   IconArchive,
+  IconClipboardList,
+  IconFileInvoice,
   IconInbox,
+  IconMessage,
   IconSearch,
   IconSend,
 } from "@tabler/icons-react";
@@ -45,11 +48,11 @@ import { GkEmptyState } from "../../components/GkEmptyState";
 
 type TabKey = "lead" | "chat" | "request" | "sent";
 
-const TABS: { key: TabKey; label: string }[] = [
-  { key: "lead",    label: "Leads / Quotes" },
-  { key: "chat",    label: "Chats" },
-  { key: "request", label: "Requests" },
-  { key: "sent",    label: "Sent" },
+const TABS: { key: TabKey; label: string; icon: typeof IconInbox }[] = [
+  { key: "lead",    label: "Leads / Quotes", icon: IconFileInvoice },
+  { key: "chat",    label: "Chats", icon: IconMessage },
+  { key: "request", label: "Requests", icon: IconClipboardList },
+  { key: "sent",    label: "Sent", icon: IconSend },
 ];
 
 function relTime(iso: string): string {
@@ -512,7 +515,7 @@ export function AdminInboxPage() {
             >
               <Tabs.List grow>
                 {TABS.map((t) => (
-                  <Tabs.Tab key={t.key} value={t.key} fz="xs" py={4}>
+                  <Tabs.Tab key={t.key} value={t.key} fz="xs" py={4} leftSection={<t.icon size={13} />}>
                     {t.label}
                   </Tabs.Tab>
                 ))}

@@ -982,7 +982,7 @@ export function GkAdminStripePage() {
         <Badge color="violet" variant="filled" size="sm">gk_admin</Badge>
       </Group>
 
-      <Tabs defaultValue="setup" color="violet">
+      <Tabs defaultValue="setup" color="var(--gk-accent-primary)">
         <Tabs.List>
           <Tabs.Tab value="setup" leftSection={<IconPlugConnected size={15} />}>Setup</Tabs.Tab>
           <Tabs.Tab value="test-flow" leftSection={<IconCreditCard size={15} />}>Test Flow</Tabs.Tab>

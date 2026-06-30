@@ -344,16 +344,8 @@ export function ProKraftEditorPage() {
 
       <Tabs value={kraftTab} onChange={(v) => v && setKraftTab(v)} color="var(--gk-accent-primary)">
         <Tabs.List style={{ borderColor: "var(--gk-accent-primary)", borderBottomWidth: 2 }}>
-          <Tabs.Tab
-            value="edit"
-            leftSection={<IconPencil size={14} color={kraftTab === "edit" ? "var(--gk-accent-primary)" : "var(--gk-accent-secondary)"} />}
-            style={{ color: kraftTab === "edit" ? "var(--gk-accent-primary)" : "var(--gk-accent-secondary)" }}
-          >Edit</Tabs.Tab>
-          <Tabs.Tab
-            value="preview"
-            leftSection={<IconEye size={14} color={kraftTab === "preview" ? "var(--gk-accent-primary)" : "var(--gk-accent-secondary)"} />}
-            style={{ color: kraftTab === "preview" ? "var(--gk-accent-primary)" : "var(--gk-accent-secondary)" }}
-          >Preview</Tabs.Tab>
+          <Tabs.Tab value="edit" leftSection={<IconPencil size={14} />}>Edit</Tabs.Tab>
+          <Tabs.Tab value="preview" leftSection={<IconEye size={14} />}>Preview</Tabs.Tab>
         </Tabs.List>
 
         {/* ── EDIT TAB ── */}

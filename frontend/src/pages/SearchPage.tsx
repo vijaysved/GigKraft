@@ -18,7 +18,7 @@ import {
   Title,
   Tooltip,
 } from "@mantine/core";
-import { IconCheck, IconFilter, IconHeart, IconHeartFilled, IconMapPin, IconSearch, IconSend } from "@tabler/icons-react";
+import { IconCheck, IconFilter, IconHeart, IconHeartFilled, IconMapPin, IconPencil, IconSearch, IconSend } from "@tabler/icons-react";
 import { useEffect, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
@@ -747,7 +747,7 @@ export function SearchPage() {
             <Tabs.Tab value="search" leftSection={<IconSearch size={15} />}>
               Search
             </Tabs.Tab>
-            <Tabs.Tab value="type" leftSection={<span style={{ fontSize: 14 }}>✏️</span>}>
+            <Tabs.Tab value="type" leftSection={<IconPencil size={15} />}>
               Type it out
             </Tabs.Tab>
           </Tabs.List>

@@ -84,6 +84,16 @@ button.mantine-Button-root[data-variant="filled"]:hover:not([data-disabled]) {
   }
 }
 
+/* ── Tabs: secondary theme color when unselected, primary when selected ── */
+.mantine-Tabs-tab {
+  color: var(--gk-accent-secondary);
+  transition: color 0.15s ease;
+}
+.mantine-Tabs-tab[data-active] {
+  color: var(--gk-accent-primary);
+  font-weight: 700;
+}
+
 /* ProseMirror editor — tight paragraph spacing */
 .ProseMirror { padding: 10px 12px; min-height: 140px; outline: none; }
 .ProseMirror p { margin: 0; line-height: 1.55; }

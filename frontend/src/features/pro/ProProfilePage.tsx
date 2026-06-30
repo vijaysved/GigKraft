@@ -14,7 +14,7 @@ import {
   TextInput,
   Title,
 } from "@mantine/core";
-import { IconBrandGoogle, IconCamera, IconUpload } from "@tabler/icons-react";
+import { IconBrandGoogle, IconCamera, IconCertificate, IconTool, IconUpload } from "@tabler/icons-react";
 import { forwardRef, useImperativeHandle, useRef, useState } from "react";
 
 import { useAuth } from "../../auth/AuthContext";
@@ -145,9 +145,9 @@ export const ProProfilePage = forwardRef<ProProfileHandle>(function ProProfilePa
 
       <Tabs defaultValue="credentials">
         <Tabs.List>
-          <Tabs.Tab value="credentials">Credentials</Tabs.Tab>
-          <Tabs.Tab value="trade">Trade & skills</Tabs.Tab>
-          <Tabs.Tab value="visual">Profile photo</Tabs.Tab>
+          <Tabs.Tab value="credentials" leftSection={<IconCertificate size={15} />}>Credentials</Tabs.Tab>
+          <Tabs.Tab value="trade" leftSection={<IconTool size={15} />}>Trade & skills</Tabs.Tab>
+          <Tabs.Tab value="visual" leftSection={<IconCamera size={15} />}>Profile photo</Tabs.Tab>
         </Tabs.List>
 
         <Tabs.Panel value="credentials" pt="md">

@@ -36,6 +36,7 @@ import {
   Tooltip,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
+import { IconSend, IconStar } from "@tabler/icons-react";
 import { useRef, useState, type ReactNode } from "react";
 
 import { useTheme } from "../../theme/ThemeProvider";
@@ -566,8 +567,8 @@ export function ThemeComponentGallery() {
 
           <Tabs defaultValue="outbound">
             <Tabs.List>
-              <Tabs.Tab value="outbound">Send review link</Tabs.Tab>
-              <Tabs.Tab value="inbound">
+              <Tabs.Tab value="outbound" leftSection={<IconSend size={15} />}>Send review link</Tabs.Tab>
+              <Tabs.Tab value="inbound" leftSection={<IconStar size={15} />}>
                 Moderation
                 <Badge size="xs" circle ml={6}>
                   2

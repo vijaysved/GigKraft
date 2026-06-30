@@ -24,12 +24,15 @@ import {
   IconArchive,
   IconCheck,
   IconCircleCheck,
+  IconClipboardList,
   IconEdit,
   IconFileInvoice,
   IconLock,
+  IconMessage,
   IconPlus,
   IconReceiptDollar,
   IconSend,
+  IconStar,
   IconTrash,
 } from "@tabler/icons-react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -72,12 +75,12 @@ function RoleBadge({ role }: { role: string }) {
 
 // ── Thread tab labels ─────────────────────────────────────────────────────────
 type TabKey = "lead" | "chat" | "request" | "sent" | "feedback";
-const TABS: { key: TabKey; label: string }[] = [
-  { key: "lead",     label: "Leads / Quotes" },
-  { key: "chat",     label: "Chats" },
-  { key: "request",  label: "Requests" },
-  { key: "sent",     label: "Sent" },
-  { key: "feedback", label: "Feedback" },
+const TABS: { key: TabKey; label: string; icon: typeof IconFileInvoice }[] = [
+  { key: "lead",     label: "Leads / Quotes", icon: IconFileInvoice },
+  { key: "chat",     label: "Chats", icon: IconMessage },
+  { key: "request",  label: "Requests", icon: IconClipboardList },
+  { key: "sent",     label: "Sent", icon: IconSend },
+  { key: "feedback", label: "Feedback", icon: IconStar },
 ];
 
 // ── Relative time ─────────────────────────────────────────────────────────────
@@ -784,16 +787,12 @@ export function ProInboxPage() {
             style={{ borderBottom: "1px solid var(--gk-border)" }}
           >
             <Tabs.List>
-              {TABS.map(({ key, label }) => (
+              {TABS.map(({ key, label, icon: Icon }) => (
                 <Tabs.Tab
                   key={key}
                   value={key}
-                  style={{
-                    fontSize: 11,
-                    color: activeTab === key ? "var(--gk-accent-primary)" : "var(--gk-text-muted)",
-                    fontWeight: activeTab === key ? 700 : 400,
-                    padding: "8px 8px",
-                  }}
+                  style={{ fontSize: 11, padding: "8px 8px" }}
+                  leftSection={<Icon size={13} />}
                   rightSection={
                     tabCounts[key] > 0 ? (
                       <Badge size="xs" circle color="blue">{tabCounts[key]}</Badge>

@@ -39,10 +39,12 @@ import {
   IconCheck,
   IconChevronDown,
   IconChevronUp,
+  IconClipboardText,
   IconClockHour4,
   IconCopy,
   IconEdit,
   IconEye,
+  IconListDetails,
   IconMail,
   IconMailOpened,
   IconMessage,
@@ -1284,21 +1286,10 @@ function ProspectDrawer({
       {prospect ? (
         formFields
       ) : (
-        <Tabs
-          value={activeTab}
-          onChange={(v) => setActiveTab(v ?? "paste")}
-          styles={{
-            tab: {
-              "&[data-active]": {
-                borderBottomColor: "var(--gk-accent-primary)",
-                color: "var(--gk-accent-primary)",
-              },
-            },
-          }}
-        >
+        <Tabs value={activeTab} onChange={(v) => setActiveTab(v ?? "paste")}>
           <Tabs.List style={{ borderColor: "var(--gk-border)", marginBottom: 16 }}>
-            <Tabs.Tab value="paste">Paste Text</Tabs.Tab>
-            <Tabs.Tab value="form">Details</Tabs.Tab>
+            <Tabs.Tab value="paste" leftSection={<IconClipboardText size={12} />}>Paste Text</Tabs.Tab>
+            <Tabs.Tab value="form" leftSection={<IconListDetails size={12} />}>Details</Tabs.Tab>
             <Tabs.Tab value="bulk" leftSection={<IconUpload size={12} />}>Bulk Upload</Tabs.Tab>
           </Tabs.List>
 
