@@ -78,7 +78,11 @@ export function ContactTimelineDrawer({ opened, onClose, contact, onResend, onAr
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!opened || !contact) return;
+    if (!opened || !contact || contact.invite_id == null) {
+      setEvents([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     getInviteContactTimeline(contact.scenario, contact.invite_id)
       .then(setEvents)
@@ -108,7 +112,13 @@ export function ContactTimelineDrawer({ opened, onClose, contact, onResend, onAr
             </Group>
           </Box>
 
-          {loading ? (
+          {contact.invite_id == null ? (
+            <Text size="sm" c="dimmed">
+              {contact.is_on_platform
+                ? "Added directly to your page — no invite was sent."
+                : "No activity recorded yet."}
+            </Text>
+          ) : loading ? (
             <Loader size="xs" />
           ) : events.length === 0 ? (
             <Text size="sm" c="dimmed">No activity recorded yet.</Text>
@@ -120,20 +130,24 @@ export function ContactTimelineDrawer({ opened, onClose, contact, onResend, onAr
             </Box>
           )}
 
-          <Group justify="flex-end">
-            <Button
-              size="xs" variant="default" leftSection={<IconRefresh size={13} />}
-              loading={resending} onClick={onResend}
-            >
-              Resend
-            </Button>
-            <Button
-              size="xs" variant="default" color="red" leftSection={<IconArchive size={13} />}
-              loading={archiving} onClick={onArchive}
-            >
-              Archive
-            </Button>
-          </Group>
+          {contact.invite_id != null && (
+            <Group justify="flex-end">
+              <Button
+                size="xs" variant="default" leftSection={<IconRefresh size={13} />}
+                loading={resending} onClick={onResend}
+              >
+                Resend
+              </Button>
+              {contact.scenario !== "pro" && (
+                <Button
+                  size="xs" variant="default" color="red" leftSection={<IconArchive size={13} />}
+                  loading={archiving} onClick={onArchive}
+                >
+                  Archive
+                </Button>
+              )}
+            </Group>
+          )}
         </Stack>
       )}
     </Drawer>

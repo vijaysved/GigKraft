@@ -555,6 +555,8 @@ export interface ReferrerProRow {
   is_on_platform: boolean;
   is_pending: boolean;
   invite_status: string | null;
+  invite_id: number | null;
+  last_resent_at: string | null;
   added_at: string;
 }
 

@@ -1,22 +1,30 @@
-import { Badge, Box, Group, Loader, Select, Stack, Table, Text, TextInput, Tooltip, ActionIcon } from "@mantine/core";
-import { IconArchive, IconRefresh, IconSearch } from "@tabler/icons-react";
+import {
+  ActionIcon, Badge, Box, Button, Group, Loader, Modal, Select, Stack,
+  Switch, Table, Text, Textarea, TextInput, Tooltip,
+} from "@mantine/core";
+import { IconArchive, IconPencil, IconRefresh, IconSearch, IconTrash } from "@tabler/icons-react";
 import { useEffect, useMemo, useState } from "react";
 
 import {
   archiveCircleShare,
   archiveFriendInvite,
-  archiveProInvite,
+  deleteReferrerPro,
   getInviteList,
+  getReferrerPros,
   resendCircleShare,
   resendFriendInvite,
   resendProInvite,
+  updateReferrerPro,
 } from "../../../api/endpoints";
 import type { InviteScenario } from "../types";
 import { ContactTimelineDrawer } from "./ContactTimelineDrawer";
 
 export interface UnifiedInvite {
   scenario: InviteScenario;
-  invite_id: number;
+  /** Stable unique row id — ReferrerPro.id for pro rows, the invite PK otherwise. */
+  id: number;
+  /** Underlying invite PK for resend/timeline — null for a directly-added on-platform pro. */
+  invite_id: number | null;
   name: string;
   trade: string;
   phone: string;
@@ -26,6 +34,10 @@ export interface UnifiedInvite {
   click_count: number;
   invited_at: string;
   last_resent_at: string | null;
+  // Pro-only page-curation fields (undefined for friend/circle rows):
+  is_on_platform?: boolean;
+  show_on_page?: boolean;
+  endorsement?: string;
 }
 
 function maskPhone(phone: string) {
@@ -56,7 +68,7 @@ const TYPE_COLORS: Record<InviteScenario, string> = {
 
 function statusMeta(item: UnifiedInvite): { label: string; color: string; isTerminal: boolean } {
   if (item.scenario === "pro") {
-    if (item.status === "claimed") return { label: "Joined", color: "green", isTerminal: true };
+    if (item.is_on_platform) return { label: "On Platform", color: "green", isTerminal: true };
     if (item.status === "opened") return { label: "Opened", color: "grape", isTerminal: false };
     return { label: "Pending", color: "gray", isTerminal: false };
   }
@@ -75,13 +87,17 @@ interface RowProps {
   onSelect: () => void;
   onResend: () => void;
   onArchive: () => void;
+  onRemove: () => void;
+  onToggleShow: () => void;
+  onEditEndorsement: () => void;
   resending: boolean;
   archiving: boolean;
 }
 
-function InviteRow({ item, onSelect, onResend, onArchive, resending, archiving }: RowProps) {
+function InviteRow({ item, onSelect, onResend, onArchive, onRemove, onToggleShow, onEditEndorsement, resending, archiving }: RowProps) {
   const status = statusMeta(item);
-  const eligible = !status.isTerminal && canResend(item);
+  const eligible = !status.isTerminal && item.invite_id != null && canResend(item);
+  const isCuratedPro = item.scenario === "pro" && item.is_on_platform;
 
   return (
     <Table.Tr>
@@ -107,48 +123,82 @@ function InviteRow({ item, onSelect, onResend, onArchive, resending, archiving }
       </Table.Td>
       <Table.Td>
         <Group gap={4} wrap="nowrap">
-          <Tooltip label={eligible ? "Resend" : status.isTerminal ? status.label : "Wait 24h"} withArrow>
-            <ActionIcon size="sm" variant="subtle" color="blue" disabled={!eligible} loading={resending} onClick={onResend}>
-              <IconRefresh size={13} />
-            </ActionIcon>
-          </Tooltip>
-          <Tooltip label="Archive" withArrow>
-            <ActionIcon size="sm" variant="subtle" color="gray" loading={archiving} onClick={onArchive}>
-              <IconArchive size={13} />
-            </ActionIcon>
-          </Tooltip>
+          {isCuratedPro ? (
+            <>
+              <Tooltip label={item.show_on_page ? "Shown on your page" : "Hidden from your page"} withArrow>
+                <Switch size="xs" checked={!!item.show_on_page} onChange={onToggleShow} />
+              </Tooltip>
+              <Tooltip label="Edit endorsement" withArrow>
+                <ActionIcon size="sm" variant="subtle" color="blue" onClick={onEditEndorsement}>
+                  <IconPencil size={13} />
+                </ActionIcon>
+              </Tooltip>
+              <Tooltip label="Remove from your page" withArrow>
+                <ActionIcon size="sm" variant="subtle" color="red" onClick={onRemove}>
+                  <IconTrash size={13} />
+                </ActionIcon>
+              </Tooltip>
+            </>
+          ) : (
+            <>
+              {item.invite_id != null && (
+                <Tooltip label={eligible ? "Resend" : status.isTerminal ? status.label : "Wait 24h"} withArrow>
+                  <ActionIcon size="sm" variant="subtle" color="blue" disabled={!eligible} loading={resending} onClick={onResend}>
+                    <IconRefresh size={13} />
+                  </ActionIcon>
+                </Tooltip>
+              )}
+              {item.scenario === "pro" ? (
+                <Tooltip label="Remove from your page" withArrow>
+                  <ActionIcon size="sm" variant="subtle" color="red" onClick={onRemove}>
+                    <IconTrash size={13} />
+                  </ActionIcon>
+                </Tooltip>
+              ) : (
+                <Tooltip label="Archive" withArrow>
+                  <ActionIcon size="sm" variant="subtle" color="gray" loading={archiving} onClick={onArchive}>
+                    <IconArchive size={13} />
+                  </ActionIcon>
+                </Tooltip>
+              )}
+            </>
+          )}
         </Group>
       </Table.Td>
     </Table.Tr>
   );
 }
 
-export function InviteTimeline({ refreshKey }: { refreshKey: number }) {
+export function InviteTimeline({ refreshKey, lockType }: { refreshKey: number; lockType?: InviteScenario }) {
   const [items, setItems] = useState<UnifiedInvite[]>([]);
   const [loading, setLoading] = useState(true);
   const [rowState, setRowState] = useState<Record<string, "loading" | "">>({});
   const [selected, setSelected] = useState<UnifiedInvite | null>(null);
   const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState<string | null>("all");
+  const [typeFilter, setTypeFilter] = useState<string | null>(lockType ?? "all");
   const [statusFilter, setStatusFilter] = useState<string | null>("all");
+  const [endorsementTarget, setEndorsementTarget] = useState<UnifiedInvite | null>(null);
+  const [endorsementDraft, setEndorsementDraft] = useState("");
+  const [savingEndorsement, setSavingEndorsement] = useState(false);
 
   async function load() {
     setLoading(true);
     try {
-      const data = await getInviteList();
+      const [inviteData, pros] = await Promise.all([getInviteList(), getReferrerPros()]);
       const merged: UnifiedInvite[] = [
-        ...data.pro_invites.map((i) => ({
-          scenario: "pro" as const, invite_id: i.invite_id, name: i.name, trade: i.trade, phone: i.phone, email: i.email,
+        ...pros.map((p) => ({
+          scenario: "pro" as const, id: p.id, invite_id: p.invite_id, name: p.name, trade: p.trade,
+          phone: p.phone || "", email: p.email || "", channel: "", status: p.invite_status || "pending",
+          click_count: 0, invited_at: p.added_at, last_resent_at: p.last_resent_at,
+          is_on_platform: p.is_on_platform, show_on_page: p.show_on_page, endorsement: p.endorsement,
+        })),
+        ...inviteData.friend_invites.map((i) => ({
+          scenario: "friend" as const, id: i.invite_id, invite_id: i.invite_id, name: i.name, trade: "", phone: i.phone, email: i.email,
           channel: i.channel, status: i.status, click_count: i.click_count, invited_at: i.invited_at,
           last_resent_at: i.last_resent_at,
         })),
-        ...data.friend_invites.map((i) => ({
-          scenario: "friend" as const, invite_id: i.invite_id, name: i.name, trade: "", phone: i.phone, email: i.email,
-          channel: i.channel, status: i.status, click_count: i.click_count, invited_at: i.invited_at,
-          last_resent_at: i.last_resent_at,
-        })),
-        ...data.circle_invites.map((i) => ({
-          scenario: "circle" as const, invite_id: i.invite_id, name: i.name, trade: "", phone: i.phone, email: i.email,
+        ...inviteData.circle_invites.map((i) => ({
+          scenario: "circle" as const, id: i.invite_id, invite_id: i.invite_id, name: i.name, trade: "", phone: i.phone, email: i.email,
           channel: i.channel, status: i.status, click_count: i.click_count, invited_at: i.invited_at,
           last_resent_at: i.last_resent_at,
         })),
@@ -166,7 +216,8 @@ export function InviteTimeline({ refreshKey }: { refreshKey: number }) {
   }, [refreshKey]);
 
   async function handleResend(item: UnifiedInvite) {
-    const key = `${item.scenario}-${item.invite_id}`;
+    if (item.invite_id == null) return;
+    const key = `${item.scenario}-${item.id}`;
     setRowState((s) => ({ ...s, [key]: "loading" }));
     try {
       if (item.scenario === "pro") await resendProInvite(item.invite_id);
@@ -181,16 +232,51 @@ export function InviteTimeline({ refreshKey }: { refreshKey: number }) {
   }
 
   async function handleArchive(item: UnifiedInvite) {
-    const key = `arch-${item.scenario}-${item.invite_id}`;
+    if (item.invite_id == null) return;
+    const key = `arch-${item.scenario}-${item.id}`;
     setRowState((s) => ({ ...s, [key]: "loading" }));
     try {
-      if (item.scenario === "pro") await archiveProInvite(item.invite_id);
-      else if (item.scenario === "friend") await archiveFriendInvite(item.invite_id);
-      else await archiveCircleShare(item.invite_id);
-      setSelected((sel) => (sel && sel.scenario === item.scenario && sel.invite_id === item.invite_id ? null : sel));
+      if (item.scenario === "friend") await archiveFriendInvite(item.invite_id);
+      else if (item.scenario === "circle") await archiveCircleShare(item.invite_id);
+      setSelected((sel) => (sel && sel.scenario === item.scenario && sel.id === item.id ? null : sel));
       await load();
     } finally {
       setRowState((s) => ({ ...s, [key]: "" }));
+    }
+  }
+
+  async function handleRemovePro(item: UnifiedInvite) {
+    if (!confirm(`Remove ${item.name} from your page?`)) return;
+    const key = `rm-${item.scenario}-${item.id}`;
+    setRowState((s) => ({ ...s, [key]: "loading" }));
+    try {
+      await deleteReferrerPro(item.id);
+      setSelected((sel) => (sel && sel.scenario === item.scenario && sel.id === item.id ? null : sel));
+      await load();
+    } finally {
+      setRowState((s) => ({ ...s, [key]: "" }));
+    }
+  }
+
+  async function handleToggleShow(item: UnifiedInvite) {
+    await updateReferrerPro(item.id, { show_on_page: !item.show_on_page });
+    await load();
+  }
+
+  function openEndorsementEditor(item: UnifiedInvite) {
+    setEndorsementTarget(item);
+    setEndorsementDraft(item.endorsement || "");
+  }
+
+  async function saveEndorsement() {
+    if (!endorsementTarget) return;
+    setSavingEndorsement(true);
+    try {
+      await updateReferrerPro(endorsementTarget.id, { endorsement: endorsementDraft });
+      setEndorsementTarget(null);
+      await load();
+    } finally {
+      setSavingEndorsement(false);
     }
   }
 
@@ -220,17 +306,19 @@ export function InviteTimeline({ refreshKey }: { refreshKey: number }) {
           onChange={(e) => setSearch(e.currentTarget.value)}
           style={{ flex: 1, minWidth: 200 }}
         />
-        <Select
-          data={[
-            { value: "all", label: `All types (${items.length})` },
-            { value: "pro", label: `Pros (${typeCounts.pro})` },
-            { value: "friend", label: `Friends (${typeCounts.friend})` },
-            { value: "circle", label: `Circle (${typeCounts.circle})` },
-          ]}
-          value={typeFilter}
-          onChange={setTypeFilter}
-          w={170}
-        />
+        {!lockType && (
+          <Select
+            data={[
+              { value: "all", label: `All types (${items.length})` },
+              { value: "pro", label: `Pros (${typeCounts.pro})` },
+              { value: "friend", label: `Friends (${typeCounts.friend})` },
+              { value: "circle", label: `Circle (${typeCounts.circle})` },
+            ]}
+            value={typeFilter}
+            onChange={setTypeFilter}
+            w={170}
+          />
+        )}
         <Select
           data={[
             { value: "all", label: "All statuses" },
@@ -239,7 +327,7 @@ export function InviteTimeline({ refreshKey }: { refreshKey: number }) {
             { value: "opened", label: "Opened" },
             { value: "clicked", label: "Clicked" },
             { value: "following", label: "Following" },
-            { value: "joined", label: "Joined" },
+            { value: "on platform", label: "On Platform" },
           ]}
           value={statusFilter}
           onChange={setStatusFilter}
@@ -251,7 +339,7 @@ export function InviteTimeline({ refreshKey }: { refreshKey: number }) {
         <Loader size="xs" />
       ) : items.length === 0 ? (
         <Text size="sm" c="dimmed" py="sm">
-          No invites sent yet. Use the buttons above to invite a pro, a friend, or share your circle.
+          No contacts yet. Use the buttons above to invite a pro, a friend, or share your circle.
         </Text>
       ) : filtered.length === 0 ? (
         <Text size="sm" c="dimmed" py="sm">No contacts match the current filters.</Text>
@@ -265,20 +353,23 @@ export function InviteTimeline({ refreshKey }: { refreshKey: number }) {
                 <Table.Th>Contact</Table.Th>
                 <Table.Th>Trade</Table.Th>
                 <Table.Th>Status</Table.Th>
-                <Table.Th>Sent</Table.Th>
+                <Table.Th>Added</Table.Th>
                 <Table.Th></Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
               {filtered.map((item) => (
                 <InviteRow
-                  key={`${item.scenario}-${item.invite_id}`}
+                  key={`${item.scenario}-${item.id}`}
                   item={item}
                   onSelect={() => setSelected(item)}
                   onResend={() => handleResend(item)}
                   onArchive={() => handleArchive(item)}
-                  resending={rowState[`${item.scenario}-${item.invite_id}`] === "loading"}
-                  archiving={rowState[`arch-${item.scenario}-${item.invite_id}`] === "loading"}
+                  onRemove={() => handleRemovePro(item)}
+                  onToggleShow={() => handleToggleShow(item)}
+                  onEditEndorsement={() => openEndorsementEditor(item)}
+                  resending={rowState[`${item.scenario}-${item.id}`] === "loading"}
+                  archiving={rowState[`arch-${item.scenario}-${item.id}`] === "loading"}
                 />
               ))}
             </Table.Tbody>
@@ -292,9 +383,25 @@ export function InviteTimeline({ refreshKey }: { refreshKey: number }) {
         contact={selected}
         onResend={() => selected && handleResend(selected)}
         onArchive={() => selected && handleArchive(selected)}
-        resending={selected ? rowState[`${selected.scenario}-${selected.invite_id}`] === "loading" : false}
-        archiving={selected ? rowState[`arch-${selected.scenario}-${selected.invite_id}`] === "loading" : false}
+        resending={selected ? rowState[`${selected.scenario}-${selected.id}`] === "loading" : false}
+        archiving={selected ? rowState[`arch-${selected.scenario}-${selected.id}`] === "loading" : false}
       />
+
+      <Modal opened={!!endorsementTarget} onClose={() => setEndorsementTarget(null)} title="Edit endorsement" size="sm" centered>
+        <Stack gap="sm">
+          <Textarea
+            placeholder="Why do you recommend this pro?"
+            value={endorsementDraft}
+            onChange={(e) => setEndorsementDraft(e.currentTarget.value)}
+            minRows={3}
+            autosize
+          />
+          <Group justify="flex-end">
+            <Button variant="default" onClick={() => setEndorsementTarget(null)}>Cancel</Button>
+            <Button loading={savingEndorsement} onClick={() => void saveEndorsement()}>Save</Button>
+          </Group>
+        </Stack>
+      </Modal>
     </Stack>
   );
 }

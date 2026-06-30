@@ -378,6 +378,8 @@ class ReferrerProDashboardOut(Schema):
     is_on_platform: bool
     is_pending: bool
     invite_status: Optional[str] = None
+    invite_id: Optional[int] = None
+    last_resent_at: Optional[str] = None
     added_at: str
 
 
@@ -916,6 +918,8 @@ def _serialize_referrer_pro(rp: ReferrerPro) -> dict:
         "is_on_platform": is_on_platform,
         "is_pending": is_pending,
         "invite_status": invite_status,
+        "invite_id": rp.pro_invite_id,
+        "last_resent_at": rp.pro_invite.last_resent_at.isoformat() if rp.pro_invite and rp.pro_invite.last_resent_at else None,
         "added_at": rp.added_at.isoformat(),
     }
 

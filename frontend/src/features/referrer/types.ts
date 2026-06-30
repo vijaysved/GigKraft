@@ -54,23 +54,6 @@ export interface ReferrerDashboardOut {
   stats: ReferrerStatsOut;
 }
 
-export interface ReferrerProDashboardOut {
-  id: number;
-  name: string;
-  trade: string;
-  phone: string;
-  email: string;
-  avatar_url: string;
-  endorsement: string;
-  show_on_page: boolean;
-  display_order: number;
-  referral_count: number;
-  is_on_platform: boolean;
-  is_pending: boolean;
-  invite_status: string | null;
-  added_at: string;
-}
-
 export interface ReferralRequestDetailOut {
   id: number;
   follower_name: string;
