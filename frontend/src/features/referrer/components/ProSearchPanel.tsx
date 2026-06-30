@@ -20,15 +20,6 @@ export function ProSearchPanel({ onAdded }: Props) {
   const [addingHandle, setAddingHandle] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Customized for this referrer: default the search to their own service zip,
-  // and mark pros already on their page so they're not offered twice.
-  useEffect(() => {
-    getReferrerMe().then((data) => {
-      if (data.profile.default_zip) setZip(data.profile.default_zip);
-    }).catch(() => {});
-    void refreshAdded();
-  }, []);
-
   async function refreshAdded() {
     try {
       const rows = await getReferrerPros();
@@ -37,6 +28,15 @@ export function ProSearchPanel({ onAdded }: Props) {
       // leave previous state
     }
   }
+
+  // Customized for this referrer: default the search to their own service zip,
+  // and mark pros already on their page so they're not offered twice.
+  useEffect(() => {
+    getReferrerMe().then((data) => {
+      if (data.profile.default_zip) setZip(data.profile.default_zip);
+    }).catch(() => {});
+    void refreshAdded();
+  }, []);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
