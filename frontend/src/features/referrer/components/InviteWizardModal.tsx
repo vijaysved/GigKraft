@@ -1,6 +1,7 @@
 import {
   ActionIcon,
   Alert,
+  Autocomplete,
   Box,
   Button,
   Divider,
@@ -237,13 +238,12 @@ export function InviteWizardModal({ opened, onClose, scenario, slug, senderName,
                     style={{ flex: 1, minWidth: 140 }}
                   />
                   {meta.needsTrade && (
-                    <Select
+                    <Autocomplete
                       label={i === 0 ? "Trade" : undefined}
-                      placeholder="Trade"
+                      placeholder="Type or pick a trade…"
                       data={TRADE_OPTIONS}
-                      value={r.trade || null}
-                      onChange={(v) => updateRecipient(i, "trade", v ?? "")}
-                      searchable
+                      value={r.trade}
+                      onChange={(v) => updateRecipient(i, "trade", v)}
                       style={{ flex: 1, minWidth: 140 }}
                     />
                   )}
