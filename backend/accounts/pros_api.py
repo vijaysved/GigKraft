@@ -47,6 +47,11 @@ class ProStatsSummary(Schema):
     avg_stars: Optional[float]
 
 
+class TradeCategoryOut(Schema):
+    category: str
+    subcategories: list[str] = []
+
+
 class ProOut(Schema):
     id: int
     handle: Optional[str]
@@ -74,7 +79,7 @@ class ProOut(Schema):
     email: Optional[str]
     phone: Optional[str]
     role: str
-    trade_categories: list
+    trade_categories: list[TradeCategoryOut]
     stats: ProStatsSummary
 
 

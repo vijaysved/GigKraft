@@ -24,6 +24,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/public/site-info": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Public Site Info
+         * @description Public — returns template profile URLs for both environments.
+         */
+        get: operations["common_api_public_site_info"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/public/geo/zip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Geo Zip
+         * @description Detect the caller's ZIP code from their IP address. Cached 24 h per IP.
+         */
+        get: operations["common_api_get_geo_zip"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/public/location/{zip}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Location Info
+         * @description Return city/state and live pro count for a ZIP — used for clean-URL OG tags.
+         */
+        get: operations["common_api_get_location_info"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/track/page-view": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Track Site Page View
+         * @description Records a visit to a site-config demo/marketing page.
+         */
+        post: operations["common_api_track_site_page_view"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/register": {
         parameters: {
             query?: never;
@@ -171,6 +251,46 @@ export interface paths {
         patch: operations["accounts_api_patch_me"];
         trace?: never;
     };
+    "/api/me/avatar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload Avatar
+         * @description Accept a multipart image upload, save to MEDIA_ROOT, return the public URL.
+         */
+        post: operations["accounts_api_upload_avatar"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/avatar-from-url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Avatar From Url
+         * @description Download an image URL (e.g. Google photo), save to MEDIA_ROOT, return stable URL.
+         */
+        post: operations["accounts_api_avatar_from_url"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/me/notif-prefs": {
         parameters: {
             query?: never;
@@ -187,6 +307,135 @@ export interface paths {
         head?: never;
         /** Update Notif Prefs */
         patch: operations["accounts_home_api_update_notif_prefs"];
+        trace?: never;
+    };
+    "/api/pros/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search Pros Public
+         * @description Public pro discovery — no auth required, no node scoping.
+         */
+        get: operations["accounts_pros_api_search_pros_public"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pros/rfq": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Post Rfq
+         * @description Submit a free-form quote request. Matches pros by category + zip (partial match)
+         *     and emails a summary to the GK Admin inbox.
+         */
+        post: operations["accounts_pros_api_post_rfq"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pros/track/profile-view": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Track Profile View */
+        post: operations["accounts_pros_api_track_profile_view"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pros/track/kraft-impression": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Track Kraft Impression */
+        post: operations["accounts_pros_api_track_kraft_impression"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pros/track/kraft-click": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Track Kraft Click */
+        post: operations["accounts_pros_api_track_kraft_click"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pros/og/{handle}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Og Preview
+         * @description Return OG-tagged HTML for social crawlers; instantly redirects browsers to the SPA.
+         */
+        get: operations["accounts_pros_api_og_preview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pros/by-handle/{handle}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Pro By Handle */
+        get: operations["accounts_pros_api_pro_by_handle"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/pros/me": {
@@ -295,15 +544,52 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/pros/by-handle/{handle}": {
+    "/api/pros/me/dashboard": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Pro By Handle */
-        get: operations["accounts_pros_api_pro_by_handle"];
+        /** My Dashboard */
+        get: operations["accounts_pros_api_my_dashboard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pros/me/market": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My Market */
+        get: operations["accounts_pros_api_my_market"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/krafts/by-pro/{pro_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Krafts By Pro
+         * @description Public: return the verified Krafts for a pro (shown on public profile).
+         */
+        get: operations["krafts_api_krafts_by_pro"];
         put?: never;
         post?: never;
         delete?: never;
@@ -376,7 +662,7 @@ export interface paths {
         put?: never;
         /**
          * Publish Kraft
-         * @description Publish the Kraft. Requires ≥1 After photo + confirmed invoice. Sets status PENDING for node manager review.
+         * @description Publish the Kraft. Requires ≥1 After photo. Sets status VERIFIED so it appears on the public profile immediately.
          */
         post: operations["krafts_api_publish_kraft"];
         delete?: never;
@@ -419,20 +705,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/krafts/by-pro/{pro_id}": {
+    "/api/leads/anonymous": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /**
-         * Krafts By Pro
-         * @description Public: return the verified Krafts for a pro (shown on public profile).
-         */
-        get: operations["krafts_api_krafts_by_pro"];
+        get?: never;
         put?: never;
-        post?: never;
+        /**
+         * Create Anonymous Lead
+         * @description Submit a quote request without signing in.
+         *
+         *     The lead is attributed to a sentinel 'anonymous@gigkraft.internal' user so
+         *     it appears in the PRO's inbox labelled 'Anonymous'. The anon user can later
+         *     claim the conversation by signing up and linking via the lead ID.
+         */
+        post: operations["leads_api_create_anonymous_lead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/leads/zip-waitlist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Join Zip Waitlist
+         * @description Capture visitor email/phone for a ZIP with no pros yet.
+         */
+        post: operations["leads_api_join_zip_waitlist"];
         delete?: never;
         options?: never;
         head?: never;
@@ -448,17 +758,46 @@ export interface paths {
         };
         /**
          * List Leads
-         * @description Role-aware list: pros see their leads, homeowners see theirs.
+         * @description Role-aware list: pros see their leads, homeowners/referrers see theirs.
+         *
+         *     Pass ?sent=true to see threads initiated by the current user (homeowner slot),
+         *     regardless of role — powers the Sent tab in both inboxes.
          */
         get: operations["leads_api_list_leads"];
         put?: never;
         /**
          * Create Lead
-         * @description Homeowner requests a quote from a pro (screen 2.2 footer).
+         * @description Any authenticated user can request a quote.
          *
-         *     Sets respond_by = created_at + pro.response_hours (the SLA timer).
+         *     If the user lacks the homeowner role, it is added to their extra_roles
+         *     so they can track their own requests. Enforces § global lead cap.
          */
         post: operations["leads_api_create_lead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/leads/compose": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Compose Message
+         * @description Start a new direct-message chat thread by addressing a pro @handle.
+         *
+         *     Any authenticated user (homeowner or pro) can compose. The sender occupies
+         *     the homeowner slot; the addressed pro occupies the pro slot. The thread is
+         *     classified as thread_type='chat' and appears in the receiver's Chats tab.
+         *     Senders can find it in their Sent tab via ?sent=true.
+         */
+        post: operations["leads_api_compose_message"];
         delete?: never;
         options?: never;
         head?: never;
@@ -503,6 +842,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/leads/{lead_id}/accept-request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accept Request
+         * @description PRO accepts a thread classified as `request`, moving it to active chat.
+         *
+         *     Until accepted: sender does not receive read receipts (enforced client-side).
+         */
+        post: operations["leads_api_accept_request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/leads/{lead_id}/quotes": {
         parameters: {
             query?: never;
@@ -514,7 +875,7 @@ export interface paths {
         put?: never;
         /**
          * Send Quote
-         * @description Pro sends a quote (or invoice) into the chat (screen 1.10).
+         * @description Pro sends a quote (or invoice) into the chat.
          */
         post: operations["leads_api_send_quote"];
         delete?: never;
@@ -534,7 +895,7 @@ export interface paths {
         put?: never;
         /**
          * Accept Quote
-         * @description Homeowner accepts a quote (screen 2.4).
+         * @description Homeowner accepts a quote.
          */
         post: operations["leads_api_accept_quote"];
         delete?: never;
@@ -554,7 +915,7 @@ export interface paths {
         put?: never;
         /**
          * Mark Complete
-         * @description Pro marks the job complete -> lead won (screen 1.10 quick action).
+         * @description Pro marks the job complete.
          */
         post: operations["leads_api_mark_complete"];
         delete?: never;
@@ -574,6 +935,29 @@ export interface paths {
         put?: never;
         /** Archive Lead */
         post: operations["leads_api_archive_lead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/leads/{lead_id}/claim": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Claim Anonymous Lead
+         * @description Reassign an anonymous lead to the authenticated user who just signed up.
+         *
+         *     Only works when the lead's homeowner is anonymous@gigkraft.internal.
+         *     Called after a visitor completes signup following an anonymous quote submission.
+         */
+        post: operations["leads_api_claim_anonymous_lead"];
         delete?: never;
         options?: never;
         head?: never;
@@ -651,6 +1035,26 @@ export interface paths {
          * @description First pro to claim wins: opens a Lead + chat, sets claimed_by.
          */
         post: operations["emergencies_api_claim_broadcast"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/recommendations/by-handle/{handle}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Public Recommendations
+         * @description Return approved recommendations for a pro's public profile.
+         */
+        get: operations["recommendations_api_public_recommendations"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -759,20 +1163,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/recommendations/by-handle/{handle}": {
+    "/api/favorites/pros": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /**
-         * Public Recommendations
-         * @description Return approved recommendations for a pro's public profile.
-         */
-        get: operations["recommendations_api_public_recommendations"];
+        /** Get Favorites */
+        get: operations["accounts_favorites_api_get_favorites"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/favorites/pros/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sync Favorites
+         * @description Merge local-storage favorites into the server's list and return the union.
+         */
+        post: operations["accounts_favorites_api_sync_favorites"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/favorites/pros/{pro_id}/toggle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Toggle Favorite */
+        post: operations["accounts_favorites_api_toggle_favorite"];
         delete?: never;
         options?: never;
         head?: never;
@@ -794,6 +1232,23 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/home/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Patch Home Profile */
+        patch: operations["accounts_home_api_patch_home_profile"];
         trace?: never;
     };
     "/api/home/saved-pros": {
@@ -885,6 +1340,23 @@ export interface paths {
         head?: never;
         /** Update Address */
         patch: operations["accounts_home_api_update_address"];
+        trace?: never;
+    };
+    "/api/waitlist/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Join Waitlist */
+        post: operations["accounts_home_api_join_waitlist"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/admin/metrics": {
@@ -1132,6 +1604,64 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/billing/checkout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Checkout Session
+         * @description Start a Stripe Checkout session for a member upgrading or a pro re-subscribing.
+         */
+        post: operations["billing_api_create_checkout_session"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/billing/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Billing Config */
+        get: operations["billing_api_billing_config"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/billing/subscription/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Reset Subscription
+         * @description Delete the pro's subscription row so the checkout flow can be re-tested.
+         *     Only available when Stripe is in test mode.
+         */
+        delete: operations["billing_api_reset_subscription"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/gk-admin/metrics": {
         parameters: {
             query?: never;
@@ -1166,6 +1696,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/gk-admin/users/zipcodes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List User Zipcodes */
+        get: operations["common_gk_admin_api_list_user_zipcodes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gk-admin/users/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete User */
+        delete: operations["common_gk_admin_api_delete_user"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gk-admin/users/{user_id}/set-admin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Set User Admin */
+        patch: operations["common_gk_admin_api_set_user_admin"];
+        trace?: never;
+    };
+    "/api/gk-admin/users/{user_id}/set-visitor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Set User Visitor */
+        patch: operations["common_gk_admin_api_set_user_visitor"];
+        trace?: never;
+    };
     "/api/gk-admin/nodes": {
         parameters: {
             query?: never;
@@ -1183,56 +1781,17 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/vendors/templates": {
+    "/api/gk-admin/stripe-config": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** List Templates */
-        get: operations["vendors_api_list_templates"];
-        put?: never;
-        /** Create Template */
-        post: operations["vendors_api_create_template"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/vendors/templates/{template_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Template */
-        get: operations["vendors_api_get_template"];
-        put?: never;
-        post?: never;
-        /** Delete Template */
-        delete: operations["vendors_api_delete_template"];
-        options?: never;
-        head?: never;
-        /** Update Template */
-        patch: operations["vendors_api_update_template"];
-        trace?: never;
-    };
-    "/api/vendors/templates/{template_id}/preview/{vendor_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Preview Template
-         * @description Render a template with a specific vendor's variables.
-         */
-        get: operations["vendors_api_preview_template"];
-        put?: never;
+        /** Get Stripe Config */
+        get: operations["common_gk_admin_api_get_stripe_config"];
+        /** Update Stripe Config */
+        put: operations["common_gk_admin_api_update_stripe_config"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1240,31 +1799,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/vendors/{vendor_id}/communications": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Communications */
-        get: operations["vendors_api_list_communications"];
-        put?: never;
-        /**
-         * Log Communication
-         * @description Log that an outreach was sent.
-         *
-         *     - Sets vendor.last_contact_date to today.
-         *     - Optionally advances vendor status from 'new' → 'contacted'.
-         */
-        post: operations["vendors_api_log_communication"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/vendors/{vendor_id}/communications/{comm_id}": {
+    "/api/gk-admin/stripe-config/test-connection": {
         parameters: {
             query?: never;
             header?: never;
@@ -1273,52 +1808,267 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post?: never;
-        /** Delete Communication */
-        delete: operations["vendors_api_delete_communication"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/vendors": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Vendors */
-        get: operations["vendors_api_list_vendors"];
-        put?: never;
-        /** Create Vendor */
-        post: operations["vendors_api_create_vendor"];
+        /**
+         * Test Stripe Connection
+         * @description Ping Stripe with whichever key matches the current mode.
+         */
+        post: operations["common_gk_admin_api_test_stripe_connection"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/vendors/{vendor_id}": {
+    "/api/gk-admin/stripe-cli/status": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get Vendor */
-        get: operations["vendors_api_get_vendor"];
+        /** Stripe Cli Status */
+        get: operations["common_gk_admin_api_stripe_cli_status"];
         put?: never;
         post?: never;
-        /** Delete Vendor */
-        delete: operations["vendors_api_delete_vendor"];
+        delete?: never;
         options?: never;
         head?: never;
-        /** Update Vendor */
-        patch: operations["vendors_api_update_vendor"];
+        patch?: never;
         trace?: never;
     };
-    "/api/vendors/bulk-status": {
+    "/api/gk-admin/stripe-cli/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stripe Cli Start */
+        post: operations["common_gk_admin_api_stripe_cli_start"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gk-admin/billing/subscribers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Billing Subscribers */
+        get: operations["common_gk_admin_api_billing_subscribers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gk-admin/billing/transactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Billing Transactions */
+        get: operations["common_gk_admin_api_billing_transactions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gk-admin/inbox/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Inbox Overview
+         * @description Platform-wide inbox overview: all users with conversation activity.
+         */
+        get: operations["common_gk_admin_api_inbox_overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gk-admin/inbox/user/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Inbox User Leads
+         * @description All leads where the given user is a participant (homeowner or pro slot).
+         */
+        get: operations["common_gk_admin_api_inbox_user_leads"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gk-admin/anonymous-leads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Anonymous Leads
+         * @description All leads captured from anonymous visitors (not yet linked to a real HO account).
+         */
+        get: operations["common_gk_admin_api_list_anonymous_leads"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gk-admin/site-config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Site Config */
+        get: operations["common_gk_admin_api_get_site_config"];
+        /** Update Site Config */
+        put: operations["common_gk_admin_api_update_site_config"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gk-admin/template-profile/{handle}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Template Profile */
+        get: operations["common_gk_admin_api_get_template_profile"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Template Profile */
+        patch: operations["common_gk_admin_api_update_template_profile"];
+        trace?: never;
+    };
+    "/api/prospects/pixel/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Track Email Open */
+        get: operations["vendors_api_track_email_open"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/prospects/track/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Track Signup Click */
+        get: operations["vendors_api_track_signup_click"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/prospects/track-example/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Track Example Click */
+        get: operations["vendors_api_track_example_click"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/prospects/track-view": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Track Page View */
+        post: operations["vendors_api_track_page_view"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/prospects/analytics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Analytics */
+        get: operations["vendors_api_get_analytics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/prospects/bulk-status": {
         parameters: {
             query?: never;
             header?: never;
@@ -1329,6 +2079,1277 @@ export interface paths {
         put?: never;
         /** Bulk Update Status */
         post: operations["vendors_api_bulk_update_status"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/prospects/bulk-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Bulk Preview */
+        post: operations["vendors_api_bulk_preview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/prospects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Prospects */
+        get: operations["vendors_api_list_prospects"];
+        put?: never;
+        /** Create Prospect */
+        post: operations["vendors_api_create_prospect"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/prospects/by-gkid/{gk_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Prospect By Gkid */
+        get: operations["vendors_api_get_prospect_by_gkid"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/prospects/{prospect_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Prospect */
+        get: operations["vendors_api_get_prospect"];
+        put?: never;
+        post?: never;
+        /** Delete Prospect */
+        delete: operations["vendors_api_delete_prospect"];
+        options?: never;
+        head?: never;
+        /** Update Prospect */
+        patch: operations["vendors_api_update_prospect"];
+        trace?: never;
+    };
+    "/api/prospects/{prospect_id}/start-sequence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start Sequence */
+        post: operations["vendors_api_start_sequence"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/prospects/{prospect_id}/advance-step": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Advance Chat Step */
+        post: operations["vendors_api_advance_chat_step"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/prospects/{prospect_id}/send-step": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send Step
+         * @description Send or resend a specific sequence step via email or WhatsApp log.
+         */
+        post: operations["vendors_api_send_step"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/comms/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Templates */
+        get: operations["comms_api_list_templates"];
+        put?: never;
+        /** Create Template */
+        post: operations["comms_api_create_template"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/comms/templates/{template_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Template */
+        delete: operations["comms_api_delete_template"];
+        options?: never;
+        head?: never;
+        /** Update Template */
+        patch: operations["comms_api_update_template"];
+        trace?: never;
+    };
+    "/api/comms/send-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send Email Endpoint */
+        post: operations["comms_api_send_email_endpoint"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/comms/prospects/{prospect_id}/logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Logs */
+        get: operations["comms_api_list_logs"];
+        put?: never;
+        /** Add Log */
+        post: operations["comms_api_add_log"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/comms/logs/{log_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Log */
+        delete: operations["comms_api_delete_log"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Feedback
+         * @description List all feedback — gk_admin only.
+         */
+        get: operations["feedback_api_list_feedback"];
+        put?: never;
+        /**
+         * Submit Feedback
+         * @description Submit feedback — works for both anonymous and authenticated users.
+         */
+        post: operations["feedback_api_submit_feedback"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/feedback/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My Feedback
+         * @description Return all feedback submitted by the authenticated user.
+         */
+        get: operations["feedback_api_my_feedback"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/feedback/{feedback_id}/reply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reply To Feedback
+         * @description Add a reply to a feedback ticket — gk_admin only.
+         */
+        post: operations["feedback_api_reply_to_feedback"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/feedback/{feedback_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Status
+         * @description Mark a feedback ticket open or resolved — gk_admin only.
+         */
+        patch: operations["feedback_api_update_status"];
+        trace?: never;
+    };
+    "/api/circles/me/find-pro": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Find Pro For Circle
+         * @description Search for a registered pro by name, email, or phone for circle curation.
+         */
+        get: operations["circles_api_find_pro_for_circle"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/circles/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get My Circle */
+        get: operations["circles_api_get_my_circle"];
+        put?: never;
+        /**
+         * Create My Circle
+         * @description Create the curator's Circle with a user-chosen slug (first-time setup only).
+         */
+        post: operations["circles_api_create_my_circle"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/circles/me/pros": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add On Platform Pro */
+        post: operations["circles_api_add_on_platform_pro"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/circles/me/pros/off-platform": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add Off Platform Pro */
+        post: operations["circles_api_add_off_platform_pro"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/circles/me/pros/{circle_pro_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove Pro From Circle */
+        delete: operations["circles_api_remove_pro_from_circle"];
+        options?: never;
+        head?: never;
+        /** Update Endorsement */
+        patch: operations["circles_api_update_endorsement"];
+        trace?: never;
+    };
+    "/api/circles/me/analytics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Circle Analytics */
+        get: operations["circles_api_get_circle_analytics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/circles/me/follow-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Follow Requests */
+        get: operations["circles_api_list_follow_requests"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/circles/me/follow-requests/{follow_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Follow Request */
+        patch: operations["circles_api_update_follow_request"];
+        trace?: never;
+    };
+    "/api/circles/{slug}/follow": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request Follow */
+        post: operations["circles_api_request_follow"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/circles/claim-lead/{lead_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Claim Escrowed Lead
+         * @description Explicit claim path: authenticated user asserts they are the off-platform
+         *     pro who was invited. Supplements the post_save signal (which fires
+         *     automatically when ProProfile is created with a matching email).
+         */
+        post: operations["circles_api_claim_escrowed_lead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/circles/check-slug": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Check Slug Available
+         * @description Returns whether a given handle/slug is available. Safe path — not a slug param.
+         */
+        get: operations["circles_api_check_slug_available"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/circles/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Circle */
+        get: operations["circles_api_get_circle"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/circles/{slug}/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search Circle */
+        get: operations["circles_api_search_circle"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/circles/{slug}/request-pro": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request Pro */
+        post: operations["circles_api_request_pro"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/circles/{slug}/request-intro": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request Intro */
+        post: operations["circles_api_request_intro"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/referrer/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Dashboard */
+        get: operations["referrals_api_dashboard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/referrer/me/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Profile */
+        patch: operations["referrals_api_update_profile"];
+        trace?: never;
+    };
+    "/api/referrer/me/pros": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List My Pros */
+        get: operations["referrals_api_list_my_pros"];
+        put?: never;
+        /** Add Pro */
+        post: operations["referrals_api_add_pro"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/referrer/me/pros/reorder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Reorder Pros */
+        patch: operations["referrals_api_reorder_pros"];
+        trace?: never;
+    };
+    "/api/referrer/me/pros/lookup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lookup Pro By Contact
+         * @description Find a pro (or member) by exact phone or email match.
+         */
+        get: operations["referrals_api_lookup_pro_by_contact"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/referrer/me/pros/{rp_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove Pro */
+        delete: operations["referrals_api_remove_pro"];
+        options?: never;
+        head?: never;
+        /** Update Pro */
+        patch: operations["referrals_api_update_pro"];
+        trace?: never;
+    };
+    "/api/referrer/me/invite-pro": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Invite Pro */
+        post: operations["referrals_api_invite_pro"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/referrer/me/invite-pro/{invite_id}/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resend Pro Invite */
+        post: operations["referrals_api_resend_pro_invite"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/referrer/me/invite-friend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Invite Friend
+         * @description Legacy batch endpoint — kept for backward compat. New code uses /me/invite-friend-single.
+         */
+        post: operations["referrals_api_invite_friend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/referrer/me/invite-friend-single": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Invite Friend Single
+         * @description Single friend invite — creates a tracked FriendInvite with a unique token.
+         *     Frontend builds the WhatsApp/SMS deep link using the returned token + referrer_slug.
+         */
+        post: operations["referrals_api_invite_friend_single"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/referrer/me/invite-friend-single/{invite_id}/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resend Friend Invite */
+        post: operations["referrals_api_resend_friend_invite"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/referrer/me/share-circle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Share Circle
+         * @description Single recipient circle-share — same shape as invite-friend-single.
+         *     The wizard loops this once per recipient for multi-recipient Circle sends.
+         */
+        post: operations["referrals_api_share_circle"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/referrer/me/share-circle/{invite_id}/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resend Circle Share */
+        post: operations["referrals_api_resend_circle_share"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/referrer/me/share-circle/{invite_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive Circle Share */
+        post: operations["referrals_api_archive_circle_share"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/referrer/pro-invite/claim/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Claim Pro Invite
+         * @description Auth required. Links the authenticated user to the ProInvite and creates a ProProfile.
+         */
+        post: operations["referrals_api_claim_pro_invite"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/referrer/friend-invite/claim/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Claim Friend Invite
+         * @description Auth required. Auto-follows the referrer and marks the FriendInvite as converted.
+         */
+        post: operations["referrals_api_claim_friend_invite"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/referrer/me/invites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Invites
+         * @description Returns non-archived pro and friend invites for the dashboard.
+         */
+        get: operations["referrals_api_list_invites"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/referrer/me/invites/{scenario}/{invite_id}/timeline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Invite Contact Timeline
+         * @description Per-contact event history powering the Contact Detail Timeline drawer.
+         */
+        get: operations["referrals_api_invite_contact_timeline"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/referrer/me/invite-pro/{invite_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Pro Invite */
+        patch: operations["referrals_api_update_pro_invite"];
+        trace?: never;
+    };
+    "/api/referrer/me/invite-friend-single/{invite_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Friend Invite */
+        patch: operations["referrals_api_update_friend_invite"];
+        trace?: never;
+    };
+    "/api/referrer/me/invite-pro/{invite_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive Pro Invite */
+        post: operations["referrals_api_archive_pro_invite"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/referrer/me/invite-friend-single/{invite_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive Friend Invite */
+        post: operations["referrals_api_archive_friend_invite"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/referrer/me/upload-contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload Contacts */
+        post: operations["referrals_api_upload_contacts"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/referrer/me/upload-contacts/add": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add Matched Contacts */
+        post: operations["referrals_api_add_matched_contacts"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/referrer/me/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Requests */
+        get: operations["referrals_api_list_requests"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/referrer/me/requests/{req_id}/send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send Referral */
+        post: operations["referrals_api_send_referral"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/referrer/me/requests/{req_id}/verify-follower-otp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verify Follower Otp */
+        post: operations["referrals_api_verify_follower_otp"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/referrer/me/requests/{req_id}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decline Request */
+        post: operations["referrals_api_decline_request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/referrer/me/followers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Followers */
+        get: operations["referrals_api_list_followers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/referrer/me/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Referral Activity */
+        get: operations["referrals_api_referral_activity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/referrer/check-slug": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Check Slug */
+        get: operations["referrals_api_check_slug"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/referrer/pros/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search Pros */
+        get: operations["referrals_api_search_pros"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/referrer/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Referrer Public Page */
+        get: operations["referrals_api_referrer_public_page"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/referrer/{slug}/follow": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Follow Referrer */
+        post: operations["referrals_api_follow_referrer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/referrer/{slug}/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit Referral Request */
+        post: operations["referrals_api_submit_referral_request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/referrer/circle-share/click/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Circle Share Click
+         * @description Public. Fire-and-forget — atomically increments click_count.
+         */
+        post: operations["referrals_api_circle_share_click"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/referrer/pro-invite/preview/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Pro Invite Preview
+         * @description Public. Returns context for the claim landing page — used to highlight the right pro card.
+         */
+        get: operations["referrals_api_pro_invite_preview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/referrer/pro-invite/click/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Pro Invite Click
+         * @description Public. Fire-and-forget — atomically increments click_count.
+         */
+        post: operations["referrals_api_pro_invite_click"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/referrer/friend-invite/click/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Friend Invite Click
+         * @description Public. Fire-and-forget — atomically increments click_count.
+         */
+        post: operations["referrals_api_friend_invite_click"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1349,6 +3370,51 @@ export interface components {
             mocks: {
                 [key: string]: unknown;
             };
+            /** Google Client Id Set */
+            google_client_id_set: boolean;
+            /** Settings Module */
+            settings_module: string;
+        };
+        /** PublicSiteInfoOut */
+        PublicSiteInfoOut: {
+            /** Template Pro Url Local */
+            template_pro_url_local: string;
+            /** Template Pro Url Prod */
+            template_pro_url_prod: string;
+            /** Template Member Url Local */
+            template_member_url_local: string;
+            /** Template Member Url Prod */
+            template_member_url_prod: string;
+        };
+        /** GeoZipOut */
+        GeoZipOut: {
+            /** Zip */
+            zip: string;
+            /** City */
+            city: string;
+            /** State */
+            state: string;
+        };
+        /** LocationInfoOut */
+        LocationInfoOut: {
+            /** Zip */
+            zip: string;
+            /** City */
+            city: string;
+            /** State */
+            state: string;
+            /** Pros Count */
+            pros_count: number;
+        };
+        /** TrackPageViewIn */
+        TrackPageViewIn: {
+            /** Url */
+            url: string;
+            /**
+             * Referrer
+             * @default
+             */
+            referrer: string | null;
         };
         /** TokenPairOut */
         TokenPairOut: {
@@ -1373,8 +3439,11 @@ export interface components {
             phone: string | null;
             /** Role */
             role: string;
-            /** Extra Roles */
-            extra_roles?: string[];
+            /**
+             * Extra Roles
+             * @default []
+             */
+            extra_roles: string[];
             /** First Name */
             first_name: string;
             /** Last Name */
@@ -1460,7 +3529,7 @@ export interface components {
             id_token: string;
             /**
              * Role
-             * @default homeowner
+             * @default member
              */
             role: string;
         };
@@ -1470,13 +3539,29 @@ export interface components {
             first_name?: string | null;
             /** Last Name */
             last_name?: string | null;
+            /** Phone */
+            phone?: string | null;
             /** Role */
             role?: string | null;
         };
+        /** AvatarOut */
+        AvatarOut: {
+            /** Avatar Url */
+            avatar_url: string;
+        };
+        /** AvatarUrlIn */
+        AvatarUrlIn: {
+            /** Url */
+            url: string;
+        };
         /** NotifPrefOut */
         NotifPrefOut: {
+            /** Email Alerts */
+            email_alerts: boolean;
             /** Sms Alerts */
             sms_alerts: boolean;
+            /** In App Alerts */
+            in_app_alerts: boolean;
             /** Whatsapp Dispatch */
             whatsapp_dispatch: boolean;
             /** Weekly Digest */
@@ -1484,8 +3569,12 @@ export interface components {
         };
         /** NotifPrefIn */
         NotifPrefIn: {
+            /** Email Alerts */
+            email_alerts?: boolean | null;
             /** Sms Alerts */
             sms_alerts?: boolean | null;
+            /** In App Alerts */
+            in_app_alerts?: boolean | null;
             /** Whatsapp Dispatch */
             whatsapp_dispatch?: boolean | null;
             /** Weekly Digest */
@@ -1546,7 +3635,7 @@ export interface components {
             /** Role */
             role: string;
             /** Trade Categories */
-            trade_categories: { category: string; subcategories: string[] }[];
+            trade_categories: components["schemas"]["TradeCategoryOut"][];
             stats: components["schemas"]["ProStatsSummary"];
         };
         /** ProStatsSummary */
@@ -1557,6 +3646,65 @@ export interface components {
             recs_approved: number;
             /** Avg Stars */
             avg_stars: number | null;
+        };
+        /** TradeCategoryOut */
+        TradeCategoryOut: {
+            /** Category */
+            category: string;
+            /**
+             * Subcategories
+             * @default []
+             */
+            subcategories: string[];
+        };
+        /** QuoteRequestOut */
+        QuoteRequestOut: {
+            /** Id */
+            id: number;
+            /** Matched Pro Count */
+            matched_pro_count: number;
+        };
+        /** QuoteRequestIn */
+        QuoteRequestIn: {
+            /** Description */
+            description: string;
+            /** Category */
+            category: string;
+            /**
+             * Subcategory
+             * @default
+             */
+            subcategory: string;
+            /** Timeline */
+            timeline: string;
+            /** Zip Code */
+            zip_code: string;
+            /**
+             * Budget
+             * @default no_pref
+             */
+            budget: string;
+            /** Requester Name */
+            requester_name: string;
+            /** Requester Contact */
+            requester_contact: string;
+        };
+        /** ProfileViewIn */
+        ProfileViewIn: {
+            /** Pro Handle */
+            pro_handle: string;
+            /**
+             * Viewer Zip
+             * @default
+             */
+            viewer_zip: string;
+        };
+        /** KraftEventIn */
+        KraftEventIn: {
+            /** Kraft Id */
+            kraft_id: number;
+            /** Pro Handle */
+            pro_handle: string;
         };
         /**
          * ProProfileIn
@@ -1641,6 +3789,112 @@ export interface components {
             value: number;
             /** Delta Pct */
             delta_pct: number;
+        };
+        /** DashboardOut */
+        DashboardOut: {
+            /** Range */
+            range: string;
+            /** Joined At */
+            joined_at: string;
+            /** Total Visitors */
+            total_visitors: number;
+            /** Visitors Delta Pct */
+            visitors_delta_pct: number;
+            /** Neighbors */
+            neighbors: number;
+            /** Neighbors Delta Pct */
+            neighbors_delta_pct: number;
+            /** Project Requests */
+            project_requests: number;
+            /** Requests Delta Pct */
+            requests_delta_pct: number;
+            /** Conversion Pct */
+            conversion_pct: number;
+            /** Timeline */
+            timeline: components["schemas"]["TimelinePoint"][];
+            /** Krafts */
+            krafts: components["schemas"]["KraftEngagementOut"][];
+        };
+        /** KraftEngagementOut */
+        KraftEngagementOut: {
+            /** Kraft Id */
+            kraft_id: number;
+            /** Title */
+            title: string;
+            /** Impressions */
+            impressions: number;
+            /** Clicks */
+            clicks: number;
+            /** Ctr Pct */
+            ctr_pct: number;
+        };
+        /** TimelinePoint */
+        TimelinePoint: {
+            /** Label */
+            label: string;
+            /** Visitors */
+            visitors: number;
+            /** Requests */
+            requests: number;
+        };
+        /** MarketOut */
+        MarketOut: {
+            /** Range */
+            range: string;
+            /** Joined At */
+            joined_at: string;
+            /** Zip Breakdown */
+            zip_breakdown: components["schemas"]["ZipBreakdownRow"][];
+            market_share: components["schemas"]["MarketShareOut"];
+        };
+        /** MarketShareOut */
+        MarketShareOut: {
+            /** Available */
+            available: boolean;
+            /** Pro Count */
+            pro_count: number;
+            /** Required Count */
+            required_count: number;
+            /** My Lead Pct */
+            my_lead_pct: number;
+            /** Avg Lead Pct */
+            avg_lead_pct: number;
+        };
+        /** ZipBreakdownRow */
+        ZipBreakdownRow: {
+            /** Zip */
+            zip: string;
+            /** Visitors */
+            visitors: number;
+            /** Requests */
+            requests: number;
+        };
+        /** KraftPublicOut */
+        KraftPublicOut: {
+            /** Id */
+            id: number;
+            /** Title */
+            title: string;
+            /** Description */
+            description: string;
+            /** Skill */
+            skill: string;
+            /** Gig Type */
+            gig_type: string;
+            /** Location */
+            location: string;
+            /** Start Month */
+            start_month: number | null;
+            /** Start Year */
+            start_year: number | null;
+            /** End Month */
+            end_month: number | null;
+            /** End Year */
+            end_year: number | null;
+            /** Before Url */
+            before_url: string | null;
+            /** After Url */
+            after_url: string | null;
         };
         /** KraftOut */
         KraftOut: {
@@ -1774,32 +4028,31 @@ export interface components {
              */
             note: string;
         };
-        /** KraftPublicOut */
-        KraftPublicOut: {
+        /** AnonLeadOut */
+        AnonLeadOut: {
             /** Id */
             id: number;
-            /** Title */
-            title: string;
-            /** Description */
-            description: string;
-            /** Skill */
-            skill: string;
-            /** Gig Type */
-            gig_type: string;
-            /** Location */
-            location: string;
-            /** Start Month */
-            start_month: number | null;
-            /** Start Year */
-            start_year: number | null;
-            /** End Month */
-            end_month: number | null;
-            /** End Year */
-            end_year: number | null;
-            /** Before Url */
-            before_url: string | null;
-            /** After Url */
-            after_url: string | null;
+            /** Status */
+            status: string;
+        };
+        /** AnonLeadIn */
+        AnonLeadIn: {
+            /** Pro Id */
+            pro_id: number;
+            /** Job Title */
+            job_title: string;
+            /**
+             * Detail
+             * @default
+             */
+            detail: string;
+        };
+        /** ZipWaitlistIn */
+        ZipWaitlistIn: {
+            /** Zip */
+            zip: string;
+            /** Contact */
+            contact: string;
         };
         /** LeadOut */
         LeadOut: {
@@ -1811,6 +4064,10 @@ export interface components {
             detail: string;
             /** Status */
             status: string;
+            /** Thread Type */
+            thread_type: string;
+            /** Request Accepted */
+            request_accepted: boolean;
             /** Distance Mi */
             distance_mi: number | null;
             /** Respond By */
@@ -1825,6 +4082,11 @@ export interface components {
             unread_hint: number;
             /** Quotes */
             quotes: components["schemas"]["QuoteOut"][];
+            /**
+             * Is Connected
+             * @default false
+             */
+            is_connected: boolean;
         };
         /** PartyOut */
         PartyOut: {
@@ -1834,6 +4096,8 @@ export interface components {
             name: string;
             /** Avatar Url */
             avatar_url: string;
+            /** Role */
+            role: string;
         };
         /** QuoteLineItem */
         QuoteLineItem: {
@@ -1870,6 +4134,23 @@ export interface components {
              * @default
              */
             detail: string;
+            /**
+             * Thread Type
+             * @default lead
+             */
+            thread_type: string;
+        };
+        /** ComposeIn */
+        ComposeIn: {
+            /** Handle */
+            handle: string;
+            /** Body */
+            body: string;
+            /**
+             * Subject
+             * @default Direct message
+             */
+            subject: string;
         };
         /** MessageOut */
         MessageOut: {
@@ -1881,6 +4162,8 @@ export interface components {
             sender_id: number;
             /** Sender Name */
             sender_name: string;
+            /** Sender Role */
+            sender_role: string;
             /** Is Mine */
             is_mine: boolean;
             /** Body */
@@ -1975,6 +4258,19 @@ export interface components {
             /** Budget Ceiling */
             budget_ceiling: number;
         };
+        /** PublicRecOut */
+        PublicRecOut: {
+            /** Id */
+            id: number;
+            /** Client Name */
+            client_name: string;
+            /** Stars */
+            stars: number | null;
+            /** Text */
+            text: string;
+            /** Submitted At */
+            submitted_at: string | null;
+        };
         /** RecommendationOut */
         RecommendationOut: {
             /** Id */
@@ -2051,18 +4347,22 @@ export interface components {
              */
             photo_urls: string[];
         };
-        /** PublicRecOut */
-        PublicRecOut: {
-            /** Id */
-            id: number;
-            /** Client Name */
-            client_name: string;
-            /** Stars */
-            stars: number | null;
-            /** Text */
-            text: string;
-            /** Submitted At */
-            submitted_at: string | null;
+        /** FavoritesOut */
+        FavoritesOut: {
+            /** Pro Ids */
+            pro_ids: number[];
+        };
+        /** SyncIn */
+        SyncIn: {
+            /** Pro Ids */
+            pro_ids: number[];
+        };
+        /** ToggleOut */
+        ToggleOut: {
+            /** Favorited */
+            favorited: boolean;
+            /** Pro Ids */
+            pro_ids: number[];
         };
         /** HomeAccountOut */
         HomeAccountOut: {
@@ -2078,6 +4378,8 @@ export interface components {
             primary_address: string | null;
             /** Default Zip */
             default_zip: string;
+            /** Bio */
+            bio: string;
             /** Address Count */
             address_count: number;
             stats: components["schemas"]["HomeStatsOut"];
@@ -2090,6 +4392,28 @@ export interface components {
             saved_pros: number;
             /** Recs Given */
             recs_given: number;
+        };
+        /** HomeProfileOut */
+        HomeProfileOut: {
+            /** Default Zip */
+            default_zip: string;
+            /** Preferred Trade */
+            preferred_trade: string;
+            /** Bio */
+            bio: string;
+            /** Avatar Url */
+            avatar_url: string;
+        };
+        /** HomeProfilePatchIn */
+        HomeProfilePatchIn: {
+            /** Default Zip */
+            default_zip?: string | null;
+            /** Preferred Trade */
+            preferred_trade?: string | null;
+            /** Avatar Url */
+            avatar_url?: string | null;
+            /** Bio */
+            bio?: string | null;
         };
         /** OkOut */
         OkOut: {
@@ -2159,6 +4483,41 @@ export interface components {
             zip?: string | null;
             /** Is Primary */
             is_primary?: boolean | null;
+        };
+        /** WaitlistOut */
+        WaitlistOut: {
+            /** Ok */
+            ok: boolean;
+            /**
+             * Already Registered
+             * @default false
+             */
+            already_registered: boolean;
+        };
+        /** WaitlistIn */
+        WaitlistIn: {
+            /** Email */
+            email: string;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /**
+             * Google Sub
+             * @default
+             */
+            google_sub: string;
+            /**
+             * User Type
+             * @default general
+             */
+            user_type: string;
+            /**
+             * Zipcode
+             * @default
+             */
+            zipcode: string;
         };
         /** ActivityRow */
         ActivityRow: {
@@ -2357,6 +4716,18 @@ export interface components {
             coupon_code: string;
             /** Discount Pct */
             discount_pct: number;
+            /** Stripe Subscription Id */
+            stripe_subscription_id: string;
+        };
+        /** SubscriptionStatusOut */
+        SubscriptionStatusOut: {
+            /** Has Active Subscription */
+            has_active_subscription: boolean;
+            subscription: components["schemas"]["SubscriptionOut"] | null;
+            /** Stripe Mode */
+            stripe_mode: string;
+            /** User Id */
+            user_id: number;
         };
         /** PlanIn */
         PlanIn: {
@@ -2380,6 +4751,57 @@ export interface components {
             period_label: string;
             /** Issued At */
             issued_at: string;
+        };
+        /** CheckoutOut */
+        CheckoutOut: {
+            /** Url */
+            url: string;
+        };
+        /** CheckoutError */
+        CheckoutError: {
+            /** Detail */
+            detail: string;
+        };
+        /** CheckoutIn */
+        CheckoutIn: {
+            /** Plan */
+            plan: string;
+        };
+        /** BillingConfigOut */
+        BillingConfigOut: {
+            /** Stripe Mode */
+            stripe_mode: string;
+            /** Webhook Secret Set */
+            webhook_secret_set: boolean;
+            /** Resend Mock */
+            resend_mock: boolean;
+        };
+        /** CampaignMetrics */
+        CampaignMetrics: {
+            /** Total Sent */
+            total_sent: number;
+            /** Sent Email */
+            sent_email: number;
+            /** Sent Whatsapp */
+            sent_whatsapp: number;
+            /** Sent Sms */
+            sent_sms: number;
+            /** Emails Opened */
+            emails_opened: number;
+            /** Open Rate */
+            open_rate: number;
+            /** Links Clicked */
+            links_clicked: number;
+            /** Click Rate */
+            click_rate: number;
+            /** Converted */
+            converted: number;
+            /** Conversion Rate */
+            conversion_rate: number;
+            /** Step Funnel */
+            step_funnel: {
+                [key: string]: unknown;
+            };
         };
         /** NodeSummary */
         NodeSummary: {
@@ -2426,6 +4848,33 @@ export interface components {
             open_infractions: number;
             /** Nodes */
             nodes: components["schemas"]["NodeSummary"][];
+            /** Site Traffic */
+            site_traffic: components["schemas"]["SiteTrafficRow"][];
+            campaign: components["schemas"]["CampaignMetrics"];
+            /** Inbox Unread */
+            inbox_unread: number;
+            /** Feedback Unread */
+            feedback_unread: number;
+            /** New Users Today */
+            new_users_today: number;
+        };
+        /** SiteTrafficRow */
+        SiteTrafficRow: {
+            /** Label */
+            label: string;
+            /** Url */
+            url: string;
+            /** Views 30D */
+            views_30d: number;
+            /** Views 7D */
+            views_7d: number;
+        };
+        /** UserListOut */
+        UserListOut: {
+            /** Total */
+            total: number;
+            /** Items */
+            items: components["schemas"]["UserRow"][];
         };
         /** UserRow */
         UserRow: {
@@ -2445,6 +4894,535 @@ export interface components {
             node_id: string | null;
             /** Is Active */
             is_active: boolean;
+            /** Date Joined */
+            date_joined: string;
+            /** Primary Zip */
+            primary_zip: string | null;
+            /** Service Zips */
+            service_zips: string[];
+            /** Pro Handle */
+            pro_handle: string | null;
+        };
+        /** StripeConfigOut */
+        StripeConfigOut: {
+            /** Mode */
+            mode: string;
+            /** Effective Mode */
+            effective_mode: string;
+            /** Mode Locked */
+            mode_locked: boolean;
+            /** Test Price Monthly */
+            test_price_monthly: string;
+            /** Test Price Annual */
+            test_price_annual: string;
+            /** Live Price Monthly */
+            live_price_monthly: string;
+            /** Live Price Annual */
+            live_price_annual: string;
+            /** Test Key Set */
+            test_key_set: boolean;
+            /** Live Key Set */
+            live_key_set: boolean;
+            /** Webhook Secret Set */
+            webhook_secret_set: boolean;
+            /** Updated At */
+            updated_at: string | null;
+        };
+        /** StripeConfigIn */
+        StripeConfigIn: {
+            /** Mode */
+            mode: string;
+            /** Test Price Monthly */
+            test_price_monthly: string;
+            /** Test Price Annual */
+            test_price_annual: string;
+            /** Live Price Monthly */
+            live_price_monthly: string;
+            /** Live Price Annual */
+            live_price_annual: string;
+        };
+        /** StripeConnectionOut */
+        StripeConnectionOut: {
+            /** Ok */
+            ok: boolean;
+            /** Mode */
+            mode: string;
+            /** Account Id */
+            account_id: string | null;
+            /** Account Name */
+            account_name: string | null;
+            /** Error */
+            error: string | null;
+        };
+        /** StripeCLIStatusOut */
+        StripeCLIStatusOut: {
+            /** Running */
+            running: boolean;
+            /** Secret */
+            secret: string | null;
+        };
+        /** StripeCLIStartOut */
+        StripeCLIStartOut: {
+            /** Running */
+            running: boolean;
+            /** Secret */
+            secret: string | null;
+            /** Error */
+            error: string | null;
+        };
+        /** StripeCLIStartIn */
+        StripeCLIStartIn: {
+            /**
+             * Forward To
+             * @default http://localhost:8000/api/stripe/webhook
+             */
+            forward_to: string;
+        };
+        /** SubscriberRow */
+        SubscriberRow: {
+            /** Id */
+            id: number;
+            /** Pro Name */
+            pro_name: string;
+            /** Email */
+            email: string;
+            /** Plan */
+            plan: string;
+            /** Plan Label */
+            plan_label: string;
+            /** Status */
+            status: string;
+            /** Renews At */
+            renews_at: string | null;
+            /** Monthly Value */
+            monthly_value: number;
+            /** Date Joined */
+            date_joined: string;
+        };
+        /** SubscribersOut */
+        SubscribersOut: {
+            /** Total Active */
+            total_active: number;
+            /** Total Mrr */
+            total_mrr: number;
+            /** Items */
+            items: components["schemas"]["SubscriberRow"][];
+        };
+        /** TransactionRow */
+        TransactionRow: {
+            /** Id */
+            id: number;
+            /** Issued At */
+            issued_at: string;
+            /** Pro Name */
+            pro_name: string;
+            /** Pro Email */
+            pro_email: string;
+            /** Plan */
+            plan: string;
+            /** Plan Label */
+            plan_label: string;
+            /** Amount */
+            amount: number;
+            /** Status */
+            status: string;
+            /** Period Label */
+            period_label: string;
+        };
+        /** TransactionsOut */
+        TransactionsOut: {
+            /** Total Count */
+            total_count: number;
+            /** Total Amount */
+            total_amount: number;
+            /** Items */
+            items: components["schemas"]["TransactionRow"][];
+        };
+        /** InboxUserListOut */
+        InboxUserListOut: {
+            /** Total */
+            total: number;
+            /** Items */
+            items: components["schemas"]["InboxUserRow"][];
+        };
+        /** InboxUserRow */
+        InboxUserRow: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Email */
+            email: string | null;
+            /** Role */
+            role: string;
+            /** Lead Count */
+            lead_count: number;
+            /** Message Count */
+            message_count: number;
+        };
+        /** AnonLeadRow */
+        AnonLeadRow: {
+            /** Id */
+            id: number;
+            /** Job Title */
+            job_title: string;
+            /** Detail */
+            detail: string;
+            /** Status */
+            status: string;
+            /** Pro Name */
+            pro_name: string;
+            /** Pro Handle */
+            pro_handle: string;
+            /** Created At */
+            created_at: string;
+        };
+        /** ExtraTemplateUrl */
+        ExtraTemplateUrl: {
+            /** Label */
+            label: string;
+            /** Url */
+            url: string;
+        };
+        /** SiteConfigOut */
+        SiteConfigOut: {
+            /** Template Pro Url Local */
+            template_pro_url_local: string;
+            /** Template Pro Url Prod */
+            template_pro_url_prod: string;
+            /** Template Member Url Local */
+            template_member_url_local: string;
+            /** Template Member Url Prod */
+            template_member_url_prod: string;
+            /** Extra Template Urls */
+            extra_template_urls: components["schemas"]["ExtraTemplateUrl"][];
+            /** Updated At */
+            updated_at: string | null;
+        };
+        /** SiteConfigIn */
+        SiteConfigIn: {
+            /** Template Pro Url Local */
+            template_pro_url_local: string;
+            /** Template Pro Url Prod */
+            template_pro_url_prod: string;
+            /** Template Member Url Local */
+            template_member_url_local: string;
+            /** Template Member Url Prod */
+            template_member_url_prod: string;
+            /** Extra Template Urls */
+            extra_template_urls: components["schemas"]["ExtraTemplateUrl"][];
+        };
+        /** TemplateProfileOut */
+        TemplateProfileOut: {
+            /** Handle */
+            handle: string;
+            /** Business Name */
+            business_name: string;
+            /** Primary Trade */
+            primary_trade: string;
+            /** Skill Tags */
+            skill_tags: string[];
+            /** Bio */
+            bio: string;
+            /** Response Hours */
+            response_hours: number;
+            /** Licensed */
+            licensed: boolean;
+            /** License Number */
+            license_number: string;
+            /** Insured */
+            insured: boolean;
+            /** Availability */
+            availability: string;
+            /** Wallpaper Id */
+            wallpaper_id: number;
+            /** Wallpaper Url */
+            wallpaper_url: string;
+            /** Avatar Url */
+            avatar_url: string;
+            /** Is Verified */
+            is_verified: boolean;
+        };
+        /** TemplateProfileIn */
+        TemplateProfileIn: {
+            /** Business Name */
+            business_name?: string | null;
+            /** Primary Trade */
+            primary_trade?: string | null;
+            /** Skill Tags */
+            skill_tags?: string[] | null;
+            /** Bio */
+            bio?: string | null;
+            /** Response Hours */
+            response_hours?: number | null;
+            /** Licensed */
+            licensed?: boolean | null;
+            /** License Number */
+            license_number?: string | null;
+            /** Insured */
+            insured?: boolean | null;
+            /** Availability */
+            availability?: string | null;
+            /** Wallpaper Id */
+            wallpaper_id?: number | null;
+            /** Wallpaper Url */
+            wallpaper_url?: string | null;
+            /** Avatar Url */
+            avatar_url?: string | null;
+            /** Is Verified */
+            is_verified?: boolean | null;
+        };
+        /** TrackViewIn */
+        TrackViewIn: {
+            /** Pro Handle */
+            pro_handle: string;
+            /** Ref */
+            ref?: string | null;
+        };
+        /** AnalyticsOut */
+        AnalyticsOut: {
+            /** Total */
+            total: number;
+            /** New 7 Days */
+            new_7_days: number;
+            /** Total Emails Sent */
+            total_emails_sent: number;
+            /** Conversion Rate */
+            conversion_rate: number;
+            /** Link Ctr */
+            link_ctr: number;
+            /** By Status */
+            by_status: {
+                [key: string]: unknown;
+            };
+            /** By Source */
+            by_source: {
+                [key: string]: unknown;
+            };
+            /** By Sequence Step */
+            by_sequence_step: {
+                [key: string]: unknown;
+            };
+            /** By Channel */
+            by_channel: {
+                [key: string]: unknown;
+            };
+            /** Recent Conversions */
+            recent_conversions: {
+                [key: string]: unknown;
+            }[];
+        };
+        /** ProspectOut */
+        ProspectOut: {
+            /** Id */
+            id: number;
+            /** Prospect Id */
+            prospect_id: string;
+            /** Name */
+            name: string;
+            /** Email */
+            email: string;
+            /** Phone */
+            phone: string;
+            /** Role */
+            role: string;
+            /** Primary Zip */
+            primary_zip: string;
+            /** Neighborhood */
+            neighborhood: string;
+            /** Source */
+            source: string;
+            /** Status */
+            status: string;
+            /** Current Sequence Step */
+            current_sequence_step: number;
+            /** Email Bounced */
+            email_bounced: boolean;
+            /** Last Contacted At */
+            last_contacted_at: string | null;
+            /** Signup Link Token */
+            signup_link_token: string;
+            /** Link Clicked At */
+            link_clicked_at: string | null;
+            /** Converted User Id */
+            converted_user_id: number | null;
+            /** Notes */
+            notes: string;
+            /** Whatsapp Link */
+            whatsapp_link: string;
+            /** Created At */
+            created_at: string;
+            /** Updated At */
+            updated_at: string;
+            /** Journey */
+            journey: components["schemas"]["StepJourney"][];
+        };
+        /** StepJourney */
+        StepJourney: {
+            /** Step */
+            step: number;
+            /** Sent At */
+            sent_at: string | null;
+            /** Channel */
+            channel: string | null;
+            /** Read At */
+            read_at: string | null;
+            /** Link Clicked At */
+            link_clicked_at: string | null;
+            /** Example Clicked At */
+            example_clicked_at: string | null;
+            /**
+             * Email Count
+             * @default 0
+             */
+            email_count: number;
+            /**
+             * Whatsapp Count
+             * @default 0
+             */
+            whatsapp_count: number;
+        };
+        /** BulkStatusIn */
+        BulkStatusIn: {
+            /** Ids */
+            ids: number[];
+            /** Status */
+            status: string;
+        };
+        /** BulkPreviewOut */
+        BulkPreviewOut: {
+            /** Total */
+            total: number;
+            /** New Count */
+            new_count: number;
+            /** Existing Count */
+            existing_count: number;
+            /** Results */
+            results: components["schemas"]["BulkPreviewResult"][];
+        };
+        /** BulkPreviewResult */
+        BulkPreviewResult: {
+            /** Index */
+            index: number;
+            /** Name */
+            name: string;
+            /** Email */
+            email: string;
+            /** Phone */
+            phone: string;
+            /** Is Duplicate */
+            is_duplicate: boolean;
+            /** Existing Id */
+            existing_id?: number | null;
+        };
+        /** BulkPreviewIn */
+        BulkPreviewIn: {
+            /** Prospects */
+            prospects: components["schemas"]["BulkPreviewItem"][];
+        };
+        /** BulkPreviewItem */
+        BulkPreviewItem: {
+            /** Name */
+            name: string;
+            /**
+             * Email
+             * @default
+             */
+            email: string;
+            /**
+             * Phone
+             * @default
+             */
+            phone: string;
+        };
+        /** ProspectIn */
+        ProspectIn: {
+            /** Name */
+            name: string;
+            /**
+             * Email
+             * @default
+             */
+            email: string;
+            /**
+             * Phone
+             * @default
+             */
+            phone: string;
+            /**
+             * Role
+             * @default pro
+             */
+            role: string;
+            /**
+             * Primary Zip
+             * @default
+             */
+            primary_zip: string;
+            /**
+             * Neighborhood
+             * @default
+             */
+            neighborhood: string;
+            /**
+             * Source
+             * @default nextdoor
+             */
+            source: string;
+            /**
+             * Status
+             * @default prospect
+             */
+            status: string;
+            /**
+             * Notes
+             * @default
+             */
+            notes: string;
+        };
+        /** ProspectPatchIn */
+        ProspectPatchIn: {
+            /** Name */
+            name?: string | null;
+            /** Email */
+            email?: string | null;
+            /** Phone */
+            phone?: string | null;
+            /** Role */
+            role?: string | null;
+            /** Primary Zip */
+            primary_zip?: string | null;
+            /** Neighborhood */
+            neighborhood?: string | null;
+            /** Source */
+            source?: string | null;
+            /** Status */
+            status?: string | null;
+            /** Notes */
+            notes?: string | null;
+        };
+        /** AdvanceStepIn */
+        AdvanceStepIn: {
+            /**
+             * Channel
+             * @default whatsapp
+             */
+            channel: string;
+        };
+        /** SendStepIn */
+        SendStepIn: {
+            /** Step */
+            step: number;
+            /**
+             * Channel
+             * @default email
+             */
+            channel: string;
+            /**
+             * Is Resend
+             * @default false
+             */
+            is_resend: boolean;
         };
         /** TemplateOut */
         TemplateOut: {
@@ -2452,12 +5430,16 @@ export interface components {
             id: number;
             /** Name */
             name: string;
+            /** Channel */
+            channel: string;
             /** Kind */
             kind: string;
             /** Subject */
             subject: string;
             /** Body */
             body: string;
+            /** Html Body */
+            html_body: string;
             /** Is Default */
             is_default: boolean;
             /** Created At */
@@ -2470,11 +5452,19 @@ export interface components {
             /** Name */
             name: string;
             /**
+             * Channel
+             * @default email
+             */
+            channel: string;
+            /**
              * Kind
              * @default intro
              */
             kind: string;
-            /** Subject */
+            /**
+             * Subject
+             * @default
+             */
             subject: string;
             /** Body */
             body: string;
@@ -2488,6 +5478,8 @@ export interface components {
         TemplatePatchIn: {
             /** Name */
             name?: string | null;
+            /** Channel */
+            channel?: string | null;
             /** Kind */
             kind?: string | null;
             /** Subject */
@@ -2497,45 +5489,90 @@ export interface components {
             /** Is Default */
             is_default?: boolean | null;
         };
-        /** TemplatePreviewOut */
-        TemplatePreviewOut: {
+        /** SendEmailOut */
+        SendEmailOut: {
+            /** Log Id */
+            log_id: number;
+            /** Resend Id */
+            resend_id: string;
+        };
+        /** SendEmailIn */
+        SendEmailIn: {
+            /** To */
+            to: string;
+            /**
+             * Cc
+             * @default []
+             */
+            cc: string[];
+            /**
+             * Bcc
+             * @default []
+             */
+            bcc: string[];
             /** Subject */
             subject: string;
             /** Body */
             body: string;
-            /** Mailto Link */
-            mailto_link: string;
+            /** Prospect Id */
+            prospect_id?: number | null;
+            /** Template Id */
+            template_id?: number | null;
         };
-        /** CommunicationOut */
-        CommunicationOut: {
+        /** LogEventOut */
+        LogEventOut: {
+            /** Event Type */
+            event_type: string;
+            /** Occurred At */
+            occurred_at: string;
+        };
+        /** LogOut */
+        LogOut: {
             /** Id */
             id: number;
-            /** Vendor Id */
-            vendor_id: number;
-            /** Template Id */
-            template_id: number | null;
-            /** Template Name */
-            template_name: string | null;
             /** Channel */
             channel: string;
+            /** To Address */
+            to_address: string;
+            /** Cc Addresses */
+            cc_addresses: string;
             /** Subject Sent */
             subject_sent: string;
             /** Body Sent */
             body_sent: string;
+            /** Html Body Sent */
+            html_body_sent: string;
+            /** Resend Id */
+            resend_id: string;
             /** Notes */
             notes: string;
             /** Sent At */
             sent_at: string;
-        };
-        /** CommunicationIn */
-        CommunicationIn: {
             /** Template Id */
-            template_id?: number | null;
+            template_id: number | null;
+            /** Template Name */
+            template_name: string | null;
+            /** Read At */
+            read_at: string | null;
+            /** Link Clicked At */
+            link_clicked_at: string | null;
+            /** Example Clicked At */
+            example_clicked_at: string | null;
+            /** Events */
+            events: components["schemas"]["LogEventOut"][];
+        };
+        /** LogIn */
+        LogIn: {
             /**
              * Channel
-             * @default email
+             * @default whatsapp
              */
             channel: string;
+            /**
+             * To Address
+             * @default
+             */
+            to_address: string;
             /**
              * Subject Sent
              * @default
@@ -2551,70 +5588,172 @@ export interface components {
              * @default
              */
             notes: string;
-            /** Sent At */
-            sent_at?: string | null;
-            /**
-             * Advance Status
-             * @default true
-             */
-            advance_status: boolean;
+            /** Template Id */
+            template_id?: number | null;
         };
-        /** VendorOut */
-        VendorOut: {
+        /** FeedbackOut */
+        FeedbackOut: {
             /** Id */
             id: number;
-            /** Vendor Id */
-            vendor_id: string;
-            /** Business Name */
-            business_name: string;
-            /** Contact Person */
-            contact_person: string;
-            /** Category */
-            category: string;
-            /** Lead Source */
-            lead_source: string;
-            /** Phone */
-            phone: string;
-            /** Email */
-            email: string;
-            /** Nextdoor Profile Url */
-            nextdoor_profile_url: string;
+            /** Ticket Number */
+            ticket_number: string;
+            /** Text */
+            text: string;
+            /** Page Url */
+            page_url: string;
             /** Status */
             status: string;
-            /** Preferred Channel */
-            preferred_channel: string;
-            /** Last Contact Date */
-            last_contact_date: string | null;
-            /** Notes */
-            notes: string;
-            /** Whatsapp Link */
-            whatsapp_link: string;
-            /** Email Link */
-            email_link: string;
+            /** Submitter */
+            submitter: string | null;
             /** Created At */
             created_at: string;
-            /** Updated At */
-            updated_at: string;
+            /** Replies */
+            replies: components["schemas"]["ReplyOut"][];
         };
-        /** VendorIn */
-        VendorIn: {
+        /** ReplyOut */
+        ReplyOut: {
+            /** Id */
+            id: number;
+            /** Text */
+            text: string;
+            /** Author Name */
+            author_name: string;
+            /** Created At */
+            created_at: string;
+        };
+        /** FeedbackIn */
+        FeedbackIn: {
+            /** Text */
+            text: string;
             /**
-             * Business Name
+             * Page Url
              * @default
              */
-            business_name: string;
-            /** Contact Person */
-            contact_person: string;
+            page_url: string;
+        };
+        /** ReplyIn */
+        ReplyIn: {
+            /** Text */
+            text: string;
+        };
+        /** StatusIn */
+        StatusIn: {
+            /** Status */
+            status: string;
+        };
+        /** ProLookupOut */
+        ProLookupOut: {
+            /** Id */
+            id: number;
+            /** Handle */
+            handle: string | null;
+            /** Display Name */
+            display_name: string;
+            /** Avatar Url */
+            avatar_url: string | null;
+            /** Bio */
+            bio: string | null;
+            /** Primary Trade */
+            primary_trade: string | null;
+            /** Skill Tags */
+            skill_tags: string[];
+            /** Krafts Verified */
+            krafts_verified: number;
+            /** Recs Approved */
+            recs_approved: number;
+        };
+        /** CircleOut */
+        CircleOut: {
+            /** Slug */
+            slug: string;
+            /** Curator Name */
+            curator_name: string;
+            /** Curator Avatar Url */
+            curator_avatar_url: string | null;
+            /** Pro Count */
+            pro_count: number;
+            /** Follow Status */
+            follow_status: string | null;
+            /** Pros */
+            pros: components["schemas"]["CircleProOut"][];
+        };
+        /** CircleProOut */
+        CircleProOut: {
+            /** Id */
+            id: number;
+            /** Pro Id */
+            pro_id: number | null;
+            /** Display Name */
+            display_name: string;
+            /** Primary Trade */
+            primary_trade: string | null;
+            /** Avatar Url */
+            avatar_url: string | null;
+            /** Handle */
+            handle?: string | null;
+            /** Bio */
+            bio?: string | null;
+            /** Off Platform Phone */
+            off_platform_phone?: string | null;
+            /** Off Platform Email */
+            off_platform_email?: string | null;
+            /** Phone */
+            phone?: string | null;
+            /** Email */
+            email?: string | null;
+            /** Zip Code */
+            zip_code?: string | null;
+            /** Endorsement */
+            endorsement: string;
+            /** Status */
+            status: string;
+            /** Is Off Platform */
+            is_off_platform: boolean;
             /**
-             * Category
+             * Skill Tags
+             * @default []
+             */
+            skill_tags: string[];
+            /**
+             * Krafts Verified
+             * @default 0
+             */
+            krafts_verified: number;
+            /**
+             * Recs Approved
+             * @default 0
+             */
+            recs_approved: number;
+            /**
+             * Circles Count
+             * @default 0
+             */
+            circles_count: number;
+        };
+        /** SetSlugIn */
+        SetSlugIn: {
+            /** Slug */
+            slug: string;
+        };
+        /** AddOnPlatformProIn */
+        AddOnPlatformProIn: {
+            /** Pro Id */
+            pro_id: number;
+            /**
+             * Endorsement
              * @default
              */
-            category: string;
+            endorsement: string;
+        };
+        /** AddOffPlatformProIn */
+        AddOffPlatformProIn: {
+            /** Name */
+            name: string;
             /**
-             * Lead Source
-             * @default nextdoor
+             * Skill
+             * @default
              */
-            lead_source: string;
+            skill: string;
             /**
              * Phone
              * @default
@@ -2626,59 +5765,719 @@ export interface components {
              */
             email: string;
             /**
-             * Nextdoor Profile Url
+             * Endorsement
              * @default
              */
-            nextdoor_profile_url: string;
-            /**
-             * Status
-             * @default new
-             */
-            status: string;
-            /**
-             * Preferred Channel
-             * @default whatsapp
-             */
-            preferred_channel: string;
-            /** Last Contact Date */
-            last_contact_date?: string | null;
-            /**
-             * Notes
-             * @default
-             */
-            notes: string;
+            endorsement: string;
         };
-        /** VendorPatchIn */
-        VendorPatchIn: {
-            /** Business Name */
-            business_name?: string | null;
-            /** Contact Person */
-            contact_person?: string | null;
-            /** Category */
-            category?: string | null;
-            /** Lead Source */
-            lead_source?: string | null;
+        /** UpdateEndorsementIn */
+        UpdateEndorsementIn: {
+            /** Endorsement */
+            endorsement: string;
+        };
+        /** CircleAnalyticsOut */
+        CircleAnalyticsOut: {
+            /** Page Views */
+            page_views: number;
+            /** Searches */
+            searches: number;
+            /** Requests Submitted */
+            requests_submitted: number;
+            /** Referrals Attributed */
+            referrals_attributed: number;
+        };
+        /** CircleFollowRequestOut */
+        CircleFollowRequestOut: {
+            /** Id */
+            id: number;
+            /** Follower Name */
+            follower_name: string;
+            /** Follower Email */
+            follower_email: string;
+            /** Status */
+            status: string;
+            /** Created At */
+            created_at: string;
+        };
+        /** ApproveFollowIn */
+        ApproveFollowIn: {
+            /** Status */
+            status: string;
+        };
+        /** CircleSearchResultOut */
+        CircleSearchResultOut: {
+            /** Tier */
+            tier: number;
+            /** Tier Label */
+            tier_label: string;
+            /** Circle Pro Id */
+            circle_pro_id: number | null;
+            /** Pro Id */
+            pro_id: number | null;
+            /** Display Name */
+            display_name: string;
+            /** Primary Trade */
+            primary_trade: string;
+            /** Avatar Url */
+            avatar_url: string | null;
+            /** Endorsement */
+            endorsement: string | null;
+            /** Status */
+            status: string;
+            /** Is Off Platform */
+            is_off_platform: boolean;
+            /** Relevance Score */
+            relevance_score: number;
+        };
+        /** RequestProIn */
+        RequestProIn: {
+            /** Circle Pro Id */
+            circle_pro_id?: number | null;
+            /** Pro Id */
+            pro_id?: number | null;
+            /** Seeker Name */
+            seeker_name: string;
+            /** Seeker Phone */
+            seeker_phone: string;
+            /**
+             * Address
+             * @default
+             */
+            address: string;
+            /** Job Title */
+            job_title: string;
+            /**
+             * Detail
+             * @default
+             */
+            detail: string;
+        };
+        /** RequestIntroIn */
+        RequestIntroIn: {
+            /** Circle Pro Id */
+            circle_pro_id: number;
+            /** Seeker Name */
+            seeker_name: string;
+            /** Seeker Phone */
+            seeker_phone: string;
+            /**
+             * Address
+             * @default
+             */
+            address: string;
+            /** Job Title */
+            job_title: string;
+            /**
+             * Detail
+             * @default
+             */
+            detail: string;
+        };
+        /** ReferrerDashboardOut */
+        ReferrerDashboardOut: {
+            profile: components["schemas"]["ReferrerProfileOut"];
+            stats: components["schemas"]["ReferrerStatsOut"];
+        };
+        /** ReferrerProfileOut */
+        ReferrerProfileOut: {
+            /** Slug */
+            slug: string;
+            /** Bio */
+            bio: string;
+            /** Avatar Url */
+            avatar_url: string;
+            /** Default Zip */
+            default_zip: string;
+            /** Page Url */
+            page_url: string;
+            /**
+             * Slug Locked
+             * @default false
+             */
+            slug_locked: boolean;
+            /**
+             * Notify Email
+             * @default true
+             */
+            notify_email: boolean;
+            /**
+             * Notify Sms
+             * @default false
+             */
+            notify_sms: boolean;
+        };
+        /** ReferrerStatsOut */
+        ReferrerStatsOut: {
+            /** Follower Count */
+            follower_count: number;
+            /** Pending Request Count */
+            pending_request_count: number;
+            /** Referral Count */
+            referral_count: number;
+        };
+        /** UpdateProfileIn */
+        UpdateProfileIn: {
+            /** Slug */
+            slug?: string | null;
+            /** Bio */
+            bio?: string | null;
+            /** Avatar Url */
+            avatar_url?: string | null;
+            /** Default Zip */
+            default_zip?: string | null;
+            /** Notify Email */
+            notify_email?: boolean | null;
+            /** Notify Sms */
+            notify_sms?: boolean | null;
+        };
+        /** ReferrerProDashboardOut */
+        ReferrerProDashboardOut: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Trade */
+            trade: string;
+            /** Phone */
+            phone: string;
+            /** Email */
+            email: string;
+            /** Avatar Url */
+            avatar_url: string;
+            /** Endorsement */
+            endorsement: string;
+            /** Show On Page */
+            show_on_page: boolean;
+            /** Display Order */
+            display_order: number;
+            /** Referral Count */
+            referral_count: number;
+            /** Is On Platform */
+            is_on_platform: boolean;
+            /** Is Pending */
+            is_pending: boolean;
+            /** Invite Status */
+            invite_status?: string | null;
+            /** Added At */
+            added_at: string;
+        };
+        /** AddProIn */
+        AddProIn: {
+            /** Pro Handle */
+            pro_handle: string;
+            /** Endorsement */
+            endorsement?: string | null;
+        };
+        /** ReorderProsIn */
+        ReorderProsIn: {
+            /** Ordered Ids */
+            ordered_ids: number[];
+        };
+        /** ProSearchResultOut */
+        ProSearchResultOut: {
+            /** User Id */
+            user_id: number;
+            /** Handle */
+            handle: string;
+            /** Name */
+            name: string;
+            /** Trade */
+            trade: string;
+            /** City */
+            city: string;
+            /** Avatar Url */
+            avatar_url: string;
+            /** Is Verified */
+            is_verified: boolean;
+            /**
+             * Is Pro
+             * @default true
+             */
+            is_pro: boolean;
+        };
+        /** UpdateProIn */
+        UpdateProIn: {
+            /** Endorsement */
+            endorsement?: string | null;
+            /** Show On Page */
+            show_on_page?: boolean | null;
+        };
+        /** InviteProOut */
+        InviteProOut: {
+            /** Invite Id */
+            invite_id: number;
+            /** Referrer Pro Id */
+            referrer_pro_id: number;
+            /** Token */
+            token: string;
+            /** Referrer Slug */
+            referrer_slug: string;
+        };
+        /** InviteProIn */
+        InviteProIn: {
+            /** Name */
+            name: string;
+            /**
+             * Trade
+             * @default
+             */
+            trade: string;
             /** Phone */
             phone?: string | null;
             /** Email */
             email?: string | null;
-            /** Nextdoor Profile Url */
-            nextdoor_profile_url?: string | null;
-            /** Status */
-            status?: string | null;
-            /** Preferred Channel */
-            preferred_channel?: string | null;
-            /** Last Contact Date */
-            last_contact_date?: string | null;
-            /** Notes */
-            notes?: string | null;
+            /** Note */
+            note?: string | null;
+            /**
+             * Channel
+             * @default
+             */
+            channel: string;
+            /** Message */
+            message?: string | null;
         };
-        /** BulkStatusIn */
-        BulkStatusIn: {
-            /** Ids */
-            ids: number[];
+        /** InviteProResendOut */
+        InviteProResendOut: {
+            /** Ok */
+            ok: boolean;
+            /** Token */
+            token: string;
+            /** Referrer Slug */
+            referrer_slug: string;
+        };
+        /** InviteFriendOut */
+        InviteFriendOut: {
+            /** Sent Count */
+            sent_count: number;
+            /** Invite Ids */
+            invite_ids: number[];
+        };
+        /** FriendInviteeIn */
+        FriendInviteeIn: {
+            /** Name */
+            name: string;
+            /** Phone */
+            phone?: string | null;
+            /** Email */
+            email?: string | null;
+        };
+        /** InviteFriendIn */
+        InviteFriendIn: {
+            /** Invitees */
+            invitees: components["schemas"]["FriendInviteeIn"][];
+        };
+        /** InviteFriendSingleOut */
+        InviteFriendSingleOut: {
+            /** Invite Id */
+            invite_id: number;
+            /** Token */
+            token: string;
+            /** Referrer Slug */
+            referrer_slug: string;
+        };
+        /** InviteFriendSingleIn */
+        InviteFriendSingleIn: {
+            /** Name */
+            name: string;
+            /** Phone */
+            phone: string;
+            /** Email */
+            email?: string | null;
+            /**
+             * Channel
+             * @default
+             */
+            channel: string;
+            /** Message */
+            message?: string | null;
+        };
+        /** FriendInviteResendOut */
+        FriendInviteResendOut: {
+            /** Ok */
+            ok: boolean;
+            /** Token */
+            token: string;
+            /** Referrer Slug */
+            referrer_slug: string;
+        };
+        /** InviteCircleShareOut */
+        InviteCircleShareOut: {
+            /** Invite Id */
+            invite_id: number;
+            /** Token */
+            token: string;
+            /** Referrer Slug */
+            referrer_slug: string;
+        };
+        /** InviteCircleShareIn */
+        InviteCircleShareIn: {
+            /** Name */
+            name: string;
+            /** Phone */
+            phone?: string | null;
+            /** Email */
+            email?: string | null;
+            /**
+             * Channel
+             * @default
+             */
+            channel: string;
+            /** Message */
+            message?: string | null;
+        };
+        /** CircleShareResendOut */
+        CircleShareResendOut: {
+            /** Ok */
+            ok: boolean;
+            /** Token */
+            token: string;
+            /** Referrer Slug */
+            referrer_slug: string;
+        };
+        /** InviteListCircleOut */
+        InviteListCircleOut: {
+            /** Invite Id */
+            invite_id: number;
+            /** Name */
+            name: string;
+            /** Phone */
+            phone: string;
+            /** Email */
+            email: string;
+            /** Channel */
+            channel: string;
             /** Status */
             status: string;
+            /** Click Count */
+            click_count: number;
+            /** Invited At */
+            invited_at: string;
+            /** Last Resent At */
+            last_resent_at?: string | null;
+        };
+        /** InviteListFriendOut */
+        InviteListFriendOut: {
+            /** Invite Id */
+            invite_id: number;
+            /** Name */
+            name: string;
+            /** Phone */
+            phone: string;
+            /** Email */
+            email: string;
+            /** Channel */
+            channel: string;
+            /** Status */
+            status: string;
+            /** Click Count */
+            click_count: number;
+            /** Invited At */
+            invited_at: string;
+            /** Last Resent At */
+            last_resent_at?: string | null;
+        };
+        /** InviteListOut */
+        InviteListOut: {
+            /** Pro Invites */
+            pro_invites: components["schemas"]["InviteListProOut"][];
+            /** Friend Invites */
+            friend_invites: components["schemas"]["InviteListFriendOut"][];
+            /**
+             * Circle Invites
+             * @default []
+             */
+            circle_invites: components["schemas"]["InviteListCircleOut"][];
+        };
+        /** InviteListProOut */
+        InviteListProOut: {
+            /** Invite Id */
+            invite_id: number;
+            /** Name */
+            name: string;
+            /** Trade */
+            trade: string;
+            /** Phone */
+            phone: string;
+            /** Email */
+            email: string;
+            /** Channel */
+            channel: string;
+            /** Status */
+            status: string;
+            /** Click Count */
+            click_count: number;
+            /** Invited At */
+            invited_at: string;
+            /** Last Resent At */
+            last_resent_at?: string | null;
+        };
+        /** InviteTimelineEventOut */
+        InviteTimelineEventOut: {
+            /** Event Type */
+            event_type: string;
+            /** Message Body */
+            message_body?: string | null;
+            /** Occurred At */
+            occurred_at: string;
+        };
+        /** UpdateProInviteIn */
+        UpdateProInviteIn: {
+            /** Name */
+            name?: string | null;
+            /** Phone */
+            phone?: string | null;
+            /** Email */
+            email?: string | null;
+        };
+        /** UpdateFriendInviteIn */
+        UpdateFriendInviteIn: {
+            /** Name */
+            name?: string | null;
+            /** Phone */
+            phone?: string | null;
+            /** Email */
+            email?: string | null;
+        };
+        /** MatchedContactOut */
+        MatchedContactOut: {
+            /** Contact Id */
+            contact_id: number;
+            /** Contact Name */
+            contact_name: string;
+            /** Pro Id */
+            pro_id: number;
+            /** Pro Handle */
+            pro_handle: string;
+            /** Pro Name */
+            pro_name: string;
+            /** Trade */
+            trade: string;
+            /** Already On List */
+            already_on_list: boolean;
+        };
+        /** UploadContactsOut */
+        UploadContactsOut: {
+            /** Scanned */
+            scanned: number;
+            /** Matched */
+            matched: components["schemas"]["MatchedContactOut"][];
+            /** Unmatched Count */
+            unmatched_count: number;
+        };
+        /** AddMatchedContactsOut */
+        AddMatchedContactsOut: {
+            /** Added Count */
+            added_count: number;
+            /** Skipped Count */
+            skipped_count: number;
+        };
+        /** AddMatchedContactsIn */
+        AddMatchedContactsIn: {
+            /** Pro Ids */
+            pro_ids: number[];
+        };
+        /** ReferralRequestDetailOut */
+        ReferralRequestDetailOut: {
+            /** Id */
+            id: number;
+            /** Follower Name */
+            follower_name: string;
+            /** Follower Phone */
+            follower_phone: string;
+            /** Pro Name */
+            pro_name?: string | null;
+            /** Pro Trade */
+            pro_trade?: string | null;
+            /** Job Description */
+            job_description: string;
+            /** Status */
+            status: string;
+            /** Created At */
+            created_at: string;
+        };
+        /** SendReferralOut */
+        SendReferralOut: {
+            /** Otp Required */
+            otp_required: boolean;
+            /** Referral Sent Id */
+            referral_sent_id?: number | null;
+            /** Message */
+            message?: string | null;
+        };
+        /** SendReferralIn */
+        SendReferralIn: {
+            /** Referrer Pro Id */
+            referrer_pro_id: number;
+            /** Note To Follower */
+            note_to_follower: string;
+            /** Note To Pro */
+            note_to_pro: string;
+        };
+        /** VerifyOtpOut */
+        VerifyOtpOut: {
+            /** Verified */
+            verified: boolean;
+            /** Referral Sent Id */
+            referral_sent_id?: number | null;
+            /** Error */
+            error?: string | null;
+        };
+        /** VerifyOtpIn */
+        VerifyOtpIn: {
+            /** Otp */
+            otp: string;
+        };
+        /** FollowerOut */
+        FollowerOut: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Phone */
+            phone: string;
+            /** Email */
+            email: string;
+            /** Followed At */
+            followed_at: string;
+            /** Referrals Received */
+            referrals_received: number;
+        };
+        /** FollowersPageOut */
+        FollowersPageOut: {
+            /** Total */
+            total: number;
+            /** Results */
+            results: components["schemas"]["FollowerOut"][];
+        };
+        /** ActivityPageOut */
+        ActivityPageOut: {
+            /** Total */
+            total: number;
+            /** Results */
+            results: components["schemas"]["ReferralSentSummaryOut"][];
+        };
+        /** ReferralSentSummaryOut */
+        ReferralSentSummaryOut: {
+            /** Id */
+            id: number;
+            /** Follower Name */
+            follower_name: string;
+            /** Pro Name */
+            pro_name: string;
+            /** Sent At */
+            sent_at: string;
+        };
+        /** CheckSlugOut */
+        CheckSlugOut: {
+            /** Available */
+            available: boolean;
+            /** Suggestion */
+            suggestion?: string | null;
+        };
+        /** FollowerStateOut */
+        FollowerStateOut: {
+            /** Follower Id */
+            follower_id: number;
+            /** Name */
+            name: string;
+        };
+        /** ProCardOut */
+        ProCardOut: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Trade */
+            trade: string;
+            /** City */
+            city: string;
+            /** Phone */
+            phone: string;
+            /** Email */
+            email: string;
+            /** Avatar Url */
+            avatar_url: string;
+            /** Endorsement */
+            endorsement: string;
+            /** Responds In */
+            responds_in?: string | null;
+            /** Is Licensed */
+            is_licensed: boolean;
+            /** Is Insured */
+            is_insured: boolean;
+            /** Is On Platform */
+            is_on_platform: boolean;
+            /** Is Pending */
+            is_pending: boolean;
+            /** Tap To Call */
+            tap_to_call: boolean;
+            /** Request Status */
+            request_status?: string | null;
+        };
+        /** ReferrerPublicOut */
+        ReferrerPublicOut: {
+            /** Slug */
+            slug: string;
+            /** Display Name */
+            display_name: string;
+            /** Bio */
+            bio: string;
+            /** Avatar Url */
+            avatar_url: string;
+            /** Follower Count */
+            follower_count: number;
+            /** Referral Count */
+            referral_count: number;
+            /** Pros */
+            pros: components["schemas"]["ProCardOut"][];
+            follower_state?: components["schemas"]["FollowerStateOut"] | null;
+            /** Is Owner */
+            is_owner: boolean;
+            /** Phone */
+            phone?: string | null;
+            /** Email */
+            email?: string | null;
+        };
+        /** FollowOut */
+        FollowOut: {
+            /** Follower Id */
+            follower_id: number;
+            /** Token */
+            token: string;
+        };
+        /** FollowIn */
+        FollowIn: {
+            /** Name */
+            name: string;
+            /** Phone */
+            phone?: string | null;
+            /** Email */
+            email?: string | null;
+        };
+        /** ReferralRequestCreatedOut */
+        ReferralRequestCreatedOut: {
+            /** Request Id */
+            request_id: number;
+            /** Status */
+            status: string;
+        };
+        /** ReferralRequestIn */
+        ReferralRequestIn: {
+            /** Referrer Pro Id */
+            referrer_pro_id?: number | null;
+            /** Job Description */
+            job_description?: string | null;
+        };
+        /** ProInvitePreviewOut */
+        ProInvitePreviewOut: {
+            /** Referrer Slug */
+            referrer_slug: string;
+            /** Referrer Name */
+            referrer_name: string;
+            /** Pro Name */
+            pro_name: string;
+            /** Pro Id */
+            pro_id: number;
         };
     };
     responses: never;
@@ -2705,6 +6504,116 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HealthOut"];
+                };
+            };
+        };
+    };
+    common_api_public_site_info: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicSiteInfoOut"];
+                };
+            };
+        };
+    };
+    common_api_get_geo_zip: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GeoZipOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    common_api_get_location_info: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                zip: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocationInfoOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    common_api_track_site_page_view: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TrackPageViewIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
@@ -2978,6 +6887,60 @@ export interface operations {
             };
         };
     };
+    accounts_api_upload_avatar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * File
+                     * Format: binary
+                     */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AvatarOut"];
+                };
+            };
+        };
+    };
+    accounts_api_avatar_from_url: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AvatarUrlIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AvatarOut"];
+                };
+            };
+        };
+    };
     accounts_home_api_get_notif_prefs: {
         parameters: {
             query?: never;
@@ -3018,6 +6981,191 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NotifPrefOut"];
+                };
+            };
+        };
+    };
+    accounts_pros_api_search_pros_public: {
+        parameters: {
+            query?: {
+                q?: string | null;
+                trade?: string | null;
+                zip?: string | null;
+                radius?: number | null;
+                category?: string | null;
+                subcategory?: string | null;
+                licensed?: boolean | null;
+                insured?: boolean | null;
+                max_response_hours?: number | null;
+                min_krafts?: number | null;
+                min_recs?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProOut"][];
+                };
+            };
+        };
+    };
+    accounts_pros_api_post_rfq: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuoteRequestIn"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuoteRequestOut"];
+                };
+            };
+        };
+    };
+    accounts_pros_api_track_profile_view: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProfileViewIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    accounts_pros_api_track_kraft_impression: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KraftEventIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    accounts_pros_api_track_kraft_click: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KraftEventIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    accounts_pros_api_og_preview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    accounts_pros_api_pro_by_handle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
                 };
             };
         };
@@ -3210,12 +7358,56 @@ export interface operations {
             };
         };
     };
-    accounts_pros_api_pro_by_handle: {
+    accounts_pros_api_my_dashboard: {
+        parameters: {
+            query?: {
+                range?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardOut"];
+                };
+            };
+        };
+    };
+    accounts_pros_api_my_market: {
+        parameters: {
+            query?: {
+                range?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarketOut"];
+                };
+            };
+        };
+    };
+    krafts_api_krafts_by_pro: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                handle: string;
+                pro_id: number;
             };
             cookie?: never;
         };
@@ -3227,16 +7419,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProOut"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
+                    "application/json": components["schemas"]["KraftPublicOut"][];
                 };
             };
         };
@@ -3521,24 +7704,70 @@ export interface operations {
             };
         };
     };
-    krafts_api_krafts_by_pro: {
+    leads_api_create_anonymous_lead: {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                pro_id: number;
-            };
+            path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnonLeadIn"];
+            };
+        };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description Created */
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["KraftPublicOut"][];
+                    "application/json": components["schemas"]["AnonLeadOut"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    leads_api_join_zip_waitlist: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ZipWaitlistIn"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
                 };
             };
         };
@@ -3547,6 +7776,8 @@ export interface operations {
         parameters: {
             query?: {
                 status?: string | null;
+                thread_type?: string | null;
+                sent?: boolean;
             };
             header?: never;
             path?: never;
@@ -3575,6 +7806,39 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["LeadCreateIn"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadOut"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    leads_api_compose_message: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ComposeIn"];
             };
         };
         responses: {
@@ -3666,6 +7930,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MessageOut"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Locked */
+            423: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    leads_api_accept_request: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadOut"];
                 };
             };
             /** @description Bad Request */
@@ -3789,6 +8093,46 @@ export interface operations {
             };
         };
     };
+    leads_api_claim_anonymous_lead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadOut"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
     emergencies_api_create_broadcast: {
         parameters: {
             query?: never;
@@ -3895,6 +8239,37 @@ export interface operations {
             };
             /** @description Conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    recommendations_api_public_recommendations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicRecOut"][];
+                };
+            };
+            /** @description Not Found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4105,12 +8480,56 @@ export interface operations {
             };
         };
     };
-    recommendations_api_public_recommendations: {
+    accounts_favorites_api_get_favorites: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FavoritesOut"];
+                };
+            };
+        };
+    };
+    accounts_favorites_api_sync_favorites: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SyncIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FavoritesOut"];
+                };
+            };
+        };
+    };
+    accounts_favorites_api_toggle_favorite: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                handle: string;
+                pro_id: number;
             };
             cookie?: never;
         };
@@ -4122,16 +8541,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PublicRecOut"][];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
+                    "application/json": components["schemas"]["ToggleOut"];
                 };
             };
         };
@@ -4152,6 +8562,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HomeAccountOut"];
+                };
+            };
+        };
+    };
+    accounts_home_api_patch_home_profile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HomeProfilePatchIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HomeProfileOut"];
                 };
             };
         };
@@ -4364,6 +8798,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    accounts_home_api_join_waitlist: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WaitlistIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WaitlistOut"];
                 };
             };
         };
@@ -4666,7 +9124,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SubscriptionOut"];
+                    "application/json": components["schemas"]["SubscriptionStatusOut"];
                 };
             };
         };
@@ -4757,6 +9215,90 @@ export interface operations {
             };
         };
     };
+    billing_api_create_checkout_session: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckoutIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckoutOut"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckoutError"];
+                };
+            };
+        };
+    };
+    billing_api_billing_config: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingConfigOut"];
+                };
+            };
+        };
+    };
+    billing_api_reset_subscription: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
     common_gk_admin_api_platform_metrics: {
         parameters: {
             query?: never;
@@ -4782,6 +9324,9 @@ export interface operations {
             query?: {
                 role?: string;
                 search?: string;
+                zip?: string;
+                page?: number;
+                page_size?: number;
             };
             header?: never;
             path?: never;
@@ -4795,7 +9340,124 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["UserRow"][];
+                    "application/json": components["schemas"]["UserListOut"];
+                };
+            };
+        };
+    };
+    common_gk_admin_api_list_user_zipcodes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string[];
+                };
+            };
+        };
+    };
+    common_gk_admin_api_delete_user: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    common_gk_admin_api_set_user_admin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserRow"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    common_gk_admin_api_set_user_visitor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserRow"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
@@ -4820,9 +9482,859 @@ export interface operations {
             };
         };
     };
-    vendors_api_list_templates: {
+    common_gk_admin_api_get_stripe_config: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StripeConfigOut"];
+                };
+            };
+        };
+    };
+    common_gk_admin_api_update_stripe_config: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StripeConfigIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StripeConfigOut"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    common_gk_admin_api_test_stripe_connection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StripeConnectionOut"];
+                };
+            };
+        };
+    };
+    common_gk_admin_api_stripe_cli_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StripeCLIStatusOut"];
+                };
+            };
+        };
+    };
+    common_gk_admin_api_stripe_cli_start: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StripeCLIStartIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StripeCLIStartOut"];
+                };
+            };
+        };
+    };
+    common_gk_admin_api_billing_subscribers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubscribersOut"];
+                };
+            };
+        };
+    };
+    common_gk_admin_api_billing_transactions: {
         parameters: {
             query?: {
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionsOut"];
+                };
+            };
+        };
+    };
+    common_gk_admin_api_inbox_overview: {
+        parameters: {
+            query?: {
+                search?: string;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InboxUserListOut"];
+                };
+            };
+        };
+    };
+    common_gk_admin_api_inbox_user_leads: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    }[];
+                };
+            };
+        };
+    };
+    common_gk_admin_api_list_anonymous_leads: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnonLeadRow"][];
+                };
+            };
+        };
+    };
+    common_gk_admin_api_get_site_config: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SiteConfigOut"];
+                };
+            };
+        };
+    };
+    common_gk_admin_api_update_site_config: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SiteConfigIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SiteConfigOut"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    common_gk_admin_api_get_template_profile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateProfileOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    common_gk_admin_api_update_template_profile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TemplateProfileIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateProfileOut"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    vendors_api_track_email_open: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    vendors_api_track_signup_click: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    vendors_api_track_example_click: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    vendors_api_track_page_view: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TrackViewIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    vendors_api_get_analytics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalyticsOut"];
+                };
+            };
+        };
+    };
+    vendors_api_bulk_update_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkStatusIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProspectOut"][];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    vendors_api_bulk_preview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkPreviewIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BulkPreviewOut"];
+                };
+            };
+        };
+    };
+    vendors_api_list_prospects: {
+        parameters: {
+            query?: {
+                status?: string | null;
+                source?: string | null;
+                search?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProspectOut"][];
+                };
+            };
+        };
+    };
+    vendors_api_create_prospect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProspectIn"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProspectOut"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    vendors_api_get_prospect_by_gkid: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                gk_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProspectOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    vendors_api_get_prospect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                prospect_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProspectOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    vendors_api_delete_prospect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                prospect_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    vendors_api_update_prospect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                prospect_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProspectPatchIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProspectOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    vendors_api_start_sequence: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                prospect_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProspectOut"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    vendors_api_advance_chat_step: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                prospect_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdvanceStepIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProspectOut"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    vendors_api_send_step: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                prospect_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SendStepIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProspectOut"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    comms_api_list_templates: {
+        parameters: {
+            query?: {
+                channel?: string | null;
                 kind?: string | null;
             };
             header?: never;
@@ -4842,7 +10354,7 @@ export interface operations {
             };
         };
     };
-    vendors_api_create_template: {
+    comms_api_create_template: {
         parameters: {
             query?: never;
             header?: never;
@@ -4875,38 +10387,7 @@ export interface operations {
             };
         };
     };
-    vendors_api_get_template: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                template_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TemplateOut"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-        };
-    };
-    vendors_api_delete_template: {
+    comms_api_delete_template: {
         parameters: {
             query?: never;
             header?: never;
@@ -4935,7 +10416,7 @@ export interface operations {
             };
         };
     };
-    vendors_api_update_template: {
+    comms_api_update_template: {
         parameters: {
             query?: never;
             header?: never;
@@ -4970,91 +10451,26 @@ export interface operations {
             };
         };
     };
-    vendors_api_preview_template: {
+    comms_api_send_email_endpoint: {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                template_id: number;
-                vendor_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TemplatePreviewOut"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-        };
-    };
-    vendors_api_list_communications: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                vendor_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CommunicationOut"][];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-        };
-    };
-    vendors_api_log_communication: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                vendor_id: number;
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CommunicationIn"];
+                "application/json": components["schemas"]["SendEmailIn"];
             };
         };
         responses: {
-            /** @description Created */
-            201: {
+            /** @description OK */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CommunicationOut"];
+                    "application/json": components["schemas"]["SendEmailOut"];
                 };
             };
             /** @description Bad Request */
@@ -5066,6 +10482,37 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"];
                 };
             };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    comms_api_list_logs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                prospect_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogOut"][];
+                };
+            };
             /** @description Not Found */
             404: {
                 headers: {
@@ -5077,13 +10524,47 @@ export interface operations {
             };
         };
     };
-    vendors_api_delete_communication: {
+    comms_api_add_log: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                vendor_id: number;
-                comm_id: number;
+                prospect_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LogIn"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    comms_api_delete_log: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                log_id: number;
             };
             cookie?: never;
         };
@@ -5107,12 +10588,10 @@ export interface operations {
             };
         };
     };
-    vendors_api_list_vendors: {
+    feedback_api_list_feedback: {
         parameters: {
             query?: {
                 status?: string | null;
-                source?: string | null;
-                search?: string | null;
             };
             header?: never;
             path?: never;
@@ -5126,12 +10605,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["VendorOut"][];
+                    "application/json": components["schemas"]["FeedbackOut"][];
                 };
             };
         };
     };
-    vendors_api_create_vendor: {
+    feedback_api_submit_feedback: {
         parameters: {
             query?: never;
             header?: never;
@@ -5140,7 +10619,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["VendorIn"];
+                "application/json": components["schemas"]["FeedbackIn"];
             };
         };
         responses: {
@@ -5150,27 +10629,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["VendorOut"];
-                };
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
+                    "application/json": components["schemas"]["FeedbackOut"];
                 };
             };
         };
     };
-    vendors_api_get_vendor: {
+    feedback_api_my_feedback: {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                vendor_id: number;
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -5181,7 +10649,33 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["VendorOut"];
+                    "application/json": components["schemas"]["FeedbackOut"][];
+                };
+            };
+        };
+    };
+    feedback_api_reply_to_feedback: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                feedback_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReplyIn"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedbackOut"];
                 };
             };
             /** @description Not Found */
@@ -5195,12 +10689,208 @@ export interface operations {
             };
         };
     };
-    vendors_api_delete_vendor: {
+    feedback_api_update_status: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                vendor_id: number;
+                feedback_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StatusIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedbackOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    circles_api_find_pro_for_circle: {
+        parameters: {
+            query?: {
+                name?: string;
+                email?: string;
+                phone?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProLookupOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    circles_api_get_my_circle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CircleOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    circles_api_create_my_circle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetSlugIn"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CircleOut"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    circles_api_add_on_platform_pro: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddOnPlatformProIn"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CircleProOut"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    circles_api_add_off_platform_pro: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddOffPlatformProIn"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CircleProOut"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    circles_api_remove_pro_from_circle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                circle_pro_id: number;
             };
             cookie?: never;
         };
@@ -5224,18 +10914,18 @@ export interface operations {
             };
         };
     };
-    vendors_api_update_vendor: {
+    circles_api_update_endorsement: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                vendor_id: number;
+                circle_pro_id: number;
             };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["VendorPatchIn"];
+                "application/json": components["schemas"]["UpdateEndorsementIn"];
             };
         };
         responses: {
@@ -5245,7 +10935,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["VendorOut"];
+                    "application/json": components["schemas"]["CircleProOut"];
                 };
             };
             /** @description Not Found */
@@ -5259,16 +10949,58 @@ export interface operations {
             };
         };
     };
-    vendors_api_bulk_update_status: {
+    circles_api_get_circle_analytics: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CircleAnalyticsOut"];
+                };
+            };
+        };
+    };
+    circles_api_list_follow_requests: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CircleFollowRequestOut"][];
+                };
+            };
+        };
+    };
+    circles_api_update_follow_request: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                follow_id: number;
+            };
+            cookie?: never;
+        };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["BulkStatusIn"];
+                "application/json": components["schemas"]["ApproveFollowIn"];
             };
         };
         responses: {
@@ -5278,7 +11010,9 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["VendorOut"][];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Bad Request */
@@ -5288,6 +11022,1590 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    circles_api_request_follow: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    circles_api_claim_escrowed_lead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    circles_api_check_slug_available: {
+        parameters: {
+            query: {
+                slug: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    circles_api_get_circle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CircleOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    circles_api_search_circle: {
+        parameters: {
+            query: {
+                q: string;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CircleSearchResultOut"][];
+                };
+            };
+        };
+    };
+    circles_api_request_pro: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestProIn"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    circles_api_request_intro: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestIntroIn"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    referrals_api_dashboard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferrerDashboardOut"];
+                };
+            };
+        };
+    };
+    referrals_api_update_profile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateProfileIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferrerProfileOut"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    referrals_api_list_my_pros: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferrerProDashboardOut"][];
+                };
+            };
+        };
+    };
+    referrals_api_add_pro: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddProIn"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferrerProDashboardOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    referrals_api_reorder_pros: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReorderProsIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    referrals_api_lookup_pro_by_contact: {
+        parameters: {
+            query?: {
+                phone?: string | null;
+                email?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProSearchResultOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    referrals_api_remove_pro: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rp_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    referrals_api_update_pro: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rp_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateProIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferrerProDashboardOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    referrals_api_invite_pro: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InviteProIn"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InviteProOut"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    referrals_api_resend_pro_invite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invite_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InviteProResendOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    referrals_api_invite_friend: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InviteFriendIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InviteFriendOut"];
+                };
+            };
+        };
+    };
+    referrals_api_invite_friend_single: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InviteFriendSingleIn"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InviteFriendSingleOut"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    referrals_api_resend_friend_invite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invite_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FriendInviteResendOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    referrals_api_share_circle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InviteCircleShareIn"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InviteCircleShareOut"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    referrals_api_resend_circle_share: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invite_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CircleShareResendOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    referrals_api_archive_circle_share: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invite_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    referrals_api_claim_pro_invite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    referrals_api_claim_friend_invite: {
+        parameters: {
+            query: {
+                response: string;
+            };
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    referrals_api_list_invites: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InviteListOut"];
+                };
+            };
+        };
+    };
+    referrals_api_invite_contact_timeline: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                scenario: string;
+                invite_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InviteTimelineEventOut"][];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    referrals_api_update_pro_invite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invite_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateProInviteIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InviteListProOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    referrals_api_update_friend_invite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invite_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateFriendInviteIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InviteListFriendOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    referrals_api_archive_pro_invite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invite_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    referrals_api_archive_friend_invite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invite_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    referrals_api_upload_contacts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * File
+                     * Format: binary
+                     */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadContactsOut"];
+                };
+            };
+        };
+    };
+    referrals_api_add_matched_contacts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddMatchedContactsIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AddMatchedContactsOut"];
+                };
+            };
+        };
+    };
+    referrals_api_list_requests: {
+        parameters: {
+            query?: {
+                status?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralRequestDetailOut"][];
+                };
+            };
+        };
+    };
+    referrals_api_send_referral: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                req_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SendReferralIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SendReferralOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    referrals_api_verify_follower_otp: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                req_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifyOtpIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerifyOtpOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    referrals_api_decline_request: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                req_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    referrals_api_list_followers: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FollowersPageOut"];
+                };
+            };
+        };
+    };
+    referrals_api_referral_activity: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActivityPageOut"];
+                };
+            };
+        };
+    };
+    referrals_api_check_slug: {
+        parameters: {
+            query: {
+                slug: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckSlugOut"];
+                };
+            };
+        };
+    };
+    referrals_api_search_pros: {
+        parameters: {
+            query: {
+                q: string;
+                trade?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProSearchResultOut"][];
+                };
+            };
+        };
+    };
+    referrals_api_referrer_public_page: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferrerPublicOut"];
+                };
+            };
+        };
+    };
+    referrals_api_follow_referrer: {
+        parameters: {
+            query: {
+                response: string;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FollowIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FollowOut"];
+                };
+            };
+        };
+    };
+    referrals_api_submit_referral_request: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferralRequestIn"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralRequestCreatedOut"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    referrals_api_circle_share_click: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    referrals_api_pro_invite_preview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProInvitePreviewOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    referrals_api_pro_invite_click: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    referrals_api_friend_invite_click: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
