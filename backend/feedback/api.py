@@ -13,14 +13,16 @@ from feedback.models import Feedback, FeedbackReply
 class OptionalJWTAuth(HttpBearer):
     """Accepts a valid JWT but also allows unauthenticated requests.
 
-    HttpBearer rejects requests with no Authorization header before calling
-    authenticate(), so we override __call__ to let those through as None.
+    Ninja 401s when an auth callback returns a falsy value, so anonymous/
+    invalid-token requests must return `True` (not None) to get through —
+    submit_feedback() below distinguishes the real user from this sentinel
+    via `isinstance(request.auth, bool)`.
     """
 
     def __call__(self, request):
         auth_header = request.META.get("HTTP_AUTHORIZATION", "")
         if not auth_header.startswith("Bearer "):
-            return None
+            return True
         return super().__call__(request)
 
     def authenticate(self, request, token):
@@ -28,13 +30,13 @@ class OptionalJWTAuth(HttpBearer):
 
         payload = tk.decode_token(token, expected_type=tk.ACCESS)
         if payload is None:
-            return None
+            return True
         try:
             user = User.objects.get(pk=payload["sub"], is_active=True)
             request.user = user
             return user
         except (User.DoesNotExist, ValueError):
-            return None
+            return True
 
 
 optional_jwt = OptionalJWTAuth()

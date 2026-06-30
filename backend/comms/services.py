@@ -9,6 +9,7 @@ returns a fake ID without hitting the network.
 """
 import logging
 import os
+import re as _re
 
 from django.conf import settings
 
@@ -18,9 +19,67 @@ DEFAULT_FROM = "vijay@gigkraft.com"
 AUDIT_BCC = "oddlynicellc@gmail.com"
 INTERNAL_DOMAIN = "gigkraft.com"
 
+_URL_RE = _re.compile(r"(https?://\S+)")
+
 
 def _is_internal(addr: str) -> bool:
     return addr.strip().lower().endswith(f"@{INTERNAL_DOMAIN}")
+
+
+def render_branded_html(body_text: str, cta_url: str | None = None, cta_label: str = "View on GigKraft") -> str:
+    """Wrap plain text in the same branded card layout used for prospect outreach emails
+    (dark header wordmark, white card, mint CTA button, gray footer) — see comms.models
+    .MessageTemplate's seeded "GigKraft Intro — Email" template for the source of truth."""
+    import html as _html
+
+    def _linkify_escape(line: str) -> str:
+        parts = _URL_RE.split(line)
+        out = []
+        for i, part in enumerate(parts):
+            if i % 2 == 1:  # captured URL group
+                href = _html.escape(part)
+                out.append(f'<a href="{href}" style="color:#059669;font-weight:600;">{href}</a>')
+            else:
+                out.append(_html.escape(part))
+        return "".join(out)
+
+    paragraphs = "".join(
+        f"<p style='margin:0 0 16px;'>{_linkify_escape(line)}</p>"
+        for line in body_text.split("\n") if line.strip()
+    )
+
+    cta_html = ""
+    if cta_url:
+        cta_html = f"""
+<div style="text-align:center;margin:28px 0;">
+  <a href="{_html.escape(cta_url)}" style="display:inline-block;background:#34d399;color:#064e3b;padding:13px 30px;border-radius:6px;font-weight:700;font-size:14px;text-decoration:none;">{_html.escape(cta_label)} &rarr;</a>
+</div>"""
+
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+</head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif;">
+<div style="max-width:600px;margin:32px auto;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.10);">
+  <div style="background:#111827;padding:20px 32px;">
+    <a href="https://www.gigkraft.com" style="text-decoration:none;">
+      <span style="color:#34d399;font-size:20px;font-weight:700;letter-spacing:-0.3px;">GigKraft</span>
+    </a>
+  </div>
+  <div style="padding:32px;color:#374151;font-size:15px;line-height:1.75;">
+    {paragraphs}{cta_html}
+  </div>
+  <div style="border-top:1px solid #e5e7eb;padding:16px 32px;background:#f9fafb;">
+    <p style="margin:0;font-size:11px;color:#9ca3af;text-align:center;">
+      <a href="https://www.gigkraft.com" style="color:#9ca3af;text-decoration:none;">www.gigkraft.com</a>
+      &nbsp;&middot;&nbsp;support@gigkraft.com
+    </p>
+  </div>
+</div>
+</body>
+</html>"""
 
 
 def send_email(
@@ -65,13 +124,8 @@ def send_email(
         actual_to = dev_override
         logger.info("[DEV EMAIL] redirecting %s → %s", to, dev_override)
 
-    # Build base HTML — use provided html_body or fall back to escaped plain text
-    if html_body:
-        base_html = html_body
-    else:
-        import html as _html
-        body_escaped = _html.escape(body).replace("\n", "<br>")
-        base_html = f"<div style='font-family:sans-serif;line-height:1.6'>{body_escaped}</div>"
+    # Build base HTML — use provided html_body or fall back to the branded card layout
+    base_html = html_body if html_body else render_branded_html(body)
 
     # Tracked HTML (with pixel) goes to the prospect only.
     # Internal @gigkraft.com CC recipients get base_html (no pixel) so their

@@ -24,25 +24,29 @@ class JWTAuth(HttpBearer):
 class OptionalJWTAuth(HttpBearer):
     """Accepts a valid JWT but also allows unauthenticated requests.
 
-    HttpBearer rejects requests with no Authorization header before calling
-    authenticate(), so we override __call__ to let those through as None.
+    Ninja treats a falsy auth-callback return as a hard 401 (see
+    Operation._run_authentication), so anonymous/invalid-token requests must
+    return a truthy non-User sentinel (`True`) rather than `None` — returning
+    `None` here would 401 every anonymous visitor instead of letting them
+    through. Callers must check `isinstance(request.auth, User)` rather than
+    truthiness to tell a real user apart from the anonymous sentinel.
     """
 
     def __call__(self, request):
         auth_header = request.META.get("HTTP_AUTHORIZATION", "")
         if not auth_header.startswith("Bearer "):
-            return None
+            return True
         return super().__call__(request)
 
     def authenticate(self, request, token):
         payload = tokens.decode_token(token, expected_type=tokens.ACCESS)
         if payload is None:
-            return None
+            return True
         User = get_user_model()
         try:
             user = User.objects.get(pk=payload["sub"], is_active=True)
         except (User.DoesNotExist, ValueError):
-            return None
+            return True
         request.user = user
         return user
 

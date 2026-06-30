@@ -15,6 +15,7 @@ from ninja.errors import HttpError
 
 from accounts.auth import jwt_auth, optional_jwt
 from accounts.models import HomeownerProfile, ProProfile, User
+from comms.services import render_branded_html as _render_branded_html
 from comms.services import send_email as _send_email
 from common.notify import send_sms
 from common.permissions import require_referrer
@@ -197,6 +198,12 @@ EMAIL_SUBJECTS = {
 
 CLAIM_PARAMS = {"pro": "claim", "friend": "inv", "circle": "circle"}
 
+CTA_LABELS = {
+    "pro": "Set Up Your Free Profile",
+    "friend": "Follow My Page",
+    "circle": "Join My Circle",
+}
+
 # Smallest valid 1x1 transparent GIF — mirrors vendors/api.py's prospect open-tracking pixel.
 _PIXEL_GIF = bytes([
     0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x01, 0x00,
@@ -233,6 +240,7 @@ def _send_invite_email(*, scenario: str, email: str, message_body: str, slug: st
             to=email,
             subject=EMAIL_SUBJECTS[scenario],
             body=final_body,
+            html_body=_render_branded_html(final_body, cta_url=final_link, cta_label=CTA_LABELS[scenario]),
             from_addr=INVITE_FROM_ADDR,
             track_token=str(track_token),
             pixel_path="/api/referrer/invite-pixel",
@@ -679,7 +687,9 @@ def referrer_public_page(request, slug: str):
         "pro", "pro__user", "pro_invite"
     ).filter(referrer=profile.user, show_on_page=True)
 
-    authed_user = getattr(request, "auth", None)
+    # optional_jwt returns `True` (not None) for anonymous visitors so Ninja doesn't
+    # 401 them — only a real User instance means someone is actually logged in.
+    authed_user = request.auth if isinstance(request.auth, User) else None
     is_owner = bool(authed_user and authed_user == profile.user)
 
     # Fall back to any other profile that has a picture
