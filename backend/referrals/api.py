@@ -368,6 +368,7 @@ class InviteFriendOut(Schema):
 class InviteFriendSingleIn(Schema):
     name: str
     phone: str
+    email: Optional[str] = None
     channel: str = ""
 
 
@@ -1011,6 +1012,7 @@ def invite_friend_single(request, payload: InviteFriendSingleIn):
         referrer=request.auth,
         name=payload.name,
         phone=payload.phone,
+        email=payload.email or "",
         channel=payload.channel,
     )
     return 201, {

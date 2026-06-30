@@ -129,6 +129,7 @@ export function InviteTab() {
   // Pro invite form
   const [proName, setProName] = useState("");
   const [proPhone, setProPhone] = useState("");
+  const [proEmail, setProEmail] = useState("");
   const [proNote, setProNote] = useState("");
   const [proChannel, setProChannel] = useState<string>("whatsapp");
   const [proSubmitting, setProSubmitting] = useState(false);
@@ -137,6 +138,7 @@ export function InviteTab() {
   // Friend invite form
   const [friendName, setFriendName] = useState("");
   const [friendPhone, setFriendPhone] = useState("");
+  const [friendEmail, setFriendEmail] = useState("");
   const [friendChannel, setFriendChannel] = useState<string>("whatsapp");
   const [friendSubmitting, setFriendSubmitting] = useState(false);
   const [friendError, setFriendError] = useState<string | null>(null);
@@ -173,9 +175,11 @@ export function InviteTab() {
     if (!proName.trim() || !proPhone.trim()) { setProError("Name and phone are required."); return; }
     setProSubmitting(true);
     try {
-      const data = await createProInvite({ name: proName, phone: proPhone, note: proNote, channel: proChannel });
+      const data = await createProInvite({
+        name: proName, phone: proPhone, email: proEmail.trim(), note: proNote, channel: proChannel,
+      });
       openProDeepLink(proName, proPhone, proChannel, data.token, data.referrer_slug);
-      setProName(""); setProPhone(""); setProNote("");
+      setProName(""); setProPhone(""); setProEmail(""); setProNote("");
       setProModalOpen(false);
       await loadInvites();
     } catch (e) {
@@ -199,11 +203,13 @@ export function InviteTab() {
     if (!friendName.trim() || !friendPhone.trim()) { setFriendError("Name and phone are required."); return; }
     setFriendSubmitting(true);
     try {
-      const data = await createFriendInvite({ name: friendName, phone: friendPhone, channel: friendChannel });
+      const data = await createFriendInvite({
+        name: friendName, phone: friendPhone, email: friendEmail.trim(), channel: friendChannel,
+      });
       const url = `https://gigkraft.com/us/${data.referrer_slug}/refer?inv=${data.token}`;
       const body = `Hey ${friendName}, check out my trusted local pros on GigKraft: ${url}`;
       window.open(friendChannel === "whatsapp" ? buildWaLink(friendPhone, body) : buildSmsLink(friendPhone, body), "_blank");
-      setFriendName(""); setFriendPhone("");
+      setFriendName(""); setFriendPhone(""); setFriendEmail("");
       setFriendModalOpen(false);
       await loadInvites();
     } catch (e) {
@@ -644,6 +650,13 @@ export function InviteTab() {
               onChange={(e) => setProPhone(e.target.value)}
               required
             />
+            <TextInput
+              label="Email (optional)"
+              placeholder="percy@example.com"
+              type="email"
+              value={proEmail}
+              onChange={(e) => setProEmail(e.target.value)}
+            />
             <Select
               label="Send via"
               data={[
@@ -711,6 +724,13 @@ export function InviteTab() {
               value={friendPhone}
               onChange={(e) => setFriendPhone(e.target.value)}
               required
+            />
+            <TextInput
+              label="Email (optional)"
+              placeholder="uma@example.com"
+              type="email"
+              value={friendEmail}
+              onChange={(e) => setFriendEmail(e.target.value)}
             />
             <Select
               label="Send via"

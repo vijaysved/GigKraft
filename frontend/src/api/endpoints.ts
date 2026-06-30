@@ -1545,6 +1545,7 @@ export async function getInviteList(): Promise<InviteListOut> {
 export async function createProInvite(payload: {
   name: string;
   phone: string;
+  email?: string;
   note?: string;
   channel?: string;
 }): Promise<{ invite_id: number; referrer_pro_id: number; token: string; referrer_slug: string }> {
@@ -1556,6 +1557,7 @@ export async function createProInvite(payload: {
 export async function createFriendInvite(payload: {
   name: string;
   phone: string;
+  email?: string;
   channel?: string;
 }): Promise<{ invite_id: number; token: string; referrer_slug: string }> {
   const { data, error, response } = await _post("/api/referrer/me/invite-friend-single", {
