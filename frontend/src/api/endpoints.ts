@@ -557,6 +557,7 @@ export interface ReferrerProRow {
   invite_status: string | null;
   invite_id: number | null;
   last_resent_at: string | null;
+  handle: string | null;
   added_at: string;
 }
 

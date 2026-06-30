@@ -380,6 +380,7 @@ class ReferrerProDashboardOut(Schema):
     invite_status: Optional[str] = None
     invite_id: Optional[int] = None
     last_resent_at: Optional[str] = None
+    handle: Optional[str] = None
     added_at: str
 
 
@@ -920,6 +921,7 @@ def _serialize_referrer_pro(rp: ReferrerPro) -> dict:
         "invite_status": invite_status,
         "invite_id": rp.pro_invite_id,
         "last_resent_at": rp.pro_invite.last_resent_at.isoformat() if rp.pro_invite and rp.pro_invite.last_resent_at else None,
+        "handle": rp.pro.handle if rp.pro else None,
         "added_at": rp.added_at.isoformat(),
     }
 
