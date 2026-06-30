@@ -527,6 +527,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/pros/me/circle-notices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Circle Notices */
+        get: operations["accounts_pros_api_list_circle_notices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pros/me/circle-notices/{notice_id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark Circle Notice Read */
+        post: operations["accounts_pros_api_mark_circle_notice_read"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/pros/me/stats": {
         parameters: {
             query?: never;
@@ -3296,6 +3330,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/referrer/invite-pixel/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Invite Pixel
+         * @description Public. 1x1 GIF — records an email-open event for any of the three invite types.
+         */
+        get: operations["referrals_api_invite_pixel"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/referrer/pro-invite/preview/{token}": {
         parameters: {
             query?: never;
@@ -3756,6 +3810,21 @@ export interface components {
         HandleIn: {
             /** Handle */
             handle: string;
+        };
+        /** CircleAddNoticeOut */
+        CircleAddNoticeOut: {
+            /** Id */
+            id: number;
+            /** Referrer Name */
+            referrer_name: string;
+            /** Referrer Slug */
+            referrer_slug: string;
+            /** Referrer Avatar Url */
+            referrer_avatar_url: string;
+            /** Is Read */
+            is_read: boolean;
+            /** Created At */
+            created_at: string;
         };
         /** ProPerformanceOut */
         ProPerformanceOut: {
@@ -5958,6 +6027,12 @@ export interface components {
             is_pending: boolean;
             /** Invite Status */
             invite_status?: string | null;
+            /** Invite Id */
+            invite_id?: number | null;
+            /** Last Resent At */
+            last_resent_at?: string | null;
+            /** Handle */
+            handle?: string | null;
             /** Added At */
             added_at: string;
         };
@@ -7323,6 +7398,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    accounts_pros_api_list_circle_notices: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CircleAddNoticeOut"][];
+                };
+            };
+        };
+    };
+    accounts_pros_api_mark_circle_notice_read: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                notice_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Not Found */
@@ -12526,6 +12654,26 @@ export interface operations {
                         [key: string]: unknown;
                     };
                 };
+            };
+        };
+    };
+    referrals_api_invite_pixel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
