@@ -123,7 +123,28 @@ export interface InviteListFriendOut {
   last_resent_at: string | null;
 }
 
+export interface InviteListCircleOut {
+  invite_id: number;
+  name: string;
+  phone: string;
+  email: string;
+  channel: string;
+  status: string;
+  click_count: number;
+  invited_at: string;
+  last_resent_at: string | null;
+}
+
 export interface InviteListOut {
   pro_invites: InviteListProOut[];
   friend_invites: InviteListFriendOut[];
+  circle_invites: InviteListCircleOut[];
+}
+
+export type InviteScenario = "pro" | "friend" | "circle";
+
+export interface InviteTimelineEventOut {
+  event_type: "sent" | "resent" | "clicked" | "joined";
+  message_body: string | null;
+  occurred_at: string;
 }

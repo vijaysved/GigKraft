@@ -9,6 +9,8 @@ import type {
   InviteListOut,
   InviteListProOut,
   InviteListFriendOut,
+  InviteScenario,
+  InviteTimelineEventOut,
 } from "../features/referrer/types";
 
 export type HealthOut = components["schemas"]["HealthOut"];
@@ -1548,6 +1550,7 @@ export async function createProInvite(payload: {
   email?: string;
   note?: string;
   channel?: string;
+  message?: string;
 }): Promise<{ invite_id: number; referrer_pro_id: number; token: string; referrer_slug: string }> {
   const { data, error, response } = await _post("/api/referrer/me/invite-pro", { body: payload });
   if (!data) throw new ApiError(response.status, detailOf(error, "Failed to create invite."));
@@ -1559,11 +1562,24 @@ export async function createFriendInvite(payload: {
   phone: string;
   email?: string;
   channel?: string;
+  message?: string;
 }): Promise<{ invite_id: number; token: string; referrer_slug: string }> {
   const { data, error, response } = await _post("/api/referrer/me/invite-friend-single", {
     body: payload,
   });
   if (!data) throw new ApiError(response.status, detailOf(error, "Failed to create friend invite."));
+  return data as { invite_id: number; token: string; referrer_slug: string };
+}
+
+export async function createCircleShare(payload: {
+  name: string;
+  phone?: string;
+  email?: string;
+  channel?: string;
+  message?: string;
+}): Promise<{ invite_id: number; token: string; referrer_slug: string }> {
+  const { data, error, response } = await _post("/api/referrer/me/share-circle", { body: payload });
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to create circle share."));
   return data as { invite_id: number; token: string; referrer_slug: string };
 }
 
@@ -1591,6 +1607,27 @@ export async function archiveProInvite(id: number): Promise<void> {
 
 export async function archiveFriendInvite(id: number): Promise<void> {
   await _post(`/api/referrer/me/invite-friend-single/${id}/archive`);
+}
+
+export async function resendCircleShare(
+  id: number,
+): Promise<{ ok: boolean; token: string; referrer_slug: string }> {
+  const { data, error, response } = await _post(`/api/referrer/me/share-circle/${id}/resend`);
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to resend."));
+  return data as { ok: boolean; token: string; referrer_slug: string };
+}
+
+export async function archiveCircleShare(id: number): Promise<void> {
+  await _post(`/api/referrer/me/share-circle/${id}/archive`);
+}
+
+export async function getInviteContactTimeline(
+  scenario: InviteScenario,
+  inviteId: number,
+): Promise<InviteTimelineEventOut[]> {
+  const { data, response } = await _get(`/api/referrer/me/invites/${scenario}/${inviteId}/timeline`);
+  if (!response.ok) throw new ApiError(response.status, "Failed to load timeline.");
+  return (data ?? []) as InviteTimelineEventOut[];
 }
 
 export async function updateProInvite(

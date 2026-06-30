@@ -71,6 +71,7 @@ class ProInvite(models.Model):
     email = models.EmailField(blank=True, default="")
     note = models.TextField(blank=True, default="")
     channel = models.CharField(max_length=10, blank=True, default="")
+    message_body = models.TextField(blank=True, default="")
     token = models.CharField(max_length=64, unique=True, db_index=True, default=_generate_token)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)
     click_count = models.PositiveIntegerField(default=0)
@@ -273,6 +274,7 @@ class FriendInvite(models.Model):
     phone = models.CharField(max_length=20, blank=True, default="")
     email = models.EmailField(blank=True, default="")
     channel = models.CharField(max_length=10, blank=True, default="")
+    message_body = models.TextField(blank=True, default="")
     token = models.CharField(max_length=32, unique=True, db_index=True, default=_generate_token)
     click_count = models.PositiveIntegerField(default=0)
     is_archived = models.BooleanField(default=False)
@@ -286,6 +288,60 @@ class FriendInvite(models.Model):
 
     def __str__(self):
         return f"FriendInvite<{self.name} from {self.referrer}>"
+
+
+class CircleShareInvite(models.Model):
+    """A recipient a referrer explicitly shared their Circle/page link with."""
+
+    referrer = models.ForeignKey(
+        "accounts.User", on_delete=models.CASCADE, related_name="circle_shares_sent"
+    )
+    name = models.CharField(max_length=100)
+    phone = models.CharField(max_length=20, blank=True, default="")
+    email = models.EmailField(blank=True, default="")
+    channel = models.CharField(max_length=10, blank=True, default="")
+    message_body = models.TextField(blank=True, default="")
+    token = models.CharField(max_length=32, unique=True, db_index=True, default=_generate_token)
+    click_count = models.PositiveIntegerField(default=0)
+    is_archived = models.BooleanField(default=False)
+    invited_at = models.DateTimeField(auto_now_add=True)
+    last_resent_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"CircleShareInvite<{self.name} from {self.referrer}>"
+
+
+class InviteEvent(models.Model):
+    """Discrete, timestamped event log powering the per-contact invite timeline.
+
+    Kept as a single shared table (scenario + invite_id) rather than three FK
+    columns so one model/endpoint can serve ProInvite, FriendInvite, and
+    CircleShareInvite without duplicating the event machinery three times.
+    """
+
+    class Scenario(models.TextChoices):
+        PRO = "pro", "Pro"
+        FRIEND = "friend", "Friend"
+        CIRCLE = "circle", "Circle"
+
+    class EventType(models.TextChoices):
+        SENT = "sent", "Sent"
+        RESENT = "resent", "Resent"
+        CLICKED = "clicked", "Link Clicked"
+        JOINED = "joined", "Joined / Claimed / Followed"
+
+    scenario = models.CharField(max_length=10, choices=Scenario.choices)
+    invite_id = models.PositiveIntegerField()
+    event_type = models.CharField(max_length=10, choices=EventType.choices)
+    message_body = models.TextField(blank=True, default="")
+    occurred_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["occurred_at"]
+        indexes = [models.Index(fields=["scenario", "invite_id"])]
+
+    def __str__(self):
+        return f"InviteEvent<{self.scenario}#{self.invite_id} {self.event_type} at {self.occurred_at}>"
 
 
 class UploadedContact(models.Model):

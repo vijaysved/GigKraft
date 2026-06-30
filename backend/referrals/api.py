@@ -17,7 +17,9 @@ from accounts.models import HomeownerProfile, ProProfile, User
 from common.notify import send_sms
 from common.permissions import require_referrer
 from referrals.models import (
+    CircleShareInvite,
     FriendInvite,
+    InviteEvent,
     ProInvite,
     ReferralRequest,
     ReferralSent,
@@ -177,6 +179,12 @@ def _dispatch_referral(request_obj: ReferralRequest):
 from django.db.models import F as models_F
 
 
+def _log_invite_event(scenario: str, invite_id: int, event_type: str, message_body: str = ""):
+    InviteEvent.objects.create(
+        scenario=scenario, invite_id=invite_id, event_type=event_type, message_body=message_body,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Public schemas
 # ---------------------------------------------------------------------------
@@ -328,6 +336,7 @@ class InviteProIn(Schema):
     email: Optional[str] = None
     note: Optional[str] = None
     channel: str = ""
+    message: Optional[str] = None
 
 
 class InviteProOut(Schema):
@@ -370,6 +379,7 @@ class InviteFriendSingleIn(Schema):
     phone: str
     email: Optional[str] = None
     channel: str = ""
+    message: Optional[str] = None
 
 
 class InviteFriendSingleOut(Schema):
@@ -379,6 +389,26 @@ class InviteFriendSingleOut(Schema):
 
 
 class FriendInviteResendOut(Schema):
+    ok: bool
+    token: str
+    referrer_slug: str
+
+
+class InviteCircleShareIn(Schema):
+    name: str
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    channel: str = ""
+    message: Optional[str] = None
+
+
+class InviteCircleShareOut(Schema):
+    invite_id: int
+    token: str
+    referrer_slug: str
+
+
+class CircleShareResendOut(Schema):
     ok: bool
     token: str
     referrer_slug: str
@@ -409,9 +439,22 @@ class InviteListFriendOut(Schema):
     last_resent_at: Optional[str] = None
 
 
+class InviteListCircleOut(Schema):
+    invite_id: int
+    name: str
+    phone: str
+    email: str
+    channel: str
+    status: str
+    click_count: int
+    invited_at: str
+    last_resent_at: Optional[str] = None
+
+
 class InviteListOut(Schema):
     pro_invites: list[InviteListProOut]
     friend_invites: list[InviteListFriendOut]
+    circle_invites: list[InviteListCircleOut] = []
 
 
 class UpdateProInviteIn(Schema):
@@ -424,6 +467,12 @@ class UpdateFriendInviteIn(Schema):
     name: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None
+
+
+class InviteTimelineEventOut(Schema):
+    event_type: str
+    message_body: Optional[str] = None
+    occurred_at: str
 
 
 class MatchedContactOut(Schema):
@@ -937,7 +986,9 @@ def invite_pro(request, payload: InviteProIn):
         email=payload.email or "",
         note=payload.note or "",
         channel=payload.channel,
+        message_body=payload.message or "",
     )
+    _log_invite_event(InviteEvent.Scenario.PRO, invite.pk, InviteEvent.EventType.SENT, invite.message_body)
 
     max_order = ReferrerPro.objects.filter(referrer=request.auth).count()
     rp = ReferrerPro.objects.create(
@@ -970,6 +1021,7 @@ def resend_pro_invite(request, invite_id: int):
 
     invite.last_resent_at = timezone.now()
     invite.save(update_fields=["last_resent_at"])
+    _log_invite_event(InviteEvent.Scenario.PRO, invite.pk, InviteEvent.EventType.RESENT, invite.message_body)
 
     return 200, {
         "ok": True,
@@ -1014,7 +1066,9 @@ def invite_friend_single(request, payload: InviteFriendSingleIn):
         phone=payload.phone,
         email=payload.email or "",
         channel=payload.channel,
+        message_body=payload.message or "",
     )
+    _log_invite_event(InviteEvent.Scenario.FRIEND, fi.pk, InviteEvent.EventType.SENT, fi.message_body)
     return 201, {
         "invite_id": fi.pk,
         "token": fi.token,
@@ -1037,12 +1091,81 @@ def resend_friend_invite(request, invite_id: int):
 
     fi.last_resent_at = timezone.now()
     fi.save(update_fields=["last_resent_at"])
+    _log_invite_event(InviteEvent.Scenario.FRIEND, fi.pk, InviteEvent.EventType.RESENT, fi.message_body)
 
     return 200, {
         "ok": True,
         "token": fi.token,
         "referrer_slug": profile.slug,
     }
+
+
+@router.post("/me/share-circle", response={201: InviteCircleShareOut, 422: dict})
+def share_circle(request, payload: InviteCircleShareIn):
+    """Single recipient circle-share — same shape as invite-friend-single.
+    The wizard loops this once per recipient for multi-recipient Circle sends."""
+    profile = require_referrer(request)
+    if not payload.phone and not payload.email:
+        return 422, {"detail": "Phone or email is required."}
+
+    cs = CircleShareInvite.objects.create(
+        referrer=request.auth,
+        name=payload.name,
+        phone=payload.phone or "",
+        email=payload.email or "",
+        channel=payload.channel,
+        message_body=payload.message or "",
+    )
+    _log_invite_event(InviteEvent.Scenario.CIRCLE, cs.pk, InviteEvent.EventType.SENT, cs.message_body)
+    return 201, {
+        "invite_id": cs.pk,
+        "token": cs.token,
+        "referrer_slug": profile.slug,
+    }
+
+
+@router.post("/me/share-circle/{invite_id}/resend", response={200: CircleShareResendOut, 404: dict, 429: dict})
+def resend_circle_share(request, invite_id: int):
+    profile = require_referrer(request)
+    cs = CircleShareInvite.objects.filter(pk=invite_id, referrer=request.auth).first()
+    if not cs:
+        return 404, {"detail": "Share not found."}
+
+    last = cs.last_resent_at or cs.invited_at
+    if last and (timezone.now() - last).total_seconds() < 86400:
+        seconds_left = int(86400 - (timezone.now() - last).total_seconds())
+        hours_left = round(seconds_left / 3600, 1)
+        return 429, {"detail": f"Resend available in {hours_left}h."}
+
+    cs.last_resent_at = timezone.now()
+    cs.save(update_fields=["last_resent_at"])
+    _log_invite_event(InviteEvent.Scenario.CIRCLE, cs.pk, InviteEvent.EventType.RESENT, cs.message_body)
+
+    return 200, {
+        "ok": True,
+        "token": cs.token,
+        "referrer_slug": profile.slug,
+    }
+
+
+@router.post("/me/share-circle/{invite_id}/archive", response={200: dict, 404: dict})
+def archive_circle_share(request, invite_id: int):
+    profile = require_referrer(request)
+    updated = CircleShareInvite.objects.filter(pk=invite_id, referrer=request.auth).update(is_archived=True)
+    if not updated:
+        return 404, {"detail": "Share not found."}
+    return 200, {"ok": True}
+
+
+@public_router.post("/circle-share/click/{token}", response={200: dict}, auth=None)
+def circle_share_click(request, token: str):
+    """Public. Fire-and-forget — atomically increments click_count."""
+    from django.db.models import F as _F
+    cs = CircleShareInvite.objects.filter(token=token).first()
+    if cs:
+        CircleShareInvite.objects.filter(pk=cs.pk).update(click_count=_F("click_count") + 1)
+        _log_invite_event(InviteEvent.Scenario.CIRCLE, cs.pk, InviteEvent.EventType.CLICKED)
+    return 200, {}
 
 
 # ---------------------------------------------------------------------------
@@ -1070,7 +1193,10 @@ def pro_invite_preview(request, token: str):
 def pro_invite_click(request, token: str):
     """Public. Fire-and-forget — atomically increments click_count."""
     from django.db.models import F as _F
-    ProInvite.objects.filter(token=token).update(click_count=_F("click_count") + 1)
+    invite = ProInvite.objects.filter(token=token).first()
+    if invite:
+        ProInvite.objects.filter(pk=invite.pk).update(click_count=_F("click_count") + 1)
+        _log_invite_event(InviteEvent.Scenario.PRO, invite.pk, InviteEvent.EventType.CLICKED)
     return 200, {}
 
 
@@ -1114,6 +1240,7 @@ def claim_pro_invite(request, token: str):
             rp.pro_invite = None
             rp.save(update_fields=["pro", "pro_invite"])
 
+    _log_invite_event(InviteEvent.Scenario.PRO, invite.pk, InviteEvent.EventType.JOINED)
     return 200, {"pro_handle": handle}
 
 
@@ -1125,7 +1252,10 @@ def claim_pro_invite(request, token: str):
 def friend_invite_click(request, token: str):
     """Public. Fire-and-forget — atomically increments click_count."""
     from django.db.models import F as _F
-    FriendInvite.objects.filter(token=token).update(click_count=_F("click_count") + 1)
+    invite = FriendInvite.objects.filter(token=token).first()
+    if invite:
+        FriendInvite.objects.filter(pk=invite.pk).update(click_count=_F("click_count") + 1)
+        _log_invite_event(InviteEvent.Scenario.FRIEND, invite.pk, InviteEvent.EventType.CLICKED)
     return 200, {}
 
 
@@ -1169,6 +1299,8 @@ def claim_friend_invite(request, token: str, response):
         fi.follower = follower
         fi.save(update_fields=["followed_at", "follower"])
 
+    _log_invite_event(InviteEvent.Scenario.FRIEND, fi.pk, InviteEvent.EventType.JOINED)
+
     # Set follower cookie so the page recognises them immediately
     response.set_cookie(
         COOKIE_NAME,
@@ -1194,6 +1326,9 @@ def list_invites(request):
         invited_by=request.auth, is_archived=False
     ).order_by("-invited_at")
     friend_invites = FriendInvite.objects.filter(
+        referrer=request.auth, is_archived=False
+    ).order_by("-invited_at")
+    circle_invites = CircleShareInvite.objects.filter(
         referrer=request.auth, is_archived=False
     ).order_by("-invited_at")
 
@@ -1230,7 +1365,44 @@ def list_invites(request):
             }
             for i in friend_invites
         ],
+        "circle_invites": [
+            {
+                "invite_id": i.pk,
+                "name": i.name,
+                "phone": i.phone,
+                "email": i.email,
+                "channel": i.channel,
+                "status": "clicked" if i.click_count > 0 else "pending",
+                "click_count": i.click_count,
+                "invited_at": fmt_dt(i.invited_at),
+                "last_resent_at": fmt_dt(i.last_resent_at),
+            }
+            for i in circle_invites
+        ],
     }
+
+
+@router.get("/me/invites/{scenario}/{invite_id}/timeline", response={200: list[InviteTimelineEventOut], 404: dict})
+def invite_contact_timeline(request, scenario: str, invite_id: int):
+    """Per-contact event history powering the Contact Detail Timeline drawer."""
+    require_referrer(request)
+    if scenario not in (InviteEvent.Scenario.PRO, InviteEvent.Scenario.FRIEND, InviteEvent.Scenario.CIRCLE):
+        return 404, {"detail": "Unknown scenario."}
+
+    model = {"pro": ProInvite, "friend": FriendInvite, "circle": CircleShareInvite}[scenario]
+    owner_field = "invited_by" if scenario == "pro" else "referrer"
+    if not model.objects.filter(pk=invite_id, **{owner_field: request.auth}).exists():
+        return 404, {"detail": "Invite not found."}
+
+    events = InviteEvent.objects.filter(scenario=scenario, invite_id=invite_id).order_by("occurred_at")
+    return 200, [
+        {
+            "event_type": e.event_type,
+            "message_body": e.message_body or None,
+            "occurred_at": e.occurred_at.isoformat(),
+        }
+        for e in events
+    ]
 
 
 @router.patch("/me/invite-pro/{invite_id}", response={200: InviteListProOut, 404: dict, 422: dict})
