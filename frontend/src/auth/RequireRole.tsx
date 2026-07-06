@@ -11,6 +11,7 @@ const ROLE_HOME: Record<string, string> = {
   pro: "/pro/leads",
   homeowner: "/us/me/refer",
   referrer: "/us/me/refer",
+  community_lead: "/us/me/refer",
   node_manager: "/admin/dashboard",
   gk_admin: "/gk-admin/dashboard",
 };

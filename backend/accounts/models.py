@@ -23,6 +23,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         PRO = "pro", "Pro"
         HOMEOWNER = "homeowner", "Homeowner"  # legacy — migrating to REFERRER
         REFERRER = "referrer", "Referrer"
+        COMMUNITY_LEAD = "community_lead", "Community Lead"
         NODE_MANAGER = "node_manager", "Node Manager"
         GK_ADMIN = "gk_admin", "GK Admin"
 

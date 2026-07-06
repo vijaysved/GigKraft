@@ -95,6 +95,7 @@ import { ReferrerPublicPage } from "./features/referrer/ReferrerPublicPage";
 import { ReferrerDashboard } from "./features/referrer/ReferrerDashboard";
 import { ReferrerAccountPage } from "./features/referrer/ReferrerAccountPage";
 import { ReferrerInboxPage } from "./features/referrer/ReferrerInboxPage";
+import { ContactDetailPage } from "./features/referrer/ContactDetailPage";
 
 
 const ROLE_HOME: Record<string, string> = {
@@ -320,7 +321,7 @@ export default function App() {
         path="/us/:slug"
         element={
           <RequireAuth>
-            <RequireRole role={["referrer", "homeowner"]}>
+            <RequireRole role={["referrer", "homeowner", "community_lead"]}>
               <ReferrerShell />
             </RequireRole>
           </RequireAuth>
@@ -328,6 +329,7 @@ export default function App() {
       >
         <Route index element={<Navigate to="home" replace />} />
         <Route path="home" element={<ReferrerDashboard />} />
+        <Route path="contacts/:scenario/:id" element={<ContactDetailPage />} />
         <Route path="inbox" element={<ReferrerInboxPage />} />
         <Route path="inbox/:leadId" element={<ReferrerInboxPage />} />
         <Route path="account" element={<ReferrerAccountPage />} />

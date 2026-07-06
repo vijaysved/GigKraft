@@ -60,7 +60,7 @@ def ensure_role_profile(user):
         ProProfile.objects.get_or_create(user=user)
     elif user.role == User.Role.HOMEOWNER:
         HomeownerProfile.objects.get_or_create(user=user)
-    elif user.role == User.Role.REFERRER:
+    elif user.role in (User.Role.REFERRER, User.Role.COMMUNITY_LEAD):
         from referrals.models import ReferrerProfile
         profile, created = ReferrerProfile.objects.get_or_create(user=user)
         if created and not profile.slug:

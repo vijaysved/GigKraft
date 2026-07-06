@@ -11,11 +11,15 @@ import {
   Stack,
   Stepper,
   Text,
-  Textarea,
   TextInput,
 } from "@mantine/core";
 import { IconPlus, IconSend, IconTrash } from "@tabler/icons-react";
 import { useState } from "react";
+
+import { RichTextEditor } from "@mantine/tiptap";
+import { useEditor } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Placeholder from "@tiptap/extension-placeholder";
 
 import { createCircleShare, createFriendInvite, createProInvite } from "../../../api/endpoints";
 import type { InviteScenario } from "../types";
@@ -40,7 +44,7 @@ const SCENARIO_META: Record<InviteScenario, { title: string; intro: string; mult
     title: "Invite a Pro",
     intro: "Add someone to your trusted circle — they'll get a link to claim their free profile.",
     multiRecipient: false,
-    needsTrade: true,
+    needsTrade: false,
   },
   friend: {
     title: "Invite a Friend",
@@ -69,6 +73,42 @@ function resolveMessage(template: string, vars: { recipientName: string; senderN
     .replace(/\{\{link\}\}/g, vars.link);
 }
 
+/** Convert editor HTML to plain text, preserving paragraph breaks as newlines. */
+function htmlToPlainText(html: string): string {
+  return html
+    .replace(/<\/p>/gi, "\n")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/div>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+/** Convert editor HTML to WhatsApp markdown (*bold*, _italic_). */
+function htmlToWhatsApp(html: string): string {
+  return html
+    .replace(/<strong>([\s\S]*?)<\/strong>/gi, "*$1*")
+    .replace(/<b>([\s\S]*?)<\/b>/gi, "*$1*")
+    .replace(/<em>([\s\S]*?)<\/em>/gi, "_$1_")
+    .replace(/<i>([\s\S]*?)<\/i>/gi, "_$1_")
+    .replace(/<\/p>/gi, "\n")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/div>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 function buildWaLink(phone: string, body: string) {
   return `https://wa.me/${phone.replace(/\D/g, "")}?text=${encodeURIComponent(body)}`;
 }
@@ -93,13 +133,25 @@ export function InviteWizardModal({ opened, onClose, scenario, slug, senderName,
   const [step, setStep] = useState(0);
   const [recipients, setRecipients] = useState<Recipient[]>([{ ...EMPTY_RECIPIENT, ...initialRecipient }]);
   const [channel, setChannel] = useState("whatsapp");
-  const [message, setMessage] = useState("");
+  const [messageHtml, setMessageHtml] = useState("");
   const [messageTouched, setMessageTouched] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<{ sent: number; failed: number } | null>(null);
+  const [result, setResult] = useState<{ sent: number; failed: number; recipients: Recipient[] } | null>(null);
 
   const previewLink = `gigkraft.com/us/${slug}/refer`;
+
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Placeholder.configure({ placeholder: "Write your message…" }),
+    ],
+    content: "",
+    onUpdate: ({ editor: ed }) => {
+      setMessageHtml(ed.getHTML());
+      setMessageTouched(true);
+    },
+  });
 
   function isValid(r: Recipient) {
     return !!(r.name.trim() && (r.phone.trim() || r.email.trim()) && (!meta.needsTrade || r.trade));
@@ -111,10 +163,11 @@ export function InviteWizardModal({ opened, onClose, scenario, slug, senderName,
     setStep(0);
     setRecipients([{ ...EMPTY_RECIPIENT }]);
     setChannel("whatsapp");
-    setMessage("");
+    setMessageHtml("");
     setMessageTouched(false);
     setError(null);
     setResult(null);
+    editor?.commands.setContent("");
   }
 
   function handleClose() {
@@ -139,7 +192,10 @@ export function InviteWizardModal({ opened, onClose, scenario, slug, senderName,
     if (validRecipients.length === 0) return;
     const greeting = meta.multiRecipient && validRecipients.length > 1 ? "" : validRecipients[0].name.split(" ")[0];
     if (!messageTouched) {
-      setMessage(resolveMessage(MESSAGE_TEMPLATES[scenario], { recipientName: greeting, senderName, link: previewLink }));
+      const plain = resolveMessage(MESSAGE_TEMPLATES[scenario], { recipientName: greeting, senderName, link: previewLink });
+      const html = `<p>${plain}</p>`;
+      setMessageHtml(html);
+      editor?.commands.setContent(html);
     }
     setStep(1);
   }
@@ -153,36 +209,36 @@ export function InviteWizardModal({ opened, onClose, scenario, slug, senderName,
       try {
         let token: string;
         let referrerSlug: string;
+
+        const plainMessage = htmlToPlainText(messageHtml);
+
         if (scenario === "pro") {
           const res = await createProInvite({
             name: r.name, phone: r.phone, email: r.email || undefined,
-            channel, message,
+            channel, message: plainMessage,
           });
           token = res.token; referrerSlug = res.referrer_slug;
         } else if (scenario === "friend") {
           const res = await createFriendInvite({
-            name: r.name, phone: r.phone, email: r.email || undefined, channel, message,
+            name: r.name, phone: r.phone, email: r.email || undefined, channel, message: plainMessage,
           });
           token = res.token; referrerSlug = res.referrer_slug;
         } else {
           const res = await createCircleShare({
-            name: r.name, phone: r.phone || undefined, email: r.email || undefined, channel, message,
+            name: r.name, phone: r.phone || undefined, email: r.email || undefined, channel, message: plainMessage,
           });
           token = res.token; referrerSlug = res.referrer_slug;
         }
 
         const claimParam = scenario === "pro" ? "claim" : scenario === "friend" ? "inv" : "circle";
         const finalLink = `https://gigkraft.com/us/${referrerSlug}/refer?${claimParam}=${token}`;
-        // `message` is already fully resolved (tokens replaced in Step 2/3); just
-        // swap the placeholder preview link for the real token-bearing link.
-        const finalBody = message.replace(previewLink, finalLink);
 
-        // Email is sent server-side (support@gigkraft.com via Resend) as part of the
-        // create call above — only WhatsApp/SMS need a client-side deep link handoff.
         if (channel === "whatsapp" && r.phone) {
-          window.open(buildWaLink(r.phone, finalBody), "_blank");
+          const waBody = htmlToWhatsApp(messageHtml).replace(previewLink, finalLink);
+          window.open(buildWaLink(r.phone, waBody), "_blank");
         } else if (channel === "sms" && r.phone) {
-          window.open(buildSmsLink(r.phone, finalBody), "_blank");
+          const smsBody = htmlToPlainText(messageHtml).replace(previewLink, finalLink);
+          window.open(buildSmsLink(r.phone, smsBody), "_blank");
         }
         sent++;
       } catch {
@@ -190,9 +246,11 @@ export function InviteWizardModal({ opened, onClose, scenario, slug, senderName,
       }
     }
     setSubmitting(false);
-    setResult({ sent, failed });
+    setResult({ sent, failed, recipients: validRecipients });
     if (sent > 0) onSent();
   }
+
+  const previewText = channel === "whatsapp" ? htmlToWhatsApp(messageHtml) : htmlToPlainText(messageHtml);
 
   return (
     <Modal opened={opened} onClose={handleClose} title={meta.title} centered size="lg" radius="md">
@@ -204,16 +262,29 @@ export function InviteWizardModal({ opened, onClose, scenario, slug, senderName,
         </Stepper>
 
         {result ? (
-          <Stack align="center" py="lg" gap="xs">
-            <Text fw={700}>
+          <Stack py="md" gap="md">
+            <Text fw={700} ta="center">
               {result.failed === 0
-                ? "Sent! ✅"
+                ? "Sent!"
                 : `${result.sent} of ${result.sent + result.failed} sent.`}
             </Text>
+            <Stack gap="xs">
+              {result.recipients.map((r, i) => (
+                <Box
+                  key={i}
+                  p="sm"
+                  style={{ borderRadius: 8, background: "var(--mantine-color-gray-0)", border: "1px solid var(--mantine-color-default-border)" }}
+                >
+                  <Text size="sm" fw={600}>{r.name}</Text>
+                  {r.email && <Text size="xs" c="dimmed">{r.email}</Text>}
+                  {r.phone && !r.email && <Text size="xs" c="dimmed">{r.phone}</Text>}
+                </Box>
+              ))}
+            </Stack>
             {result.failed > 0 && (
-              <Text size="sm" c="dimmed">Some sends failed — you can retry from the Timeline below.</Text>
+              <Text size="sm" c="dimmed" ta="center">Some sends failed — retry from the Timeline.</Text>
             )}
-            <Button onClick={handleClose} variant="light" mt="sm">Close</Button>
+            <Button onClick={handleClose} variant="light">Close</Button>
           </Stack>
         ) : step === 0 ? (
           <Stack gap="sm">
@@ -286,19 +357,27 @@ export function InviteWizardModal({ opened, onClose, scenario, slug, senderName,
           </Stack>
         ) : step === 1 ? (
           <Stack gap="sm">
-            <Textarea
-              label="Message"
-              value={message}
-              onChange={(e) => { setMessage(e.target.value); setMessageTouched(true); }}
-              autosize
-              minRows={5}
-            />
+            <RichTextEditor editor={editor} style={{ minHeight: 200 }}>
+              <RichTextEditor.Toolbar>
+                <RichTextEditor.ControlsGroup>
+                  <RichTextEditor.Bold />
+                  <RichTextEditor.Italic />
+                  <RichTextEditor.Underline />
+                </RichTextEditor.ControlsGroup>
+                <RichTextEditor.ControlsGroup>
+                  <RichTextEditor.ClearFormatting />
+                </RichTextEditor.ControlsGroup>
+              </RichTextEditor.Toolbar>
+              <RichTextEditor.Content />
+            </RichTextEditor>
             <Text size="xs" c="dimmed">
-              This message will be sent exactly as written — feel free to personalize it.
+              {channel === "whatsapp"
+                ? "Bold and italic formatting are preserved as WhatsApp markdown (*bold*, _italic_) when sent."
+                : "Format your message — it will be sent exactly as written."}
             </Text>
             <Group justify="flex-end" mt="xs">
               <Button variant="default" onClick={() => setStep(0)}>Back</Button>
-              <Button onClick={() => setStep(2)} disabled={!message.trim()}>Next</Button>
+              <Button onClick={() => setStep(2)} disabled={!editor?.getText().trim()}>Next</Button>
             </Group>
           </Stack>
         ) : (
@@ -308,8 +387,6 @@ export function InviteWizardModal({ opened, onClose, scenario, slug, senderName,
               Preview — sent to {validRecipients.length} recipient{validRecipients.length === 1 ? "" : "s"}:
             </Text>
             {validRecipients.map((r, i) => (
-              // Same resolved `message` for every recipient (see goToMessageStep) —
-              // only the "To:" label differs per card.
               <Box
                 key={i}
                 p="sm"
@@ -319,16 +396,15 @@ export function InviteWizardModal({ opened, onClose, scenario, slug, senderName,
                     channel === "whatsapp" ? "#dcf8c6"
                     : channel === "email" ? "var(--mantine-color-gray-1)"
                     : "var(--mantine-color-blue-0)",
-                  whiteSpace: "pre-wrap",
                 }}
               >
                 <Text size="xs" fw={600} c="dimmed" mb={4}>To: {r.name}</Text>
-                <Text size="sm">{message}</Text>
+                <Text size="sm" style={{ whiteSpace: "pre-wrap" }}>{previewText}</Text>
               </Box>
             ))}
             <Group justify="flex-end" mt="xs">
               <Button variant="default" onClick={() => setStep(1)}>Back</Button>
-              <Button leftSection={<IconSend size={14} />} loading={submitting} onClick={handleSend}>
+              <Button leftSection={<IconSend size={14} />} loading={submitting} onClick={() => void handleSend()}>
                 Send
               </Button>
             </Group>

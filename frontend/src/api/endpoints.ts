@@ -1549,8 +1549,9 @@ export async function getInviteList(): Promise<InviteListOut> {
 
 export async function createProInvite(payload: {
   name: string;
-  phone: string;
+  phone?: string;
   email?: string;
+  trade?: string;
   note?: string;
   channel?: string;
   message?: string;
@@ -1562,7 +1563,7 @@ export async function createProInvite(payload: {
 
 export async function createFriendInvite(payload: {
   name: string;
-  phone: string;
+  phone?: string;
   email?: string;
   channel?: string;
   message?: string;

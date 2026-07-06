@@ -6,6 +6,7 @@ import {
   IconUserCheck,
   IconUserPlus,
 } from "@tabler/icons-react";
+import { useSearchParams } from "react-router-dom";
 
 import { ActivityTab } from "./tabs/ActivityTab";
 import { FollowersTab } from "./tabs/FollowersTab";
@@ -14,8 +15,11 @@ import { RequestsTab } from "./tabs/RequestsTab";
 import { SearchTab } from "./tabs/SearchTab";
 
 export function ReferrerDashboard() {
+  const [searchParams] = useSearchParams();
+  const defaultTab = searchParams.get("tab") ?? "search";
+
   return (
-    <Tabs defaultValue="search" keepMounted={false}>
+    <Tabs defaultValue={defaultTab} keepMounted={false}>
       <Tabs.List mb="md">
         <Tabs.Tab value="search" leftSection={<IconSearch size={15} />}>Search</Tabs.Tab>
         <Tabs.Tab value="invite" leftSection={<IconUserPlus size={15} />}>Invite</Tabs.Tab>

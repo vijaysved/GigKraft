@@ -14,7 +14,7 @@ import {
   IconPhone,
   IconShieldCheck,
 } from "@tabler/icons-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { claimProInvite } from "../../../api/endpoints";
@@ -49,6 +49,13 @@ export function ReferrerProCard({
   const [claiming, setClaiming] = useState(false);
 
   const isHighlighted = !!highlightedProId && pro.id === highlightedProId && pro.is_pending;
+
+  const cardRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (isHighlighted) {
+      cardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [isHighlighted]);
 
   async function handleClaim() {
     if (!claimToken) return;
@@ -86,7 +93,7 @@ export function ReferrerProCard({
 
   return (
     <>
-      <Card withBorder radius="md" p="sm" style={cardStyle}>
+      <Card ref={cardRef} withBorder radius="md" p="sm" style={cardStyle}>
         {/* Watermark */}
         <Text
           style={{

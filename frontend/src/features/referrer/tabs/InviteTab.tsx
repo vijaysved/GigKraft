@@ -1,10 +1,11 @@
 import { Group, Stack, Title } from "@mantine/core";
-import { IconShare, IconUserPlus, IconUsers } from "@tabler/icons-react";
+import { IconShare, IconUsersGroup, IconUserPlus, IconUsers } from "@tabler/icons-react";
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { useAuth } from "../../../auth/AuthContext";
 import { AddProByContactModal } from "../components/AddProByContactModal";
+import { InviteBothModal } from "../components/InviteBothModal";
 import { InviteTimeline } from "../components/InviteTimeline";
 import { InviteWizardModal } from "../components/InviteWizardModal";
 import type { InviteScenario } from "../types";
@@ -53,6 +54,14 @@ const ghostBtn: React.CSSProperties = {
   border: "1.5px solid var(--mantine-color-gray-3, #dee2e6)",
 };
 
+// Community-lead-only — outline using the brand accent (Invite Them)
+const communityBtn: React.CSSProperties = {
+  ...btnBase,
+  background: "transparent",
+  color: "var(--gk-accent-primary, #C42200)",
+  border: "1.5px solid var(--gk-accent-primary, #C42200)",
+};
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function InviteTab() {
@@ -64,12 +73,13 @@ export function InviteTab() {
   // back to the wizard only when the contact isn't already on GigKraft.
   const [addProOpen, setAddProOpen] = useState(false);
   const [wizardScenario, setWizardScenario] = useState<Exclude<InviteScenario, "pro"> | null>(null);
+  const [inviteBothOpen, setInviteBothOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
   return (
     <Stack gap="xl">
 
-      {/* ── Three action buttons ──────────────────────────────────── */}
+      {/* ── Action buttons — 4th is community_lead-only ─────────────── */}
       <Group gap="sm" wrap="wrap">
         <button style={primaryBtn} onClick={() => setAddProOpen(true)}>
           <IconUserPlus size={15} />
@@ -83,6 +93,12 @@ export function InviteTab() {
           <IconShare size={15} />
           Share My Circle
         </button>
+        {user?.role === "community_lead" && (
+          <button style={communityBtn} onClick={() => setInviteBothOpen(true)}>
+            <IconUsersGroup size={15} />
+            Invite Them (Pro + Friend)
+          </button>
+        )}
       </Group>
 
       {/* ── Unified contacts list ────────────────────────────────── */}
@@ -109,6 +125,13 @@ export function InviteTab() {
           onSent={() => setRefreshKey((k) => k + 1)}
         />
       )}
+
+      <InviteBothModal
+        opened={inviteBothOpen}
+        onClose={() => setInviteBothOpen(false)}
+        slug={slug}
+        onSent={() => setRefreshKey((k) => k + 1)}
+      />
     </Stack>
   );
 }

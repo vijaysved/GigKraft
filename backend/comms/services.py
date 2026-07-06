@@ -122,6 +122,9 @@ def send_email(
     if dev_override:
         subject = f"[DEV → {to}] {subject}"
         actual_to = dev_override
+        # gigkraft.com may not be verified in Resend yet; fall back to Resend's
+        # built-in test sender so local sends always go through.
+        from_addr = "onboarding@resend.dev"
         logger.info("[DEV EMAIL] redirecting %s → %s", to, dev_override)
 
     # Build base HTML — use provided html_body or fall back to the branded card layout

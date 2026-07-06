@@ -445,7 +445,7 @@ class InviteFriendOut(Schema):
 
 class InviteFriendSingleIn(Schema):
     name: str
-    phone: str
+    phone: Optional[str] = None
     email: Optional[str] = None
     channel: str = ""
     message: Optional[str] = None
@@ -1150,13 +1150,13 @@ def invite_friend_single(request, payload: InviteFriendSingleIn):
     """Single friend invite — creates a tracked FriendInvite with a unique token.
     Frontend builds the WhatsApp/SMS deep link using the returned token + referrer_slug."""
     profile = require_referrer(request)
-    if not payload.phone:
-        return 422, {"detail": "Phone is required."}
+    if not payload.phone and not payload.email:
+        return 422, {"detail": "Phone or email is required."}
 
     fi = FriendInvite.objects.create(
         referrer=request.auth,
         name=payload.name,
-        phone=payload.phone,
+        phone=payload.phone or "",
         email=payload.email or "",
         channel=payload.channel,
         message_body=payload.message or "",

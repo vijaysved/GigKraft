@@ -132,7 +132,7 @@ def my_feedback(request):
     return [_serialize_feedback(fb) for fb in fbs]
 
 
-@router.get("", response=list[FeedbackOut])
+@public_router.get("", response=list[FeedbackOut], auth=jwt_auth)
 def list_feedback(request, status: Optional[str] = None):
     """List all feedback — gk_admin only."""
     if request.auth.role != User.Role.GK_ADMIN:
