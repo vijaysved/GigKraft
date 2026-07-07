@@ -29,9 +29,30 @@ interface Props {
   referrerName: string;
   allPros: ProCardOut[];
   isFollower: boolean;
+  isAuthenticated: boolean;
   onNeedFollow: () => void;
   highlightedProId?: number;
   claimToken?: string;
+}
+
+/** Partially masks a phone number, e.g. "(925) 555-1234" -> "(925) ***-1234" */
+function maskPhone(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length < 10) return phone.length > 2 ? `${phone.slice(0, 2)}***` : "***";
+  const area = digits.slice(-10, -7);
+  const last4 = digits.slice(-4);
+  return `(${area}) ***-${last4}`;
+}
+
+/** Partially masks an email, e.g. "john.doe@gmail.com" -> "j***e@g**.com" */
+function maskEmail(email: string): string {
+  const [local, domain] = email.split("@");
+  if (!domain) return email;
+  const maskedLocal = local.length <= 2 ? `${local[0]}**` : `${local[0]}***${local[local.length - 1]}`;
+  const domainParts = domain.split(".");
+  const tld = domainParts.pop() ?? "";
+  const maskedDomain = `${domainParts.join(".")[0] ?? ""}**`;
+  return `${maskedLocal}@${maskedDomain}.${tld}`;
 }
 
 export function ReferrerProCard({
@@ -40,6 +61,7 @@ export function ReferrerProCard({
   referrerName,
   allPros,
   isFollower,
+  isAuthenticated,
   onNeedFollow,
   highlightedProId,
   claimToken,
@@ -121,7 +143,11 @@ export function ReferrerProCard({
             radius="sm"
             size={80}
             color="teal"
-            style={{ flexShrink: 0, border: "2px solid var(--gk-accent-primary)" }}
+            style={{
+              flexShrink: 0,
+              border: "2px solid var(--gk-accent-primary)",
+              filter: isAuthenticated ? undefined : "blur(4px)",
+            }}
           >
             {pro.name[0]?.toUpperCase()}
           </Avatar>
@@ -171,7 +197,9 @@ export function ReferrerProCard({
             <Stack gap={1} mt={2}>
               <Group gap={4}>
                 <IconPhone size={11} color="var(--gk-accent-primary)" />
-                {pro.tap_to_call && pro.phone ? (
+                {!isAuthenticated && pro.phone ? (
+                  <Text size="xs">{maskPhone(pro.phone)}</Text>
+                ) : pro.tap_to_call && pro.phone ? (
                   <Anchor href={`tel:${pro.phone}`} size="xs">{pro.phone}</Anchor>
                 ) : (
                   <Text size="xs" c={pro.phone ? undefined : "dimmed"}>{pro.phone || "—"}</Text>
@@ -179,7 +207,9 @@ export function ReferrerProCard({
               </Group>
               <Group gap={4}>
                 <IconMail size={11} color="var(--gk-accent-primary)" />
-                <Text size="xs" c={pro.email ? undefined : "dimmed"}>{pro.email || "—"}</Text>
+                <Text size="xs" c={pro.email ? undefined : "dimmed"}>
+                  {!isAuthenticated && pro.email ? maskEmail(pro.email) : pro.email || "—"}
+                </Text>
               </Group>
               {pro.city && (
                 <Group gap={4}>

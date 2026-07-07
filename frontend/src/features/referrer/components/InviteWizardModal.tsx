@@ -244,7 +244,8 @@ export function InviteWizardModal({ opened, onClose, scenario, slug, senderName,
 
         entries.push({ recipient: r, message: body, channel: r.channel });
         sent++;
-      } catch {
+      } catch (e) {
+        console.error("Invite send failed", e);
         failed++;
       }
     }

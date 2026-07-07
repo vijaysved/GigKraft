@@ -688,6 +688,7 @@ export function ReferrerPublicPage() {
                   referrerName={page.display_name}
                   allPros={page.pros ?? []}
                   isFollower={isFollower}
+                  isAuthenticated={isAuthenticated}
                   onNeedFollow={() => setFollowOpen(true)}
                   highlightedProId={highlightedProId ?? undefined}
                   claimToken={claimToken || undefined}

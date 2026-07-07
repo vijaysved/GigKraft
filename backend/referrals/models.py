@@ -67,7 +67,7 @@ class ProInvite(models.Model):
     )
     name = models.CharField(max_length=100)
     trade = models.CharField(max_length=60, blank=True, default="")
-    phone = models.CharField(max_length=20, blank=True, default="")
+    phone = models.CharField(max_length=30, blank=True, default="")
     email = models.EmailField(blank=True, default="")
     note = models.TextField(blank=True, default="")
     channel = models.CharField(max_length=10, blank=True, default="")
@@ -184,7 +184,7 @@ class ReferrerFollower(models.Model):
         "accounts.User", on_delete=models.CASCADE, related_name="referrer_followers"
     )
     name = models.CharField(max_length=100)
-    phone = models.CharField(max_length=20, blank=True, default="")
+    phone = models.CharField(max_length=30, blank=True, default="")
     email = models.EmailField(blank=True, default="")
     # One UUID stored in gk_follower_token cookie; not unique — same token can appear
     # across multiple referrers (one row per referrer followed per device).
@@ -298,7 +298,7 @@ class FriendInvite(models.Model):
         "accounts.User", on_delete=models.CASCADE, related_name="friend_invites_sent"
     )
     name = models.CharField(max_length=100)
-    phone = models.CharField(max_length=20, blank=True, default="")
+    phone = models.CharField(max_length=30, blank=True, default="")
     email = models.EmailField(blank=True, default="")
     channel = models.CharField(max_length=10, blank=True, default="")
     message_body = models.TextField(blank=True, default="")
@@ -326,7 +326,7 @@ class CircleShareInvite(models.Model):
         "accounts.User", on_delete=models.CASCADE, related_name="circle_shares_sent"
     )
     name = models.CharField(max_length=100)
-    phone = models.CharField(max_length=20, blank=True, default="")
+    phone = models.CharField(max_length=30, blank=True, default="")
     email = models.EmailField(blank=True, default="")
     channel = models.CharField(max_length=10, blank=True, default="")
     message_body = models.TextField(blank=True, default="")
@@ -384,7 +384,7 @@ class UploadedContact(models.Model):
         "accounts.User", on_delete=models.CASCADE, related_name="uploaded_contacts"
     )
     raw_name = models.CharField(max_length=100)
-    raw_phone = models.CharField(max_length=20, blank=True, default="")
+    raw_phone = models.CharField(max_length=30, blank=True, default="")
     raw_email = models.EmailField(blank=True, default="")
     matched_pro = models.ForeignKey(
         "accounts.ProProfile",
