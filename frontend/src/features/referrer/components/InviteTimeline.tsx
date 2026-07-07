@@ -1,5 +1,5 @@
 import {
-  ActionIcon, Badge, Box, Button, Group, Loader, Modal, Stack,
+  ActionIcon, Badge, Box, Group, Loader, Modal, Stack,
   Switch, Table, Text, Textarea, TextInput, Title, Tooltip,
 } from "@mantine/core";
 import {
@@ -21,7 +21,7 @@ import {
   updateReferrerPro,
 } from "../../../api/endpoints";
 import type { InviteScenario } from "../types";
-import { EmailChannelIcon, PhoneChannelIcons } from "./inviteShared";
+import { EmailChannelIcon, nativeBtn, PhoneChannelIcons } from "./inviteShared";
 
 export interface UnifiedInvite {
   scenario: InviteScenario;
@@ -66,6 +66,7 @@ function daysSince(iso: string | null): number | null {
 }
 
 function canResend(item: UnifiedInvite) {
+  if (import.meta.env.DEV) return true;
   const last = item.last_resent_at || item.invited_at;
   return (Date.now() - new Date(last).getTime()) / 1000 > 86400;
 }
@@ -601,8 +602,14 @@ export function InviteTimeline({ refreshKey, lockType, title }: { refreshKey: nu
             autosize
           />
           <Group justify="flex-end">
-            <Button variant="default" onClick={() => setEndorsementTarget(null)}>Cancel</Button>
-            <Button loading={savingEndorsement} onClick={() => void saveEndorsement()}>Save</Button>
+            <button style={nativeBtn({})} onClick={() => setEndorsementTarget(null)}>Cancel</button>
+            <button
+              style={nativeBtn({ primary: true, disabled: savingEndorsement })}
+              disabled={savingEndorsement}
+              onClick={() => void saveEndorsement()}
+            >
+              {savingEndorsement ? "Saving…" : "Save"}
+            </button>
           </Group>
         </Stack>
       </Modal>

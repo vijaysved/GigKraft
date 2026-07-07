@@ -338,7 +338,7 @@ export function ContactDetailPage() {
   const sm = statusMeta(contact);
   const lastContactIso = contact.last_resent_at ?? contact.invited_at ?? null;
   const days = daysSince(lastContactIso);
-  const eligible24h = secondsSince(lastContactIso) > 86400;
+  const eligible24h = import.meta.env.DEV || secondsSince(lastContactIso) > 86400;
   const canResend = contact.invite_id != null && !sm.isTerminal && eligible24h;
   const sortedEvents = [...events].sort(
     (a, b) => new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime(),

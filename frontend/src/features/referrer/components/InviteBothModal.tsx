@@ -2,7 +2,6 @@ import {
   Alert,
   Autocomplete,
   Box,
-  Button,
   Divider,
   Group,
   Modal,
@@ -260,7 +259,7 @@ export function InviteBothModal({ opened, onClose, slug: initialSlug, onSent }: 
             >
               <Text size="sm">{result.friend.ok ? "Invited." : result.friend.error ?? "Failed to send."}</Text>
             </Alert>
-            <Button onClick={handleClose} variant="light">Close</Button>
+            <button style={nativeBtn({ primary: true })} onClick={handleClose}>Close</button>
           </Stack>
         ) : (
           <>

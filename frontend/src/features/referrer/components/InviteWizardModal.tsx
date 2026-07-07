@@ -3,7 +3,6 @@ import {
   Alert,
   Autocomplete,
   Box,
-  Button,
   Divider,
   Group,
   Modal,
@@ -65,9 +64,27 @@ const SCENARIO_META: Record<InviteScenario, { title: string; intro: string; mult
 };
 
 const MESSAGE_TEMPLATES: Record<InviteScenario, string> = {
-  pro: "Hey {{recipient_name}}! I came across a platform called Gigkraft and immediately thought of your work. It's a marketplace built for independent professionals and freelancers to showcase their skills and land new clients. It could be a really great way to get your services in front of businesses looking for your exact expertise. Check it out and set up a profile here: {{link}} 🚀",
-  friend: "Hey {{recipient_name}}! I just joined Gigkraft and wanted to share it with you. It's an awesome platform whether you need to hire trusted freelancers for a project (like design, tech, or marketing) or if you're looking to pick up some side gigs yourself. It makes finding and working with independent talent super easy. Here's my invite link if you want to look around: {{link}} ✨",
-  circle: "Hey {{recipient_name}}! I'm building out my professional network on Gigkraft and wanted to invite you to join my circle. It's a great space for us to share gig opportunities, recommend each other's services to clients, and collaborate on projects. Let's connect on there and help each other grow! Here's my link to join: {{link}} 🙌",
+  pro: [
+    "Hey {{recipient_name}}!",
+    "I came across a platform called Gigkraft and immediately thought of your work.",
+    "It's a marketplace built for independent professionals and freelancers to showcase their skills and land new clients.",
+    "It could be a really great way to get your services in front of businesses looking for your exact expertise.",
+    "Check it out and set up a profile here: {{link}} 🚀",
+  ].join("\n"),
+  friend: [
+    "Hey {{recipient_name}}!",
+    "I just joined Gigkraft and wanted to share it with you.",
+    "It's an awesome platform whether you need to hire trusted freelancers for a project (like design, tech, or marketing) or if you're looking to pick up some side gigs yourself.",
+    "It makes finding and working with independent talent super easy.",
+    "Here's my invite link if you want to look around: {{link}} ✨",
+  ].join("\n"),
+  circle: [
+    "Hey {{recipient_name}}!",
+    "I'm building out my professional network on Gigkraft and wanted to invite you to join my circle.",
+    "It's a great space for us to share gig opportunities, recommend each other's services to clients, and collaborate on projects.",
+    "Let's connect on there and help each other grow!",
+    "Here's my link to join: {{link}} 🙌",
+  ].join("\n"),
 };
 
 function resolveMessage(template: string, vars: { recipientName: string; senderName: string; link: string }) {
@@ -169,7 +186,7 @@ export function InviteWizardModal({ opened, onClose, scenario, slug, senderName,
     const greeting = meta.multiRecipient && validRecipients.length > 1 ? "" : validRecipients[0].name.split(" ")[0];
     if (!messageTouched) {
       const plain = resolveMessage(MESSAGE_TEMPLATES[scenario], { recipientName: greeting, senderName, link: previewLink });
-      const html = `<p>${plain}</p>`;
+      const html = `<p>${plain.split("\n").join("<br>")}</p>`;
       setMessageHtml(html);
       editor?.commands.setContent(html);
     }
@@ -286,19 +303,24 @@ export function InviteWizardModal({ opened, onClose, scenario, slug, senderName,
                       <Text size="xs" c="dimmed">{entry.recipient.contact}</Text>
                     </Stack>
                     {entry.channel !== "email" && (
-                      <Button
-                        size="xs"
-                        variant="light"
-                        color={copiedIndex === i ? "teal" : undefined}
-                        leftSection={<IconCopy size={13} />}
+                      <button
+                        style={{
+                          ...nativeBtn({ small: true }),
+                          ...(copiedIndex === i
+                            ? { background: "var(--mantine-color-teal-6)", color: "#fff", border: "none" }
+                            : {}),
+                        }}
                         onClick={() => copyMessage(i, entry.message)}
                       >
-                        {copiedIndex === i
-                          ? "Copied!"
-                          : entry.channel === "whatsapp"
-                          ? "Copy WhatsApp message"
-                          : "Copy SMS message"}
-                      </Button>
+                        <Group gap={4} wrap="nowrap" justify="center">
+                          <IconCopy size={13} />
+                          {copiedIndex === i
+                            ? "Copied!"
+                            : entry.channel === "whatsapp"
+                            ? "Copy WhatsApp message"
+                            : "Copy SMS message"}
+                        </Group>
+                      </button>
                     )}
                   </Group>
                 </Box>
@@ -307,7 +329,7 @@ export function InviteWizardModal({ opened, onClose, scenario, slug, senderName,
             {result.failed > 0 && (
               <Text size="sm" c="dimmed" ta="center">Some sends failed — retry from the Timeline.</Text>
             )}
-            <Button onClick={handleClose} variant="light">Close</Button>
+            <button style={nativeBtn({ primary: true })} onClick={handleClose}>Close</button>
           </Stack>
         ) : step === 0 ? (
           <Stack gap="sm">
@@ -392,7 +414,7 @@ export function InviteWizardModal({ opened, onClose, scenario, slug, senderName,
                 : "Format your message — it will be sent exactly as written."}
             </Text>
             <Group justify="flex-end" mt="xs">
-              <Button variant="default" onClick={() => setStep(0)}>Back</Button>
+              <button style={nativeBtn({})} onClick={() => setStep(0)}>Back</button>
               <button
                 style={nativeBtn({ primary: true, disabled: !editor?.getText().trim() })}
                 onClick={() => setStep(2)}
@@ -427,10 +449,19 @@ export function InviteWizardModal({ opened, onClose, scenario, slug, senderName,
               </Box>
             ))}
             <Group justify="flex-end" mt="xs">
-              <Button variant="default" onClick={() => setStep(1)}>Back</Button>
-              <Button leftSection={<IconSend size={14} />} loading={submitting} onClick={() => void handleSend()}>
-                Send
-              </Button>
+              <button style={nativeBtn({ disabled: submitting })} disabled={submitting} onClick={() => setStep(1)}>
+                Back
+              </button>
+              <button
+                style={nativeBtn({ primary: true, disabled: submitting })}
+                disabled={submitting}
+                onClick={() => void handleSend()}
+              >
+                <Group gap={6} wrap="nowrap" justify="center">
+                  {!submitting && <IconSend size={14} />}
+                  {submitting ? "Sending…" : "Send"}
+                </Group>
+              </button>
             </Group>
           </Stack>
         )}

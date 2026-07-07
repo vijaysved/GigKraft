@@ -2,11 +2,13 @@
 import csv
 import hashlib
 import io
+import logging
 import secrets
 import uuid
 from datetime import timedelta
 from typing import Optional
 
+from django.conf import settings
 from django.db import transaction
 from django.http import HttpResponse
 from django.utils import timezone
@@ -35,6 +37,8 @@ from referrals.models import (
 
 public_router = Router(tags=["referrals"])
 router = Router(tags=["referrals"], auth=jwt_auth)
+
+logger = logging.getLogger(__name__)
 
 COOKIE_NAME = "gk_follower_token"
 COOKIE_MAX_AGE = 60 * 60 * 24 * 30  # 30 days
@@ -258,6 +262,7 @@ def _send_invite_email(*, scenario: str, email: str, message_body: str, slug: st
             pixel_path="/api/referrer/invite-pixel",
         )
     except Exception:
+        logger.exception("Invite email send failed: scenario=%s to=%s", scenario, email)
         return None
     return track_token
 
@@ -1136,9 +1141,10 @@ def resend_pro_invite(request, invite_id: int, payload: ResendMessageIn = None):
     if not invite:
         return 404, {"detail": "Invite not found."}
 
-    # Rate limit: once per 24h based on last_resent_at (or invited_at for first resend)
+    # Rate limit: once per 24h based on last_resent_at (or invited_at for first resend).
+    # Skipped in DEBUG (local dev) so resend can be tested repeatedly without waiting.
     last = invite.last_resent_at or invite.invited_at
-    if last and (timezone.now() - last).total_seconds() < 86400:
+    if not settings.DEBUG and last and (timezone.now() - last).total_seconds() < 86400:
         seconds_left = int(86400 - (timezone.now() - last).total_seconds())
         hours_left = round(seconds_left / 3600, 1)
         return 429, {"detail": f"Resend available in {hours_left}h."}
@@ -1231,7 +1237,7 @@ def resend_friend_invite(request, invite_id: int, payload: ResendMessageIn = Non
         return 404, {"detail": "Invite not found."}
 
     last = fi.last_resent_at or fi.invited_at
-    if last and (timezone.now() - last).total_seconds() < 86400:
+    if not settings.DEBUG and last and (timezone.now() - last).total_seconds() < 86400:
         seconds_left = int(86400 - (timezone.now() - last).total_seconds())
         hours_left = round(seconds_left / 3600, 1)
         return 429, {"detail": f"Resend available in {hours_left}h."}
@@ -1302,7 +1308,7 @@ def resend_circle_share(request, invite_id: int, payload: ResendMessageIn = None
         return 404, {"detail": "Share not found."}
 
     last = cs.last_resent_at or cs.invited_at
-    if last and (timezone.now() - last).total_seconds() < 86400:
+    if not settings.DEBUG and last and (timezone.now() - last).total_seconds() < 86400:
         seconds_left = int(86400 - (timezone.now() - last).total_seconds())
         hours_left = round(seconds_left / 3600, 1)
         return 429, {"detail": f"Resend available in {hours_left}h."}
