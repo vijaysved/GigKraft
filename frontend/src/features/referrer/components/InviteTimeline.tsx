@@ -1,10 +1,10 @@
 import {
   ActionIcon, Badge, Box, Button, Group, Loader, Modal, Stack,
-  Switch, Table, Text, Textarea, TextInput, Tooltip,
+  Switch, Table, Text, Textarea, TextInput, Title, Tooltip,
 } from "@mantine/core";
 import {
-  IconArchive, IconBrandWhatsapp, IconEye, IconMail, IconMailOpened,
-  IconMessage, IconPencil, IconRefresh, IconSearch, IconTrash,
+  IconArchive, IconArrowsSort, IconChevronDown, IconChevronUp,
+  IconPencil, IconRefresh, IconSearch, IconTrash,
 } from "@tabler/icons-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -21,6 +21,7 @@ import {
   updateReferrerPro,
 } from "../../../api/endpoints";
 import type { InviteScenario } from "../types";
+import { EmailChannelIcon, PhoneChannelIcons } from "./inviteShared";
 
 export interface UnifiedInvite {
   scenario: InviteScenario;
@@ -35,6 +36,9 @@ export interface UnifiedInvite {
   channel: string;
   status: string;
   click_count: number;
+  email_count: number;
+  whatsapp_count: number;
+  sms_count: number;
   invited_at: string;
   last_resent_at: string | null;
   // Pro-only page-curation fields (undefined for friend/circle rows):
@@ -48,9 +52,13 @@ function maskPhone(phone: string) {
   return "•••• " + phone.slice(-4);
 }
 
-function fmtDate(isoStr: string) {
-  return new Date(isoStr).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" });
+function fmtDateTime(isoStr: string) {
+  const d = new Date(isoStr);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
+
+const ellipsis: React.CSSProperties = { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" };
 
 function daysSince(iso: string | null): number | null {
   if (!iso) return null;
@@ -102,38 +110,62 @@ function FilterChip({
         fontWeight: 600,
         cursor: "pointer",
         border: isActive
-          ? "1.5px solid var(--mantine-color-blue-5)"
+          ? "1.5px solid var(--gk-accent-secondary)"
           : "1.5px solid var(--mantine-color-default-border)",
-        background: isActive ? "var(--mantine-color-blue-0)" : "var(--mantine-color-default)",
-        color: isActive ? "var(--mantine-color-blue-7)" : "var(--mantine-color-dimmed)",
+        background: isActive ? "color-mix(in srgb, var(--gk-accent-secondary) 15%, transparent)" : "var(--mantine-color-default)",
+        color: isActive ? "var(--gk-accent-secondary)" : "var(--mantine-color-dimmed)",
         fontFamily: "inherit",
         transition: "all 0.1s ease",
       }}
     >
       {chip.text}
       <Text component="span" size="xs" fw={700}
-        style={{ color: isActive ? "var(--mantine-color-blue-6)" : "var(--mantine-color-gray-5)" }}>
+        style={{ color: isActive ? "var(--gk-accent-secondary)" : "var(--mantine-color-gray-5)" }}>
         · {chip.count}
       </Text>
     </Box>
   );
 }
 
-// ── Name-column icons ─────────────────────────────────────────────────────────
+// ── Sortable header ───────────────────────────────────────────────────────────
 
-function NameIcons({ channel, status }: { channel: string; status: string }) {
-  const opened = status === "opened";
+type SortDir = "asc" | "desc";
+type SortKey = "name" | "type" | "phone" | "email" | "trade" | "status" | "added" | "last_contact";
+
+function sortValue(item: UnifiedInvite, key: SortKey): string {
+  switch (key) {
+    case "name": return item.name;
+    case "type": return TYPE_LABELS[item.scenario];
+    case "phone": return item.phone;
+    case "email": return item.email;
+    case "trade": return item.trade;
+    case "status": return statusMeta(item).label;
+    case "added": return item.invited_at;
+    case "last_contact": return item.last_resent_at ?? item.invited_at;
+  }
+}
+
+function SortableTh({
+  col, sortBy, sortDir, onSort, width, children,
+}: {
+  col: SortKey; sortBy: SortKey | null; sortDir: SortDir; onSort: (col: SortKey) => void;
+  width?: number; children: React.ReactNode;
+}) {
+  const active = sortBy === col;
   return (
-    <Group gap={3} wrap="nowrap">
-      {channel === "whatsapp" && <IconBrandWhatsapp size={13} color="var(--mantine-color-teal-6)" />}
-      {channel === "sms"      && <IconMessage size={13} color="var(--mantine-color-blue-5)" />}
-      {channel === "email"    && (
-        opened
-          ? <IconMailOpened size={13} color="var(--mantine-color-grape-5)" />
-          : <IconMail size={13} color="var(--mantine-color-yellow-6)" />
-      )}
-      {opened && <IconEye size={13} color="var(--mantine-color-grape-5)" />}
-    </Group>
+    <Table.Th
+      style={{ width, cursor: "pointer", userSelect: "none", whiteSpace: "nowrap", color: "#000" }}
+      onClick={() => onSort(col)}
+    >
+      <Group gap={3} wrap="nowrap">
+        <span>{children}</span>
+        {active ? (
+          sortDir === "asc" ? <IconChevronUp size={11} /> : <IconChevronDown size={11} />
+        ) : (
+          <IconArrowsSort size={10} style={{ opacity: 0.3 }} />
+        )}
+      </Group>
+    </Table.Th>
   );
 }
 
@@ -147,11 +179,12 @@ interface RowProps {
   onRemove: () => void;
   onToggleShow: () => void;
   onEditEndorsement: () => void;
+  onChanged: () => void;
   resending: boolean;
   archiving: boolean;
 }
 
-function InviteRow({ item, onOpen, onResend, onArchive, onRemove, onToggleShow, onEditEndorsement, resending, archiving }: RowProps) {
+function InviteRow({ item, onOpen, onResend, onArchive, onRemove, onToggleShow, onEditEndorsement, onChanged, resending, archiving }: RowProps) {
   const status = statusMeta(item);
   const eligible = !status.isTerminal && item.invite_id != null && canResend(item);
   const isCuratedPro = item.scenario === "pro" && item.is_on_platform;
@@ -161,32 +194,44 @@ function InviteRow({ item, onOpen, onResend, onArchive, onRemove, onToggleShow, 
 
   return (
     <Table.Tr>
-      <Table.Td>
-        <Stack gap={2}>
-          <Text component="a" onClick={onOpen} size="sm" fw={600} c="blue" style={{ cursor: "pointer" }}>
-            {item.name}
-          </Text>
-          <NameIcons channel={item.channel} status={item.status} />
-        </Stack>
+      <Table.Td style={{ maxWidth: 140, ...ellipsis }}>
+        <Text component="a" onClick={onOpen} size="sm" fw={600} c="blue" style={{ cursor: "pointer", ...ellipsis }}>
+          {item.name}
+        </Text>
       </Table.Td>
-      <Table.Td>
+      <Table.Td style={{ maxWidth: 80 }}>
         <Badge size="xs" variant="light" color={TYPE_COLORS[item.scenario]}>{TYPE_LABELS[item.scenario]}</Badge>
       </Table.Td>
-      <Table.Td>
-        <Text size="xs" c={item.email ? undefined : "dimmed"}>{item.email || maskPhone(item.phone)}</Text>
+      <Table.Td style={{ maxWidth: 150 }}>
+        <Group gap={6} wrap="nowrap">
+          <PhoneChannelIcons
+            scenario={item.scenario} inviteId={item.invite_id} phone={item.phone}
+            smsCount={item.sms_count} whatsappCount={item.whatsapp_count} onChanged={onChanged}
+          />
+          <Text size="xs" c={item.phone ? undefined : "dimmed"} style={ellipsis}>{item.phone ? maskPhone(item.phone) : "—"}</Text>
+        </Group>
       </Table.Td>
-      <Table.Td>
-        <Text size="xs" c={item.trade ? undefined : "dimmed"}>{item.trade || "—"}</Text>
+      <Table.Td style={{ maxWidth: 190 }}>
+        <Group gap={6} wrap="nowrap">
+          <EmailChannelIcon
+            scenario={item.scenario} inviteId={item.invite_id} email={item.email}
+            opened={item.status === "opened"} count={item.email_count} onChanged={onChanged}
+          />
+          <Text size="xs" c={item.email ? undefined : "dimmed"} style={ellipsis}>{item.email || "—"}</Text>
+        </Group>
       </Table.Td>
-      <Table.Td>
+      <Table.Td style={{ maxWidth: 100, ...ellipsis }}>
+        <Text size="xs" c={item.trade ? undefined : "dimmed"} style={ellipsis}>{item.trade || "—"}</Text>
+      </Table.Td>
+      <Table.Td style={{ maxWidth: 90 }}>
         <Badge size="xs" variant="light" color={status.color}>{status.label}</Badge>
       </Table.Td>
-      <Table.Td>
-        <Text size="xs" c="dimmed">{fmtDate(item.invited_at)}</Text>
+      <Table.Td style={{ maxWidth: 130 }}>
+        <Text size="xs" c="dimmed" style={{ whiteSpace: "nowrap" }}>{fmtDateTime(item.invited_at)}</Text>
       </Table.Td>
-      <Table.Td>
+      <Table.Td style={{ maxWidth: 130 }}>
         <Stack gap={0}>
-          <Text size="xs">{fmtDate(lastIso)}</Text>
+          <Text size="xs" style={{ whiteSpace: "nowrap" }}>{fmtDateTime(lastIso)}</Text>
           {days !== null && (
             <Text size="xs" c={days >= 2 ? "orange" : "dimmed"} fw={days >= 2 ? 600 : undefined}>
               {days}d ago
@@ -244,7 +289,7 @@ function InviteRow({ item, onOpen, onResend, onArchive, onRemove, onToggleShow, 
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export function InviteTimeline({ refreshKey, lockType }: { refreshKey: number; lockType?: InviteScenario }) {
+export function InviteTimeline({ refreshKey, lockType, title }: { refreshKey: number; lockType?: InviteScenario; title?: string }) {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
 
@@ -255,6 +300,13 @@ export function InviteTimeline({ refreshKey, lockType }: { refreshKey: number; l
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [channelFilter, setChannelFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  function toggleSort(col: SortKey) {
+    if (sortBy === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortBy(col); setSortDir("asc"); }
+  }
   const [endorsementTarget, setEndorsementTarget] = useState<UnifiedInvite | null>(null);
   const [endorsementDraft, setEndorsementDraft] = useState("");
   const [savingEndorsement, setSavingEndorsement] = useState(false);
@@ -263,22 +315,30 @@ export function InviteTimeline({ refreshKey, lockType }: { refreshKey: number; l
     setLoading(true);
     try {
       const [inviteData, pros] = await Promise.all([getInviteList(), getReferrerPros()]);
+      const proCounts = new Map(inviteData.pro_invites.map((i) => [i.invite_id, i]));
       const merged: UnifiedInvite[] = [
-        ...pros.map((p) => ({
-          scenario: "pro" as const, id: p.id, invite_id: p.invite_id, name: p.name, trade: p.trade,
-          phone: p.phone || "", email: p.email || "", channel: "", status: p.invite_status || "pending",
-          click_count: 0, invited_at: p.added_at, last_resent_at: p.last_resent_at,
-          is_on_platform: p.is_on_platform, show_on_page: p.show_on_page, endorsement: p.endorsement,
-        })),
+        ...pros.map((p) => {
+          const pc = p.invite_id != null ? proCounts.get(p.invite_id) : undefined;
+          return {
+            scenario: "pro" as const, id: p.id, invite_id: p.invite_id, name: p.name, trade: p.trade,
+            phone: p.phone || "", email: p.email || "", channel: pc?.channel ?? "", status: p.invite_status || "pending",
+            click_count: pc?.click_count ?? 0,
+            email_count: pc?.email_count ?? 0, whatsapp_count: pc?.whatsapp_count ?? 0, sms_count: pc?.sms_count ?? 0,
+            invited_at: p.added_at, last_resent_at: p.last_resent_at,
+            is_on_platform: p.is_on_platform, show_on_page: p.show_on_page, endorsement: p.endorsement,
+          };
+        }),
         ...inviteData.friend_invites.map((i) => ({
           scenario: "friend" as const, id: i.invite_id, invite_id: i.invite_id, name: i.name, trade: "", phone: i.phone, email: i.email,
-          channel: i.channel, status: i.status, click_count: i.click_count, invited_at: i.invited_at,
-          last_resent_at: i.last_resent_at,
+          channel: i.channel, status: i.status, click_count: i.click_count,
+          email_count: i.email_count, whatsapp_count: i.whatsapp_count, sms_count: i.sms_count,
+          invited_at: i.invited_at, last_resent_at: i.last_resent_at,
         })),
         ...inviteData.circle_invites.map((i) => ({
           scenario: "circle" as const, id: i.invite_id, invite_id: i.invite_id, name: i.name, trade: "", phone: i.phone, email: i.email,
-          channel: i.channel, status: i.status, click_count: i.click_count, invited_at: i.invited_at,
-          last_resent_at: i.last_resent_at,
+          channel: i.channel, status: i.status, click_count: i.click_count,
+          email_count: i.email_count, whatsapp_count: i.whatsapp_count, sms_count: i.sms_count,
+          invited_at: i.invited_at, last_resent_at: i.last_resent_at,
         })),
       ].sort((a, b) => new Date(b.invited_at).getTime() - new Date(a.invited_at).getTime());
       setItems(merged);
@@ -406,54 +466,72 @@ export function InviteTimeline({ refreshKey, lockType }: { refreshKey: number; l
     });
   }, [items, search, typeFilter, channelFilter, statusFilter, lockType]);
 
+  const sorted = useMemo(() => {
+    if (!sortBy) return filtered;
+    return [...filtered].sort((a, b) => {
+      const cmp = sortValue(a, sortBy).localeCompare(sortValue(b, sortBy), undefined, { numeric: true });
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+  }, [filtered, sortBy, sortDir]);
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <Stack gap="sm">
 
-      {/* Single-line summary chips */}
+      {/* Title + single-line summary chips */}
       {!loading && items.length > 0 && (
         <Group
           gap={6}
           wrap="wrap"
+          justify="space-between"
+          align="center"
           pb={6}
           style={{ borderBottom: "1px solid var(--mantine-color-default-border)" }}
         >
-          {/* Type group — hidden when lockType is set */}
-          {!lockType && (
-            <>
-              {(["pro", "friend", "circle"] as const).map((v) => (
-                <FilterChip
-                  key={v}
-                  chip={{ value: v, text: TYPE_LABELS[v], count: typeCounts[v] ?? 0, group: "type" }}
-                  isActive={typeFilter === v}
-                  onSelect={() => setTypeFilter(typeFilter === v ? "all" : v)}
-                />
-              ))}
-              <Box style={{ width: 1, height: 20, background: "var(--mantine-color-default-border)", alignSelf: "center" }} />
-            </>
-          )}
+          {title ? (
+            <Title order={5} style={{ color: "var(--gk-accent-secondary)" }}>
+              {title}
+            </Title>
+          ) : <span />}
 
-          {/* Channel group */}
-          {(["whatsapp", "email", "sms"] as const).map((v) => (
-            <FilterChip
-              key={v}
-              chip={{ value: v, text: v === "whatsapp" ? "WhatsApp" : v === "email" ? "Email" : "SMS", count: channelCounts[v] ?? 0, group: "channel" }}
-              isActive={channelFilter === v}
-              onSelect={() => setChannelFilter(channelFilter === v ? "all" : v)}
-            />
-          ))}
-          <Box style={{ width: 1, height: 20, background: "var(--mantine-color-default-border)", alignSelf: "center" }} />
+          <Group gap={6} wrap="wrap">
+            {/* Type group — hidden when lockType is set */}
+            {!lockType && (
+              <>
+                {(["pro", "friend", "circle"] as const).map((v) => (
+                  <FilterChip
+                    key={v}
+                    chip={{ value: v, text: TYPE_LABELS[v], count: typeCounts[v] ?? 0, group: "type" }}
+                    isActive={typeFilter === v}
+                    onSelect={() => setTypeFilter(typeFilter === v ? "all" : v)}
+                  />
+                ))}
+                <Box style={{ width: 1, height: 20, background: "var(--mantine-color-default-border)", alignSelf: "center" }} />
+              </>
+            )}
 
-          {/* Status group */}
-          {(["pending", "opened", "joined"] as const).map((v) => (
-            <FilterChip
-              key={v}
-              chip={{ value: v, text: v.charAt(0).toUpperCase() + v.slice(1), count: statusCounts[v] ?? 0, group: "status" }}
-              isActive={statusFilter === v}
-              onSelect={() => setStatusFilter(statusFilter === v ? "all" : v)}
-            />
-          ))}
+            {/* Channel group */}
+            {(["whatsapp", "email", "sms"] as const).map((v) => (
+              <FilterChip
+                key={v}
+                chip={{ value: v, text: v === "whatsapp" ? "WhatsApp" : v === "email" ? "Email" : "SMS", count: channelCounts[v] ?? 0, group: "channel" }}
+                isActive={channelFilter === v}
+                onSelect={() => setChannelFilter(channelFilter === v ? "all" : v)}
+              />
+            ))}
+            <Box style={{ width: 1, height: 20, background: "var(--mantine-color-default-border)", alignSelf: "center" }} />
+
+            {/* Status group */}
+            {(["pending", "opened", "joined"] as const).map((v) => (
+              <FilterChip
+                key={v}
+                chip={{ value: v, text: v.charAt(0).toUpperCase() + v.slice(1), count: statusCounts[v] ?? 0, group: "status" }}
+                isActive={statusFilter === v}
+                onSelect={() => setStatusFilter(statusFilter === v ? "all" : v)}
+              />
+            ))}
+          </Group>
         </Group>
       )}
 
@@ -475,22 +553,25 @@ export function InviteTimeline({ refreshKey, lockType }: { refreshKey: number; l
       ) : filtered.length === 0 ? (
         <Text size="sm" c="dimmed" py="sm">No contacts match the current filters.</Text>
       ) : (
-        <Box style={{ overflowX: "auto" }}>
-          <Table verticalSpacing="xs" highlightOnHover>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>Name</Table.Th>
-                <Table.Th>Type</Table.Th>
-                <Table.Th>Contact</Table.Th>
-                <Table.Th>Trade</Table.Th>
-                <Table.Th>Status</Table.Th>
-                <Table.Th>Added</Table.Th>
-                <Table.Th>Last Contact</Table.Th>
-                <Table.Th></Table.Th>
+        <Box style={{ overflowX: "auto", borderRadius: 12, border: "1px solid var(--mantine-color-default-border)" }}>
+          <Table verticalSpacing={4} horizontalSpacing="xs" striped highlightOnHover style={{ tableLayout: "fixed" }}>
+            <Table.Thead style={{
+              background: "linear-gradient(135deg, var(--gk-accent-primary) 0%, var(--gk-accent-secondary) 100%)",
+            }}>
+              <Table.Tr style={{ color: "#000" }}>
+                <SortableTh col="name" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} width={140}>Name</SortableTh>
+                <SortableTh col="type" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} width={80}>Type</SortableTh>
+                <SortableTh col="phone" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} width={150}>Phone</SortableTh>
+                <SortableTh col="email" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} width={190}>Email</SortableTh>
+                <SortableTh col="trade" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} width={100}>Trade</SortableTh>
+                <SortableTh col="status" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} width={90}>Status</SortableTh>
+                <SortableTh col="added" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} width={130}>Added</SortableTh>
+                <SortableTh col="last_contact" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} width={130}>Last Contact</SortableTh>
+                <Table.Th style={{ width: 90 }}></Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
-              {filtered.map((item) => (
+              {sorted.map((item) => (
                 <InviteRow
                   key={`${item.scenario}-${item.id}`}
                   item={item}
@@ -500,6 +581,7 @@ export function InviteTimeline({ refreshKey, lockType }: { refreshKey: number; l
                   onRemove={() => handleRemovePro(item)}
                   onToggleShow={() => handleToggleShow(item)}
                   onEditEndorsement={() => openEndorsementEditor(item)}
+                  onChanged={() => void load()}
                   resending={rowState[`${item.scenario}-${item.id}`] === "loading"}
                   archiving={rowState[`arch-${item.scenario}-${item.id}`] === "loading"}
                 />

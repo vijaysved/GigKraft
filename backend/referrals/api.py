@@ -183,9 +183,9 @@ def _dispatch_referral(request_obj: ReferralRequest):
 from django.db.models import F as models_F
 
 
-def _log_invite_event(scenario: str, invite_id: int, event_type: str, message_body: str = ""):
+def _log_invite_event(scenario: str, invite_id: int, event_type: str, message_body: str = "", channel: str = ""):
     InviteEvent.objects.create(
-        scenario=scenario, invite_id=invite_id, event_type=event_type, message_body=message_body,
+        scenario=scenario, invite_id=invite_id, event_type=event_type, message_body=message_body, channel=channel,
     )
 
 
@@ -198,6 +198,17 @@ EMAIL_SUBJECTS = {
 }
 
 CLAIM_PARAMS = {"pro": "claim", "friend": "inv", "circle": "circle"}
+
+
+def _default_invite_message(scenario: str, name: str, slug: str) -> str:
+    """Fallback body when an invite has none saved — must contain the raw
+    gigkraft.com/us/{slug}/refer placeholder so _send_invite_email can swap in the tracked link."""
+    link_placeholder = f"gigkraft.com/us/{slug}/refer"
+    if scenario == "pro":
+        return f"Hi {name}, I think you'd be a great fit for GigKraft. Check it out: {link_placeholder}"
+    if scenario == "friend":
+        return f"Hey {name}, check out my GigKraft page: {link_placeholder}"
+    return f"Hey {name}, take a look at my circle of trusted pros on GigKraft: {link_placeholder}"
 
 CTA_LABELS = {
     "pro": "Set Up Your Free Profile",
@@ -421,6 +432,10 @@ class InviteProResendOut(Schema):
     referrer_slug: str
 
 
+class ResendMessageIn(Schema):
+    message: Optional[str] = None
+
+
 class ProInvitePreviewOut(Schema):
     referrer_slug: str
     referrer_name: str
@@ -492,6 +507,9 @@ class InviteListProOut(Schema):
     channel: str
     status: str
     click_count: int
+    email_count: int = 0
+    whatsapp_count: int = 0
+    sms_count: int = 0
     invited_at: str
     last_resent_at: Optional[str] = None
 
@@ -504,6 +522,9 @@ class InviteListFriendOut(Schema):
     channel: str
     status: str
     click_count: int
+    email_count: int = 0
+    whatsapp_count: int = 0
+    sms_count: int = 0
     invited_at: str
     last_resent_at: Optional[str] = None
 
@@ -516,6 +537,9 @@ class InviteListCircleOut(Schema):
     channel: str
     status: str
     click_count: int
+    email_count: int = 0
+    whatsapp_count: int = 0
+    sms_count: int = 0
     invited_at: str
     last_resent_at: Optional[str] = None
 
@@ -540,8 +564,24 @@ class UpdateFriendInviteIn(Schema):
 
 class InviteTimelineEventOut(Schema):
     event_type: str
+    channel: Optional[str] = None
     message_body: Optional[str] = None
     occurred_at: str
+
+
+class SendChannelIn(Schema):
+    channel: str
+
+
+class SendChannelOut(Schema):
+    ok: bool
+    channel: str
+    requires_manual_confirm: bool
+    message_body: Optional[str] = None
+
+
+class ConfirmSentIn(Schema):
+    channel: str
 
 
 class MatchedContactOut(Schema):
@@ -1063,7 +1103,7 @@ def invite_pro(request, payload: InviteProIn):
         channel=payload.channel,
         message_body=payload.message or "",
     )
-    _log_invite_event(InviteEvent.Scenario.PRO, invite.pk, InviteEvent.EventType.SENT, invite.message_body)
+    _log_invite_event(InviteEvent.Scenario.PRO, invite.pk, InviteEvent.EventType.SENT, invite.message_body, channel=invite.channel)
 
     if payload.channel == "email":
         track_token = _send_invite_email(
@@ -1090,7 +1130,7 @@ def invite_pro(request, payload: InviteProIn):
 
 
 @router.post("/me/invite-pro/{invite_id}/resend", response={200: InviteProResendOut, 404: dict, 429: dict})
-def resend_pro_invite(request, invite_id: int):
+def resend_pro_invite(request, invite_id: int, payload: ResendMessageIn = None):
     profile = require_referrer(request)
     invite = ProInvite.objects.filter(pk=invite_id, invited_by=request.auth).first()
     if not invite:
@@ -1103,9 +1143,13 @@ def resend_pro_invite(request, invite_id: int):
         hours_left = round(seconds_left / 3600, 1)
         return 429, {"detail": f"Resend available in {hours_left}h."}
 
+    update_fields = ["last_resent_at"]
     invite.last_resent_at = timezone.now()
-    invite.save(update_fields=["last_resent_at"])
-    _log_invite_event(InviteEvent.Scenario.PRO, invite.pk, InviteEvent.EventType.RESENT, invite.message_body)
+    if payload and payload.message is not None and payload.message.strip():
+        invite.message_body = payload.message.strip()
+        update_fields.append("message_body")
+    invite.save(update_fields=update_fields)
+    _log_invite_event(InviteEvent.Scenario.PRO, invite.pk, InviteEvent.EventType.RESENT, invite.message_body, channel=invite.channel)
 
     if invite.channel == "email":
         track_token = _send_invite_email(
@@ -1161,7 +1205,7 @@ def invite_friend_single(request, payload: InviteFriendSingleIn):
         channel=payload.channel,
         message_body=payload.message or "",
     )
-    _log_invite_event(InviteEvent.Scenario.FRIEND, fi.pk, InviteEvent.EventType.SENT, fi.message_body)
+    _log_invite_event(InviteEvent.Scenario.FRIEND, fi.pk, InviteEvent.EventType.SENT, fi.message_body, channel=fi.channel)
 
     if payload.channel == "email":
         track_token = _send_invite_email(
@@ -1180,7 +1224,7 @@ def invite_friend_single(request, payload: InviteFriendSingleIn):
 
 
 @router.post("/me/invite-friend-single/{invite_id}/resend", response={200: FriendInviteResendOut, 404: dict, 429: dict})
-def resend_friend_invite(request, invite_id: int):
+def resend_friend_invite(request, invite_id: int, payload: ResendMessageIn = None):
     profile = require_referrer(request)
     fi = FriendInvite.objects.filter(pk=invite_id, referrer=request.auth).first()
     if not fi:
@@ -1192,9 +1236,13 @@ def resend_friend_invite(request, invite_id: int):
         hours_left = round(seconds_left / 3600, 1)
         return 429, {"detail": f"Resend available in {hours_left}h."}
 
+    update_fields = ["last_resent_at"]
     fi.last_resent_at = timezone.now()
-    fi.save(update_fields=["last_resent_at"])
-    _log_invite_event(InviteEvent.Scenario.FRIEND, fi.pk, InviteEvent.EventType.RESENT, fi.message_body)
+    if payload and payload.message is not None and payload.message.strip():
+        fi.message_body = payload.message.strip()
+        update_fields.append("message_body")
+    fi.save(update_fields=update_fields)
+    _log_invite_event(InviteEvent.Scenario.FRIEND, fi.pk, InviteEvent.EventType.RESENT, fi.message_body, channel=fi.channel)
 
     if fi.channel == "email":
         track_token = _send_invite_email(
@@ -1228,7 +1276,7 @@ def share_circle(request, payload: InviteCircleShareIn):
         channel=payload.channel,
         message_body=payload.message or "",
     )
-    _log_invite_event(InviteEvent.Scenario.CIRCLE, cs.pk, InviteEvent.EventType.SENT, cs.message_body)
+    _log_invite_event(InviteEvent.Scenario.CIRCLE, cs.pk, InviteEvent.EventType.SENT, cs.message_body, channel=cs.channel)
 
     if payload.channel == "email":
         track_token = _send_invite_email(
@@ -1247,7 +1295,7 @@ def share_circle(request, payload: InviteCircleShareIn):
 
 
 @router.post("/me/share-circle/{invite_id}/resend", response={200: CircleShareResendOut, 404: dict, 429: dict})
-def resend_circle_share(request, invite_id: int):
+def resend_circle_share(request, invite_id: int, payload: ResendMessageIn = None):
     profile = require_referrer(request)
     cs = CircleShareInvite.objects.filter(pk=invite_id, referrer=request.auth).first()
     if not cs:
@@ -1259,9 +1307,13 @@ def resend_circle_share(request, invite_id: int):
         hours_left = round(seconds_left / 3600, 1)
         return 429, {"detail": f"Resend available in {hours_left}h."}
 
+    update_fields = ["last_resent_at"]
     cs.last_resent_at = timezone.now()
-    cs.save(update_fields=["last_resent_at"])
-    _log_invite_event(InviteEvent.Scenario.CIRCLE, cs.pk, InviteEvent.EventType.RESENT, cs.message_body)
+    if payload and payload.message is not None and payload.message.strip():
+        cs.message_body = payload.message.strip()
+        update_fields.append("message_body")
+    cs.save(update_fields=update_fields)
+    _log_invite_event(InviteEvent.Scenario.CIRCLE, cs.pk, InviteEvent.EventType.RESENT, cs.message_body, channel=cs.channel)
 
     if cs.channel == "email":
         track_token = _send_invite_email(
@@ -1489,6 +1541,31 @@ def list_invites(request):
     def fmt_dt(dt):
         return dt.isoformat() if dt else None
 
+    def channel_counts(scenario, items):
+        """Per-invite {email: n, whatsapp: n, sms: n} from the InviteEvent log.
+
+        Events logged before the `channel` column existed have channel="" —
+        attribute those to the invite's own `channel` field so historical
+        sends aren't silently dropped from the count."""
+        fallback = {i.pk: i.channel for i in items}
+        rows = (
+            InviteEvent.objects
+            .filter(scenario=scenario, invite_id__in=list(fallback), event_type__in=[InviteEvent.EventType.SENT, InviteEvent.EventType.RESENT])
+            .values("invite_id", "channel")
+        )
+        counts: dict[int, dict[str, int]] = {}
+        for r in rows:
+            ch = r["channel"] or fallback.get(r["invite_id"], "")
+            if not ch:
+                continue
+            d = counts.setdefault(r["invite_id"], {})
+            d[ch] = d.get(ch, 0) + 1
+        return counts
+
+    pro_counts = channel_counts(InviteEvent.Scenario.PRO, pro_invites)
+    friend_counts = channel_counts(InviteEvent.Scenario.FRIEND, friend_invites)
+    circle_counts = channel_counts(InviteEvent.Scenario.CIRCLE, circle_invites)
+
     return {
         "pro_invites": [
             {
@@ -1500,6 +1577,9 @@ def list_invites(request):
                 "channel": i.channel,
                 "status": i.status if i.status != ProInvite.Status.PENDING or not i.email_opened_at else "opened",
                 "click_count": i.click_count,
+                "email_count": pro_counts.get(i.pk, {}).get("email", 0),
+                "whatsapp_count": pro_counts.get(i.pk, {}).get("whatsapp", 0),
+                "sms_count": pro_counts.get(i.pk, {}).get("sms", 0),
                 "invited_at": fmt_dt(i.invited_at),
                 "last_resent_at": fmt_dt(i.last_resent_at),
             }
@@ -1514,6 +1594,9 @@ def list_invites(request):
                 "channel": i.channel,
                 "status": "followed" if i.followed_at else ("opened" if i.email_opened_at else "pending"),
                 "click_count": i.click_count,
+                "email_count": friend_counts.get(i.pk, {}).get("email", 0),
+                "whatsapp_count": friend_counts.get(i.pk, {}).get("whatsapp", 0),
+                "sms_count": friend_counts.get(i.pk, {}).get("sms", 0),
                 "invited_at": fmt_dt(i.invited_at),
                 "last_resent_at": fmt_dt(i.last_resent_at),
             }
@@ -1528,12 +1611,96 @@ def list_invites(request):
                 "channel": i.channel,
                 "status": "clicked" if i.click_count > 0 else ("opened" if i.email_opened_at else "pending"),
                 "click_count": i.click_count,
+                "email_count": circle_counts.get(i.pk, {}).get("email", 0),
+                "whatsapp_count": circle_counts.get(i.pk, {}).get("whatsapp", 0),
+                "sms_count": circle_counts.get(i.pk, {}).get("sms", 0),
                 "invited_at": fmt_dt(i.invited_at),
                 "last_resent_at": fmt_dt(i.last_resent_at),
             }
             for i in circle_invites
         ],
     }
+
+
+@router.post("/me/invites/{scenario}/{invite_id}/send-channel", response={200: SendChannelOut, 404: dict, 422: dict})
+def send_invite_channel(request, scenario: str, invite_id: int, payload: SendChannelIn):
+    """Send (or prepare) an invite via a channel independent of the invite's original `channel`.
+
+    Email is delivered immediately through Resend. SMS/WhatsApp can't be sent server-side —
+    the referrer sends it themselves via a deep link, then confirms via /confirm-sent."""
+    profile = require_referrer(request)
+    if scenario not in (InviteEvent.Scenario.PRO, InviteEvent.Scenario.FRIEND, InviteEvent.Scenario.CIRCLE):
+        return 404, {"detail": "Unknown scenario."}
+    if payload.channel not in ("email", "sms", "whatsapp"):
+        return 422, {"detail": "Invalid channel."}
+
+    model = {"pro": ProInvite, "friend": FriendInvite, "circle": CircleShareInvite}[scenario]
+    owner_field = "invited_by" if scenario == "pro" else "referrer"
+    invite = model.objects.filter(pk=invite_id, **{owner_field: request.auth}).first()
+    if not invite:
+        return 404, {"detail": "Invite not found."}
+
+    if payload.channel == "email" and not invite.email:
+        return 422, {"detail": "No email on file for this contact."}
+    if payload.channel in ("sms", "whatsapp") and not invite.phone:
+        return 422, {"detail": "No phone number on file for this contact."}
+
+    message_body = invite.message_body or _default_invite_message(scenario, invite.name, profile.slug)
+    already_sent = InviteEvent.objects.filter(
+        scenario=scenario, invite_id=invite.pk, channel=payload.channel,
+        event_type__in=[InviteEvent.EventType.SENT, InviteEvent.EventType.RESENT],
+    ).exists()
+
+    if payload.channel == "email":
+        track_token = _send_invite_email(
+            scenario=scenario, email=invite.email, message_body=message_body,
+            slug=profile.slug, token=invite.token,
+        )
+        if not track_token:
+            return 422, {"detail": "Could not send email."}
+        invite.email_track_token = track_token
+        invite.last_resent_at = timezone.now()
+        invite.save(update_fields=["email_track_token", "last_resent_at"])
+        _log_invite_event(
+            scenario, invite.pk,
+            InviteEvent.EventType.RESENT if already_sent else InviteEvent.EventType.SENT,
+            message_body, channel="email",
+        )
+        return 200, {"ok": True, "channel": "email", "requires_manual_confirm": False}
+
+    # sms / whatsapp — referrer sends manually from their own device, then confirms
+    return 200, {
+        "ok": True, "channel": payload.channel, "requires_manual_confirm": True, "message_body": message_body,
+    }
+
+
+@router.post("/me/invites/{scenario}/{invite_id}/confirm-sent", response={200: dict, 404: dict, 422: dict})
+def confirm_invite_sent(request, scenario: str, invite_id: int, payload: ConfirmSentIn):
+    """Referrer confirms they manually sent an SMS/WhatsApp message via their own device."""
+    require_referrer(request)
+    if scenario not in (InviteEvent.Scenario.PRO, InviteEvent.Scenario.FRIEND, InviteEvent.Scenario.CIRCLE):
+        return 404, {"detail": "Unknown scenario."}
+    if payload.channel not in ("sms", "whatsapp"):
+        return 422, {"detail": "Invalid channel."}
+
+    model = {"pro": ProInvite, "friend": FriendInvite, "circle": CircleShareInvite}[scenario]
+    owner_field = "invited_by" if scenario == "pro" else "referrer"
+    invite = model.objects.filter(pk=invite_id, **{owner_field: request.auth}).first()
+    if not invite:
+        return 404, {"detail": "Invite not found."}
+
+    already_sent = InviteEvent.objects.filter(
+        scenario=scenario, invite_id=invite.pk, channel=payload.channel,
+        event_type__in=[InviteEvent.EventType.SENT, InviteEvent.EventType.RESENT],
+    ).exists()
+    invite.last_resent_at = timezone.now()
+    invite.save(update_fields=["last_resent_at"])
+    _log_invite_event(
+        scenario, invite.pk,
+        InviteEvent.EventType.RESENT if already_sent else InviteEvent.EventType.SENT,
+        invite.message_body, channel=payload.channel,
+    )
+    return 200, {"ok": True}
 
 
 @router.get("/me/invites/{scenario}/{invite_id}/timeline", response={200: list[InviteTimelineEventOut], 404: dict})
@@ -1545,13 +1712,16 @@ def invite_contact_timeline(request, scenario: str, invite_id: int):
 
     model = {"pro": ProInvite, "friend": FriendInvite, "circle": CircleShareInvite}[scenario]
     owner_field = "invited_by" if scenario == "pro" else "referrer"
-    if not model.objects.filter(pk=invite_id, **{owner_field: request.auth}).exists():
+    invite = model.objects.filter(pk=invite_id, **{owner_field: request.auth}).first()
+    if not invite:
         return 404, {"detail": "Invite not found."}
 
     events = InviteEvent.objects.filter(scenario=scenario, invite_id=invite_id).order_by("occurred_at")
     return 200, [
         {
             "event_type": e.event_type,
+            # Events logged before the `channel` column existed fall back to the invite's own channel.
+            "channel": e.channel or invite.channel or None,
             "message_body": e.message_body or None,
             "occurred_at": e.occurred_at.isoformat(),
         }

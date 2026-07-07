@@ -365,6 +365,7 @@ class InviteEvent(models.Model):
     scenario = models.CharField(max_length=10, choices=Scenario.choices)
     invite_id = models.PositiveIntegerField()
     event_type = models.CharField(max_length=10, choices=EventType.choices)
+    channel = models.CharField(max_length=10, blank=True, default="")
     message_body = models.TextField(blank=True, default="")
     occurred_at = models.DateTimeField(default=timezone.now)
 

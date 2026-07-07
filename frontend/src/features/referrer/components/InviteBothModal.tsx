@@ -6,16 +6,16 @@ import {
   Divider,
   Group,
   Modal,
-  Select,
   Stack,
   Text,
   TextInput,
 } from "@mantine/core";
-import { IconCheck, IconSend, IconUserPlus, IconUsers } from "@tabler/icons-react";
+import { IconCheck, IconUserPlus, IconUsers } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 
 import { createFriendInvite, createProInvite, getReferrerMe } from "../../../api/endpoints";
 import { useAuth } from "../../../auth/AuthContext";
+import { ChannelPicker, buildSmsLink, buildWaLink, isEmailContact, nativeBtn, resolveChannel } from "./inviteShared";
 
 const TRADE_OPTIONS = [
   "Plumbing", "Electrical", "HVAC", "Roofing", "Painting", "Carpentry",
@@ -38,44 +38,21 @@ function resolveMessage(template: string, vars: { recipientName: string; senderN
     .replace(/\{\{link\}\}/g, vars.link);
 }
 
-function buildWaLink(phone: string, body: string) {
-  return `https://wa.me/${phone.replace(/\D/g, "")}?text=${encodeURIComponent(body)}`;
-}
-
-function buildSmsLink(phone: string, body: string) {
-  return `sms:${phone}?body=${encodeURIComponent(body)}`;
-}
-
 interface ProContact {
   name: string;
   trade: string;
-  phone: string;
-  email: string;
+  contact: string;
   channel: string;
 }
 
 interface FriendContact {
   name: string;
-  phone: string;
-  email: string;
+  contact: string;
   channel: string;
 }
 
-const EMPTY_PRO: ProContact = { name: "", trade: "", phone: "", email: "", channel: "whatsapp" };
-const EMPTY_FRIEND: FriendContact = { name: "", phone: "", email: "", channel: "whatsapp" };
-
-/** Disable channels the contact can't actually receive — no phone means no SMS/WhatsApp, no email means no Email. */
-function channelOptions(contact: { phone: string; email: string }) {
-  return [
-    { value: "whatsapp", label: "WhatsApp", disabled: !contact.phone.trim() },
-    { value: "sms", label: "SMS", disabled: !contact.phone.trim() },
-    { value: "email", label: "Email", disabled: !contact.email.trim() },
-  ];
-}
-
-function firstEnabledChannel(contact: { phone: string; email: string }): string {
-  return channelOptions(contact).find((o) => !o.disabled)?.value ?? "whatsapp";
-}
+const EMPTY_PRO: ProContact = { name: "", trade: "", contact: "", channel: "whatsapp" };
+const EMPTY_FRIEND: FriendContact = { name: "", contact: "", channel: "whatsapp" };
 
 interface SendOutcome {
   ok: boolean;
@@ -126,36 +103,32 @@ export function InviteBothModal({ opened, onClose, slug: initialSlug, onSent }: 
   }
 
   function updatePro(field: keyof ProContact, value: string) {
-    setPro((p) => {
-      const next = { ...p, [field]: value };
-      if (field === "phone" || field === "email") {
-        const current = channelOptions(next).find((o) => o.value === next.channel);
-        if (!current || current.disabled) next.channel = firstEnabledChannel(next);
-      }
-      return next;
-    });
+    setPro((p) => ({ ...p, [field]: value }));
+    setProError(null);
+  }
+
+  function updateProContact(value: string) {
+    setPro((p) => ({ ...p, contact: value, channel: resolveChannel(value, p.channel) }));
     setProError(null);
   }
 
   function updateFriend(field: keyof FriendContact, value: string) {
-    setFriend((f) => {
-      const next = { ...f, [field]: value };
-      if (field === "phone" || field === "email") {
-        const current = channelOptions(next).find((o) => o.value === next.channel);
-        if (!current || current.disabled) next.channel = firstEnabledChannel(next);
-      }
-      return next;
-    });
+    setFriend((f) => ({ ...f, [field]: value }));
+    setFriendError(null);
+  }
+
+  function updateFriendContact(value: string) {
+    setFriend((f) => ({ ...f, contact: value, channel: resolveChannel(value, f.channel) }));
     setFriendError(null);
   }
 
   function validate(): boolean {
     let ok = true;
-    if (!pro.name.trim() || (!pro.phone.trim() && !pro.email.trim())) {
+    if (!pro.name.trim() || !pro.contact.trim()) {
       setProError("Name and a phone or email are required.");
       ok = false;
     }
-    if (!friend.name.trim() || (!friend.phone.trim() && !friend.email.trim())) {
+    if (!friend.name.trim() || !friend.contact.trim()) {
       setFriendError("Name and a phone or email are required.");
       ok = false;
     }
@@ -164,6 +137,11 @@ export function InviteBothModal({ opened, onClose, slug: initialSlug, onSent }: 
 
   async function sendPro(note?: string): Promise<SendOutcome> {
     try {
+      const contact = pro.contact.trim();
+      const isEmail = isEmailContact(contact);
+      const phone = isEmail ? "" : contact;
+      const email = isEmail ? contact : "";
+
       const link = `gigkraft.com/us/${slug}/refer`;
       const message = resolveMessage(TEMPLATES.pro, {
         recipientName: pro.name.trim().split(" ")[0],
@@ -173,18 +151,18 @@ export function InviteBothModal({ opened, onClose, slug: initialSlug, onSent }: 
       const res = await createProInvite({
         name: pro.name.trim(),
         trade: pro.trade.trim() || undefined,
-        phone: pro.phone.trim() || undefined,
-        email: pro.email.trim() || undefined,
+        phone: phone || undefined,
+        email: email || undefined,
         note,
         channel: pro.channel,
         message,
       });
-      if ((pro.channel === "sms" || pro.channel === "whatsapp") && pro.phone.trim()) {
+      if ((pro.channel === "sms" || pro.channel === "whatsapp") && phone) {
         const finalLink = `https://gigkraft.com/us/${res.referrer_slug}/refer?claim=${res.token}`;
         const finalMessage = message.replace(link, finalLink);
         const url = pro.channel === "whatsapp"
-          ? buildWaLink(pro.phone, finalMessage)
-          : buildSmsLink(pro.phone, finalMessage);
+          ? buildWaLink(phone, finalMessage)
+          : buildSmsLink(phone, finalMessage);
         window.open(url, "_blank");
       }
       return { ok: true };
@@ -195,6 +173,11 @@ export function InviteBothModal({ opened, onClose, slug: initialSlug, onSent }: 
 
   async function sendFriend(): Promise<SendOutcome> {
     try {
+      const contact = friend.contact.trim();
+      const isEmail = isEmailContact(contact);
+      const phone = isEmail ? "" : contact;
+      const email = isEmail ? contact : "";
+
       const link = `gigkraft.com/us/${slug}/refer`;
       const message = resolveMessage(TEMPLATES.friend, {
         recipientName: friend.name.trim().split(" ")[0],
@@ -203,17 +186,17 @@ export function InviteBothModal({ opened, onClose, slug: initialSlug, onSent }: 
       });
       const res = await createFriendInvite({
         name: friend.name.trim(),
-        phone: friend.phone.trim() || undefined,
-        email: friend.email.trim() || undefined,
+        phone: phone || undefined,
+        email: email || undefined,
         channel: friend.channel,
         message,
       });
-      if ((friend.channel === "sms" || friend.channel === "whatsapp") && friend.phone.trim()) {
+      if ((friend.channel === "sms" || friend.channel === "whatsapp") && phone) {
         const finalLink = `https://gigkraft.com/us/${res.referrer_slug}/refer?inv=${res.token}`;
         const finalMessage = message.replace(link, finalLink);
         const url = friend.channel === "whatsapp"
-          ? buildWaLink(friend.phone, finalMessage)
-          : buildSmsLink(friend.phone, finalMessage);
+          ? buildWaLink(phone, finalMessage)
+          : buildSmsLink(phone, finalMessage);
         window.open(url, "_blank");
       }
       return { ok: true };
@@ -236,8 +219,29 @@ export function InviteBothModal({ opened, onClose, slug: initialSlug, onSent }: 
   }
 
   return (
-    <Modal opened={opened} onClose={handleClose} title="Invite Them (Pro + Friend)" centered size="lg" radius="md">
+    <Modal
+      opened={opened}
+      onClose={handleClose}
+      title="Invite Them (Pro + Friend)"
+      centered
+      size="lg"
+      radius="md"
+      styles={{
+        content: {
+          border: "1.5px solid var(--gk-accent-primary)",
+          boxShadow: "6px 6px 0 var(--gk-accent-secondary)",
+          borderRadius: 10,
+        },
+      }}
+      closeButtonProps={{
+        style: {
+          color: "var(--gk-accent-primary)",
+          background: "color-mix(in srgb, var(--gk-accent-secondary) 14%, transparent)",
+        },
+      }}
+    >
       <Stack gap="lg">
+        <Divider style={{ borderColor: "var(--gk-accent-secondary)" }} />
         {result ? (
           <Stack gap="md" py="xs">
             <Alert
@@ -271,34 +275,23 @@ export function InviteBothModal({ opened, onClose, slug: initialSlug, onSent }: 
                 <Text size="sm" fw={700}>Pro</Text>
               </Group>
               <Stack gap="xs">
-                <Group gap="xs" wrap="wrap">
+                <Group gap="xs" align="center" wrap="nowrap">
                   <TextInput
-                    label="Name" placeholder="Joe Smith" value={pro.name}
+                    placeholder="Name" value={pro.name} size="sm"
                     onChange={(e) => updatePro("name", e.currentTarget.value)}
-                    style={{ flex: 1, minWidth: 140 }}
+                    style={{ flex: 1, minWidth: 100 }}
                   />
                   <Autocomplete
-                    label="Trade" placeholder="Plumbing…" data={TRADE_OPTIONS} value={pro.trade}
+                    placeholder="Trade" data={TRADE_OPTIONS} value={pro.trade} size="sm"
                     onChange={(v) => updatePro("trade", v)}
-                    style={{ flex: 1, minWidth: 140 }}
-                  />
-                </Group>
-                <Group gap="xs" wrap="wrap">
-                  <TextInput
-                    label="Phone" placeholder="+1 555…" value={pro.phone}
-                    onChange={(e) => updatePro("phone", e.currentTarget.value)}
-                    style={{ flex: 1, minWidth: 140 }}
+                    style={{ flex: 1, minWidth: 100 }}
                   />
                   <TextInput
-                    label="Email" placeholder="joe@…" value={pro.email}
-                    onChange={(e) => updatePro("email", e.currentTarget.value)}
-                    style={{ flex: 1, minWidth: 140 }}
+                    placeholder="Email or phone" value={pro.contact} size="sm"
+                    onChange={(e) => updateProContact(e.currentTarget.value)}
+                    style={{ flex: 1.2, minWidth: 140 }}
                   />
-                  <Select
-                    label="Send via" data={channelOptions(pro)} value={pro.channel}
-                    onChange={(v) => v && setPro((p) => ({ ...p, channel: v }))}
-                    style={{ flex: 1, minWidth: 140 }}
-                  />
+                  <ChannelPicker contact={pro.contact} value={pro.channel} onChange={(v) => setPro((p) => ({ ...p, channel: v }))} />
                 </Group>
                 {proError && <Text size="xs" c="red">{proError}</Text>}
               </Stack>
@@ -312,36 +305,32 @@ export function InviteBothModal({ opened, onClose, slug: initialSlug, onSent }: 
                 <Text size="sm" fw={700}>Friend</Text>
               </Group>
               <Stack gap="xs">
-                <TextInput
-                  label="Name" placeholder="Jane Doe" value={friend.name}
-                  onChange={(e) => updateFriend("name", e.currentTarget.value)}
-                />
-                <Group gap="xs" wrap="wrap">
+                <Group gap="xs" align="center" wrap="nowrap">
                   <TextInput
-                    label="Phone" placeholder="+1 555…" value={friend.phone}
-                    onChange={(e) => updateFriend("phone", e.currentTarget.value)}
-                    style={{ flex: 1, minWidth: 140 }}
+                    placeholder="Name" value={friend.name} size="sm"
+                    onChange={(e) => updateFriend("name", e.currentTarget.value)}
+                    style={{ flex: 1, minWidth: 100 }}
                   />
                   <TextInput
-                    label="Email" placeholder="jane@…" value={friend.email}
-                    onChange={(e) => updateFriend("email", e.currentTarget.value)}
-                    style={{ flex: 1, minWidth: 140 }}
+                    placeholder="Email or phone" value={friend.contact} size="sm"
+                    onChange={(e) => updateFriendContact(e.currentTarget.value)}
+                    style={{ flex: 1.2, minWidth: 140 }}
                   />
-                  <Select
-                    label="Send via" data={channelOptions(friend)} value={friend.channel}
-                    onChange={(v) => v && setFriend((f) => ({ ...f, channel: v }))}
-                    style={{ flex: 1, minWidth: 140 }}
-                  />
+                  <ChannelPicker contact={friend.contact} value={friend.channel} onChange={(v) => setFriend((f) => ({ ...f, channel: v }))} />
                 </Group>
                 {friendError && <Text size="xs" c="red">{friendError}</Text>}
               </Stack>
             </Box>
 
             <Group justify="flex-end" mt="xs">
-              <Button variant="default" onClick={handleClose}>Cancel</Button>
-              <Button leftSection={<IconSend size={14} />} loading={submitting} onClick={() => void handleSend()}>
-                Send Both Invites
-              </Button>
+              <button style={nativeBtn({})} onClick={handleClose}>Cancel</button>
+              <button
+                style={nativeBtn({ primary: true, disabled: submitting })}
+                onClick={() => void handleSend()}
+                disabled={submitting}
+              >
+                {submitting ? "Sending…" : "Send Both Invites"}
+              </button>
             </Group>
           </>
         )}

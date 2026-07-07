@@ -1,13 +1,18 @@
 import {
-  ActionIcon, Badge, Box, Button, Card, Divider, Group,
-  Loader, Stack, Text, Textarea, TextInput, Title,
+  ActionIcon, Badge, Box, Card, Divider, Group,
+  Loader, Stack, Text, TextInput, Title,
 } from "@mantine/core";
 import {
   IconArrowLeft, IconChevronDown, IconChevronUp,
-  IconMail, IconPencil, IconPhone, IconRefresh, IconTrash, IconX,
+  IconMail, IconPencil, IconPhone, IconTrash, IconX,
 } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+
+import { RichTextEditor } from "@mantine/tiptap";
+import { useEditor } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Placeholder from "@tiptap/extension-placeholder";
 
 import {
   archiveCircleShare, archiveFriendInvite,
@@ -18,8 +23,16 @@ import {
 } from "../../api/endpoints";
 import type { InviteTimelineEventOut } from "./types";
 import type { UnifiedInvite } from "./components/InviteTimeline";
+import { EmailChannelIcon, htmlToPlainText, htmlToWhatsApp, nativeBtn, PhoneChannelIcons } from "./components/inviteShared";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+const cardStyle: React.CSSProperties = {
+  borderColor: "var(--gk-border)",
+  boxShadow: "0 4px 14px -4px var(--gk-accent-secondary)",
+};
+
+const iconColor = { color: "var(--gk-accent-primary)" } satisfies React.CSSProperties;
 
 const EVENT_META: Record<string, { label: string; color: string }> = {
   sent:    { label: "Sent",         color: "var(--mantine-color-blue-5)"   },
@@ -37,9 +50,9 @@ function fmtDate(iso: string) {
 }
 
 function fmtDateTime(iso: string) {
-  return new Date(iso).toLocaleString("en-US", {
-    month: "short", day: "numeric", year: "2-digit", hour: "2-digit", minute: "2-digit",
-  });
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 function secondsSince(iso: string | null): number {
@@ -50,6 +63,15 @@ function secondsSince(iso: string | null): number {
 function daysSince(iso: string | null): number | null {
   if (!iso) return null;
   return Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+}
+
+/** Wrap plain text (with newlines) into editor-ready HTML paragraphs. */
+function textToHtml(text: string): string {
+  if (!text) return "";
+  return text
+    .split(/\n{2,}/)
+    .map((block) => `<p>${block.split("\n").join("<br>")}</p>`)
+    .join("");
 }
 
 function statusMeta(contact: UnifiedInvite): { label: string; color: string; isTerminal: boolean } {
@@ -140,8 +162,14 @@ export function ContactDetailPage() {
 
   // Resend panel
   const [resendOpen, setResendOpen] = useState(false);
-  const [resendMsg, setResendMsg] = useState("");
   const [resending, setResending] = useState(false);
+  const resendEditor = useEditor({
+    extensions: [
+      StarterKit,
+      Placeholder.configure({ placeholder: "Write your message…" }),
+    ],
+    content: "",
+  });
 
   // Fallback load when navigating directly to URL
   useEffect(() => {
@@ -150,13 +178,15 @@ export function ContactDetailPage() {
       setLoadingContact(true);
       try {
         if (scenario === "pro") {
-          const pros = await getReferrerPros();
+          const [pros, invites] = await Promise.all([getReferrerPros(), getInviteList()]);
           const rp = pros.find((p) => p.id === numId);
           if (rp) {
+            const pc = rp.invite_id != null ? invites.pro_invites.find((i) => i.invite_id === rp.invite_id) : undefined;
             setContact({
               scenario: "pro", id: rp.id, invite_id: rp.invite_id,
               name: rp.name, trade: rp.trade, phone: rp.phone || "", email: rp.email || "",
-              channel: "", status: rp.invite_status || "pending", click_count: 0,
+              channel: pc?.channel ?? "", status: rp.invite_status || "pending", click_count: pc?.click_count ?? 0,
+              email_count: pc?.email_count ?? 0, whatsapp_count: pc?.whatsapp_count ?? 0, sms_count: pc?.sms_count ?? 0,
               invited_at: rp.added_at, last_resent_at: rp.last_resent_at,
               is_on_platform: rp.is_on_platform, show_on_page: rp.show_on_page, endorsement: rp.endorsement,
             });
@@ -171,6 +201,7 @@ export function ContactDetailPage() {
               id: found.invite_id, invite_id: found.invite_id,
               name: found.name, trade: "", phone: found.phone, email: found.email,
               channel: found.channel, status: found.status, click_count: found.click_count,
+              email_count: found.email_count, whatsapp_count: found.whatsapp_count, sms_count: found.sms_count,
               invited_at: found.invited_at, last_resent_at: found.last_resent_at,
             });
           }
@@ -196,6 +227,16 @@ export function ContactDetailPage() {
 
   function goBack() {
     navigate(`/us/${slug}/home?tab=invite`);
+  }
+
+  async function refreshTimeline() {
+    if (!contact?.invite_id) return;
+    try {
+      const fresh = await getInviteContactTimeline(contact.scenario, contact.invite_id);
+      setEvents(fresh);
+    } catch {
+      // leave existing events
+    }
   }
 
   function openEdit() {
@@ -229,18 +270,21 @@ export function ContactDetailPage() {
 
   function openResend() {
     // Pre-fill with the most recent sent/resent message body
-    const lastSent = [...events].find((e) => e.event_type === "sent" || e.event_type === "resent");
-    setResendMsg(lastSent?.message_body ?? "");
+    const lastSent = sortedEvents.find((e) => e.event_type === "sent" || e.event_type === "resent");
+    resendEditor?.commands.setContent(textToHtml(lastSent?.message_body ?? ""));
     setResendOpen(true);
   }
 
   async function handleResend() {
-    if (!contact?.invite_id) return;
+    if (!contact?.invite_id || !resendEditor) return;
     setResending(true);
     try {
-      if (contact.scenario === "pro") await resendProInvite(contact.invite_id);
-      else if (contact.scenario === "friend") await resendFriendInvite(contact.invite_id);
-      else await resendCircleShare(contact.invite_id);
+      const html = resendEditor.getHTML();
+      const message = contact.channel === "whatsapp" ? htmlToWhatsApp(html) : htmlToPlainText(html);
+
+      if (contact.scenario === "pro") await resendProInvite(contact.invite_id, message);
+      else if (contact.scenario === "friend") await resendFriendInvite(contact.invite_id, message);
+      else await resendCircleShare(contact.invite_id, message);
 
       const fresh = await getInviteContactTimeline(contact.scenario, contact.invite_id);
       setEvents(fresh);
@@ -279,10 +323,13 @@ export function ContactDetailPage() {
   if (!contact) {
     return (
       <Stack p="md">
-        <Button variant="subtle" size="xs" leftSection={<IconArrowLeft size={14} />} onClick={goBack}
-          style={{ alignSelf: "flex-start" }}>
-          Contacts
-        </Button>
+        <Group gap="xs" align="center">
+          <ActionIcon size="lg" variant="subtle" onClick={goBack} aria-label="Back" style={iconColor}>
+            <IconArrowLeft size={18} />
+          </ActionIcon>
+          <Title order={3} style={{ color: "var(--gk-accent-primary)" }}>Contact</Title>
+        </Group>
+        <Divider style={{ borderColor: "var(--gk-accent-secondary)" }} mb="xs" />
         <Text c="dimmed">Contact not found.</Text>
       </Stack>
     );
@@ -291,21 +338,26 @@ export function ContactDetailPage() {
   const sm = statusMeta(contact);
   const lastContactIso = contact.last_resent_at ?? contact.invited_at ?? null;
   const days = daysSince(lastContactIso);
-  const sendCount = events.filter((e) => e.event_type === "sent" || e.event_type === "resent").length;
   const eligible24h = secondsSince(lastContactIso) > 86400;
   const canResend = contact.invite_id != null && !sm.isTerminal && eligible24h;
+  const sortedEvents = [...events].sort(
+    (a, b) => new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime(),
+  );
 
   return (
     <Stack gap="lg" p="md" style={{ maxWidth: 680 }}>
 
-      {/* Back */}
-      <Button variant="subtle" size="xs" leftSection={<IconArrowLeft size={14} />}
-        onClick={goBack} style={{ alignSelf: "flex-start" }}>
-        Contacts
-      </Button>
+      {/* ── Header ───────────────────────────────────────────────────────── */}
+      <Group gap="xs" align="center">
+        <ActionIcon size="lg" variant="subtle" onClick={goBack} aria-label="Back" style={iconColor}>
+          <IconArrowLeft size={18} />
+        </ActionIcon>
+        <Title order={3} style={{ color: "var(--gk-accent-primary)" }}>Contact</Title>
+      </Group>
+      <Divider style={{ borderColor: "var(--gk-accent-secondary)" }} mb="xs" />
 
       {/* ── Contact card ─────────────────────────────────────────────────── */}
-      <Card withBorder radius="md" p="md">
+      <Card withBorder radius="md" p="md" style={cardStyle}>
         <Group justify="space-between" align="flex-start" mb="sm">
           <Group gap="xs" wrap="wrap">
             {!editing && <Text fw={700} size="lg">{contact.name}</Text>}
@@ -316,7 +368,7 @@ export function ContactDetailPage() {
           </Group>
           <Group gap={4}>
             {!editing && !contact.is_on_platform && contact.invite_id != null && (
-              <ActionIcon size="sm" variant="subtle" color="gray" onClick={openEdit} aria-label="Edit">
+              <ActionIcon size="sm" variant="subtle" onClick={openEdit} aria-label="Edit" style={iconColor}>
                 <IconPencil size={14} />
               </ActionIcon>
             )}
@@ -331,15 +383,16 @@ export function ContactDetailPage() {
             <TextInput label="Name" size="sm" value={draft.name}
               onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))} />
             <Group grow>
-              <TextInput label="Email" size="sm" leftSection={<IconMail size={13} />}
+              <TextInput label="Email" size="sm" leftSection={<IconMail size={13} style={iconColor} />}
                 value={draft.email} onChange={(e) => setDraft((d) => ({ ...d, email: e.target.value }))} />
-              <TextInput label="Phone" size="sm" leftSection={<IconPhone size={13} />}
+              <TextInput label="Phone" size="sm" leftSection={<IconPhone size={13} style={iconColor} />}
                 value={draft.phone} onChange={(e) => setDraft((d) => ({ ...d, phone: e.target.value }))} />
             </Group>
             <Group justify="flex-end" gap="xs" mt={4}>
-              <Button size="xs" variant="default" leftSection={<IconX size={12} />}
-                onClick={() => setEditing(false)}>Cancel</Button>
-              <Button size="xs" loading={saving} onClick={() => void handleSave()}>Save</Button>
+              <button style={nativeBtn({})} onClick={() => setEditing(false)}>Cancel</button>
+              <button style={nativeBtn({ primary: true, disabled: saving })} disabled={saving} onClick={() => void handleSave()}>
+                {saving ? "Saving…" : "Save"}
+              </button>
             </Group>
           </Stack>
         ) : (
@@ -347,13 +400,21 @@ export function ContactDetailPage() {
             <Group gap="lg" wrap="wrap">
               {contact.email && (
                 <Group gap={5}>
-                  <IconMail size={13} color="var(--mantine-color-dimmed)" />
+                  <EmailChannelIcon
+                    scenario={contact.scenario} inviteId={contact.invite_id} email={contact.email}
+                    opened={contact.status === "opened"} count={contact.email_count}
+                    onChanged={() => void refreshTimeline()}
+                  />
                   <Text size="sm">{contact.email}</Text>
                 </Group>
               )}
               {contact.phone && (
                 <Group gap={5}>
-                  <IconPhone size={13} color="var(--mantine-color-dimmed)" />
+                  <PhoneChannelIcons
+                    scenario={contact.scenario} inviteId={contact.invite_id} phone={contact.phone}
+                    smsCount={contact.sms_count} whatsappCount={contact.whatsapp_count}
+                    onChanged={() => void refreshTimeline()}
+                  />
                   <Text size="sm">•••• {contact.phone.slice(-4)}</Text>
                 </Group>
               )}
@@ -368,9 +429,6 @@ export function ContactDetailPage() {
                   Last contact {fmtDate(lastContactIso)}{days !== null ? ` · ${days}d ago` : ""}
                 </Text>
               )}
-              {sendCount > 0 && (
-                <Text size="xs" c="dimmed">Sent {sendCount}×</Text>
-              )}
             </Group>
           </Stack>
         )}
@@ -379,7 +437,7 @@ export function ContactDetailPage() {
       {/* ── Resend ───────────────────────────────────────────────────────── */}
       {contact.invite_id != null && !sm.isTerminal && (
         resendOpen ? (
-          <Card withBorder radius="md" p="md">
+          <Card withBorder radius="md" p="md" style={cardStyle}>
             <Stack gap="sm">
               <Group justify="space-between">
                 <Text size="sm" fw={600}>Resend invite</Text>
@@ -387,54 +445,58 @@ export function ContactDetailPage() {
                   <IconX size={14} />
                 </ActionIcon>
               </Group>
-              <Textarea
-                label="Message"
-                description="Review or edit before sending"
-                value={resendMsg}
-                onChange={(e) => setResendMsg(e.target.value)}
-                minRows={4}
-                autosize
-                size="sm"
-              />
+              <Stack gap={4}>
+                <Text size="sm" fw={500}>Message</Text>
+                <Text size="xs" c="dimmed">Review or edit before sending</Text>
+                <RichTextEditor editor={resendEditor} style={{ minHeight: 140 }}>
+                  <RichTextEditor.Toolbar>
+                    <RichTextEditor.ControlsGroup>
+                      <RichTextEditor.Bold />
+                      <RichTextEditor.Italic />
+                      <RichTextEditor.Underline />
+                    </RichTextEditor.ControlsGroup>
+                    <RichTextEditor.ControlsGroup>
+                      <RichTextEditor.ClearFormatting />
+                    </RichTextEditor.ControlsGroup>
+                  </RichTextEditor.Toolbar>
+                  <RichTextEditor.Content />
+                </RichTextEditor>
+              </Stack>
               <Text size="xs" c="dimmed">
                 Channel: <strong>{contact.channel || "email"}</strong>
                 {!eligible24h && " · 24h cooldown active"}
               </Text>
               <Group justify="flex-end">
-                <Button size="xs" variant="default" onClick={() => setResendOpen(false)}>Cancel</Button>
-                <Button
-                  size="xs"
-                  leftSection={<IconRefresh size={13} />}
-                  loading={resending}
-                  disabled={!canResend}
+                <button style={nativeBtn({ small: true })} onClick={() => setResendOpen(false)}>Cancel</button>
+                <button
+                  style={nativeBtn({ primary: true, small: true, disabled: !canResend || resending })}
+                  disabled={!canResend || resending}
                   onClick={() => void handleResend()}
                 >
-                  Send
-                </Button>
+                  {resending ? "Sending…" : "Send"}
+                </button>
               </Group>
             </Stack>
           </Card>
         ) : (
           <Group>
-            <Button
-              size="xs"
-              variant="default"
-              leftSection={<IconRefresh size={13} />}
+            <button
+              style={nativeBtn({ small: true, disabled: !canResend })}
               disabled={!canResend}
               title={!eligible24h ? "Wait 24h between resends" : undefined}
               onClick={openResend}
             >
               Resend{!eligible24h ? " (24h limit)" : ""}
-            </Button>
+            </button>
           </Group>
         )
       )}
 
-      <Divider />
+      <Divider style={{ borderColor: "var(--gk-accent-secondary)" }} />
 
       {/* ── Activity timeline ─────────────────────────────────────────── */}
       <Stack gap="sm">
-        <Title order={5}>Activity</Title>
+        <Title order={5} style={{ color: "var(--gk-accent-primary)" }}>Activity</Title>
 
         {contact.invite_id == null ? (
           <Text size="sm" c="dimmed">
@@ -448,11 +510,11 @@ export function ContactDetailPage() {
           <Text size="sm" c="dimmed">No activity yet.</Text>
         ) : (
           <Box>
-            {events.map((e, i) => (
+            {sortedEvents.map((e, i) => (
               <EventRow
                 key={`${e.event_type}-${e.occurred_at}`}
                 event={e}
-                isLast={i === events.length - 1}
+                isLast={i === sortedEvents.length - 1}
               />
             ))}
           </Box>

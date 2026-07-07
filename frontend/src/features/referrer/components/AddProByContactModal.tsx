@@ -17,7 +17,6 @@ import {
   IconMailForward,
   IconSearch,
   IconUserCheck,
-  IconX,
 } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 
@@ -29,6 +28,7 @@ import {
 } from "../../../api/endpoints";
 import { useAuth } from "../../../auth/AuthContext";
 import { InviteWizardModal } from "./InviteWizardModal";
+import { nativeBtn } from "./inviteShared";
 
 const TRADE_OPTIONS = [
   "Plumbing", "Electrical", "HVAC", "Roofing", "Painting", "Carpentry",
@@ -249,20 +249,9 @@ export function AddProByContactModal({ opened, onClose, onAdded }: Props) {
           >
             <Text size="sm" mt={4}>{result.body}</Text>
           </Alert>
-          <Button
-            fullWidth
-            radius="xl"
-            onClick={handleClose}
-            style={
-              !isError
-                ? { background: "var(--gk-brand-gradient)", color: "#fff" }
-                : undefined
-            }
-            color={isError ? "red" : undefined}
-            variant={isError ? "light" : "filled"}
-          >
-            OK
-          </Button>
+          <Group justify="center">
+            <button style={nativeBtn({ primary: !isError })} onClick={handleClose}>OK</button>
+          </Group>
         </Stack>
       );
     }
@@ -324,18 +313,11 @@ export function AddProByContactModal({ opened, onClose, onAdded }: Props) {
               style={{ background: "var(--gk-brand-gradient)", color: "#fff" }}
               leftSection={<IconUserCheck size={15} color="#fff" />}
             >
-              Add to my list
+              Add to My List
             </Button>
-            <Button
-              radius="xl"
-              variant="subtle"
-              color="gray"
-              onClick={backToForm}
-              disabled={acting}
-              leftSection={<IconX size={14} />}
-            >
+            <button style={nativeBtn({ disabled: acting })} onClick={backToForm} disabled={acting}>
               Cancel
-            </Button>
+            </button>
           </Group>
         </Stack>
       );
@@ -368,18 +350,11 @@ export function AddProByContactModal({ opened, onClose, onAdded }: Props) {
               style={{ background: "var(--gk-brand-gradient)", color: "#fff" }}
               leftSection={<IconMailForward size={15} color="#fff" />}
             >
-              Send invite
+              Send Invite
             </Button>
-            <Button
-              radius="xl"
-              variant="subtle"
-              color="gray"
-              onClick={backToForm}
-              disabled={acting}
-              leftSection={<IconX size={14} />}
-            >
+            <button style={nativeBtn({ disabled: acting })} onClick={backToForm} disabled={acting}>
               Cancel
-            </Button>
+            </button>
           </Group>
         </Stack>
       );
@@ -484,7 +459,7 @@ export function AddProByContactModal({ opened, onClose, onAdded }: Props) {
           slug={slug}
           senderName={senderName}
           onSent={handleWizardSent}
-          initialRecipient={{ name: name.trim(), trade: trade.trim(), phone: phone.trim(), email: email.trim() }}
+          initialRecipient={{ name: name.trim(), trade: trade.trim(), contact: phone.trim() || email.trim() }}
         />
       )}
     </>

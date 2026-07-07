@@ -1589,17 +1589,22 @@ export async function createCircleShare(payload: {
 
 export async function resendProInvite(
   id: number,
+  message?: string,
 ): Promise<{ ok: boolean; token: string; referrer_slug: string }> {
-  const { data, error, response } = await _post(`/api/referrer/me/invite-pro/${id}/resend`);
+  const { data, error, response } = await _post(`/api/referrer/me/invite-pro/${id}/resend`, {
+    body: { message },
+  });
   if (!data) throw new ApiError(response.status, detailOf(error, "Failed to resend."));
   return data as { ok: boolean; token: string; referrer_slug: string };
 }
 
 export async function resendFriendInvite(
   id: number,
+  message?: string,
 ): Promise<{ ok: boolean; token: string; referrer_slug: string }> {
   const { data, error, response } = await _post(
     `/api/referrer/me/invite-friend-single/${id}/resend`,
+    { body: { message } },
   );
   if (!data) throw new ApiError(response.status, detailOf(error, "Failed to resend."));
   return data as { ok: boolean; token: string; referrer_slug: string };
@@ -1615,8 +1620,11 @@ export async function archiveFriendInvite(id: number): Promise<void> {
 
 export async function resendCircleShare(
   id: number,
+  message?: string,
 ): Promise<{ ok: boolean; token: string; referrer_slug: string }> {
-  const { data, error, response } = await _post(`/api/referrer/me/share-circle/${id}/resend`);
+  const { data, error, response } = await _post(`/api/referrer/me/share-circle/${id}/resend`, {
+    body: { message },
+  });
   if (!data) throw new ApiError(response.status, detailOf(error, "Failed to resend."));
   return data as { ok: boolean; token: string; referrer_slug: string };
 }
@@ -1632,6 +1640,36 @@ export async function getInviteContactTimeline(
   const { data, response } = await _get(`/api/referrer/me/invites/${scenario}/${inviteId}/timeline`);
   if (!response.ok) throw new ApiError(response.status, "Failed to load timeline.");
   return (data ?? []) as InviteTimelineEventOut[];
+}
+
+export interface SendChannelResult {
+  ok: boolean;
+  channel: string;
+  requires_manual_confirm: boolean;
+  message_body?: string;
+}
+
+export async function sendInviteChannel(
+  scenario: InviteScenario,
+  inviteId: number,
+  channel: "email" | "sms" | "whatsapp",
+): Promise<SendChannelResult> {
+  const { data, error, response } = await _post(`/api/referrer/me/invites/${scenario}/${inviteId}/send-channel`, {
+    body: { channel },
+  });
+  if (!response.ok) throw new ApiError(response.status, detailOf(error, "Could not send."));
+  return data as SendChannelResult;
+}
+
+export async function confirmInviteSent(
+  scenario: InviteScenario,
+  inviteId: number,
+  channel: "sms" | "whatsapp",
+): Promise<void> {
+  const { error, response } = await _post(`/api/referrer/me/invites/${scenario}/${inviteId}/confirm-sent`, {
+    body: { channel },
+  });
+  if (!response.ok) throw new ApiError(response.status, detailOf(error, "Could not confirm."));
 }
 
 export interface CircleAddNoticeOut {

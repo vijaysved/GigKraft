@@ -54,6 +54,7 @@ import {
   saveAvatar,
   useProAvatar,
 } from "../../hooks/useProAvatar";
+import { nativeBtn } from "./components/inviteShared";
 
 function formatPhone(raw: string): string {
   const digits = raw.replace(/\D/g, "").slice(0, 10);
@@ -83,29 +84,6 @@ const notifRowStyle: React.CSSProperties = {
 };
 
 const iconColor = { color: "var(--gk-accent-primary)" } satisfies React.CSSProperties;
-
-function nativeBtn(opts: { primary?: boolean; small?: boolean; disabled?: boolean }): React.CSSProperties {
-  const { primary = false, small = false, disabled = false } = opts;
-  return {
-    background: disabled ? "var(--gk-border)" : primary ? "var(--gk-accent-primary)" : "transparent",
-    color: primary ? "#fff" : "var(--gk-accent-primary)",
-    border: primary ? "none" : "1.5px solid var(--gk-accent-primary)",
-    borderRadius: 99,
-    padding: small ? "3px 12px" : "6px 20px",
-    fontSize: small ? 11 : 13,
-    fontWeight: 700,
-    letterSpacing: "0.03em",
-    cursor: disabled ? "default" : "pointer",
-    outline: "none",
-    fontFamily: "inherit",
-    lineHeight: "1.5",
-    opacity: disabled ? 0.6 : 1,
-    boxShadow: disabled || !primary
-      ? "0 1px 3px rgba(0,0,0,0.06)"
-      : "0 3px 10px -2px var(--gk-accent-primary), inset 0 1px 0 rgba(255,255,255,0.18)",
-    transition: "all 0.15s ease",
-  };
-}
 
 export function ReferrerAccountPage() {
   const { user, updateUser } = useAuth();

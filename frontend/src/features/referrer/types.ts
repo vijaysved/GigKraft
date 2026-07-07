@@ -90,6 +90,9 @@ export interface InviteListProOut {
   channel: string;
   status: string;
   click_count: number;
+  email_count: number;
+  whatsapp_count: number;
+  sms_count: number;
   invited_at: string;
   last_resent_at: string | null;
 }
@@ -102,6 +105,9 @@ export interface InviteListFriendOut {
   channel: string;
   status: string;
   click_count: number;
+  email_count: number;
+  whatsapp_count: number;
+  sms_count: number;
   invited_at: string;
   last_resent_at: string | null;
 }
@@ -114,6 +120,9 @@ export interface InviteListCircleOut {
   channel: string;
   status: string;
   click_count: number;
+  email_count: number;
+  whatsapp_count: number;
+  sms_count: number;
   invited_at: string;
   last_resent_at: string | null;
 }
@@ -128,6 +137,7 @@ export type InviteScenario = "pro" | "friend" | "circle";
 
 export interface InviteTimelineEventOut {
   event_type: "sent" | "resent" | "opened" | "clicked" | "joined";
+  channel: string | null;
   message_body: string | null;
   occurred_at: string;
 }
