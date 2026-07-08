@@ -12,6 +12,10 @@
       "source": "/api/:path*",
       "destination": "https://gigkraft-backend-production.up.railway.app/api/:path*"
     },
+    {
+      "source": "/go/:path*",
+      "destination": "https://gigkraft-backend-production.up.railway.app/go/:path*"
+    },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

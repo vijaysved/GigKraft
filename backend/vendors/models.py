@@ -82,8 +82,8 @@ class Prospect(models.Model):
     def template_vars_for_log(self, link_click_token) -> dict:
         base_url = os.environ.get("BACKEND_URL", "https://gigkraft.com")
         token = link_click_token if link_click_token else self.signup_link_token
-        signup_link = f"{base_url}/api/prospects/track/{token}"
-        example_link = f"{base_url}/api/prospects/track-example/{token}"
+        signup_link = f"{base_url}/go/{token}"
+        example_link = f"{base_url}/go/example/{token}"
         return {
             "name": self.name,
             "source": self.get_source_display(),
@@ -101,12 +101,12 @@ class Prospect(models.Model):
     @property
     def tracked_signup_url(self) -> str:
         base_url = os.environ.get("BACKEND_URL", "https://gigkraft.com")
-        return f"{base_url}/api/prospects/track/{self.signup_link_token}"
+        return f"{base_url}/go/{self.signup_link_token}"
 
     @property
     def tracked_example_url(self) -> str:
         base_url = os.environ.get("BACKEND_URL", "https://gigkraft.com")
-        return f"{base_url}/api/prospects/track-example/{self.signup_link_token}"
+        return f"{base_url}/go/example/{self.signup_link_token}"
 
 
 class ProPageView(models.Model):

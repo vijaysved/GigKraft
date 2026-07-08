@@ -17,19 +17,18 @@ Public (no auth):
   GET    /track/{token}   — click-tracking redirect
   POST   /track-view      — legacy page-view tracking
 """
-import os
 import uuid as _uuid
 from datetime import timedelta
 from typing import Optional
 
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse
 from django.utils import timezone
 from ninja import Router, Schema
 
 from accounts.auth import jwt_auth
-from common.models import SiteSettings
 from common.permissions import require_gk_admin
 from vendors.models import Prospect, ProPageView
+from vendors.tracking import handle_example_click, handle_signup_click
 
 router = Router(tags=["prospects"], auth=jwt_auth)
 public_router = Router(tags=["prospects-public"])
@@ -586,78 +585,19 @@ def track_email_open(request, token: str):
     return resp
 
 
-# ── Public: click-tracking redirect ──────────────────────────────────────────
+# ── Public: click-tracking redirects ──────────────────────────────────────────
+# Kept for backwards compatibility with already-sent messages using the old
+# /api/prospects/track* links. New links use the short /go/* paths mounted at
+# the root (config/urls.py), both backed by vendors.tracking.
 
 @public_router.get("/track/{token}", auth=None)
 def track_signup_click(request, token: str):
-    from comms.models import OutreachLog
-    now = timezone.now()
-    try:
-        uid = _uuid.UUID(token)
-    except (ValueError, AttributeError):
-        uid = None
+    return handle_signup_click(token)
 
-    if uid:
-        from django.db.models import F
-
-        # Per-message token (new path) — look up via OutreachLog first
-        log = OutreachLog.objects.select_related("prospect").filter(link_click_token=uid).first()
-        if log:
-            if not log.link_clicked_at:
-                log.link_clicked_at = now
-                log.save(update_fields=["link_clicked_at"])
-            # Also backfill prospect-level timestamp for backwards compat
-            if log.prospect:
-                if not log.prospect.link_clicked_at:
-                    Prospect.objects.filter(pk=log.prospect_id, link_clicked_at__isnull=True).update(
-                        link_clicked_at=now, updated_at=now
-                    )
-                Prospect.objects.filter(pk=log.prospect_id).update(
-                    signup_link_click_count=F("signup_link_click_count") + 1
-                )
-        else:
-            # Legacy path — prospect-level token for old sent messages (also the
-            # path used by manual WhatsApp/SMS sends, which reuse the prospect's
-            # single signup_link_token rather than a per-message token)
-            p = Prospect.objects.filter(signup_link_token=uid).first()
-            if p:
-                if not p.link_clicked_at:
-                    Prospect.objects.filter(pk=p.pk, link_clicked_at__isnull=True).update(
-                        link_clicked_at=now, updated_at=now
-                    )
-                Prospect.objects.filter(pk=p.pk).update(
-                    signup_link_click_count=F("signup_link_click_count") + 1
-                )
-
-    cfg = SiteSettings.get()
-    is_prod = os.environ.get("DEBUG", "").lower() not in ("1", "true")
-    signup_url = cfg.pros_signup_url_prod if is_prod else cfg.pros_signup_url_local
-    return HttpResponseRedirect(signup_url)
-
-
-# ── Public: example-profile click tracking ───────────────────────────────────
-
-GK_EXAMPLE_URL = "https://www.gigkraft.com/pros/template-pro"
 
 @public_router.get("/track-example/{token}", auth=None)
 def track_example_click(request, token: str):
-    from comms.models import OutreachLog
-    now = timezone.now()
-    try:
-        uid = _uuid.UUID(token)
-    except (ValueError, AttributeError):
-        uid = None
-
-    if uid:
-        from comms.models import OutreachEvent
-        log = OutreachLog.objects.filter(link_click_token=uid).first()
-        if log:
-            if not log.example_clicked_at:
-                log.example_clicked_at = now
-                log.save(update_fields=["example_clicked_at"])
-            OutreachEvent.objects.create(log=log, event_type="profile_view", occurred_at=now)
-
-    return HttpResponseRedirect(GK_EXAMPLE_URL)
+    return handle_example_click(token)
 
 
 # ── Public: legacy page-view tracking ────────────────────────────────────────

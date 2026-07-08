@@ -61,6 +61,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
+import { nativeBtn } from "../referrer/components/inviteShared";
 import {
   advanceProspectStep,
   checkProspectDuplicates,
@@ -718,45 +719,49 @@ function ChatStepModal({
         <Group justify="space-between" align="center">
           <CopyButton value={text} timeout={2000}>
             {({ copied, copy }) => (
-              <Button
-                size="xs"
-                radius="xl"
-                leftSection={copied ? <IconCheck size={12} /> : <IconCopy size={12} />}
+              <button
+                type="button"
+                style={{
+                  ...nativeBtn({ small: true }),
+                  ...(copied ? { background: "var(--mantine-color-green-6)", color: "#fff", border: "none" } : {}),
+                }}
                 onClick={copy}
-                variant={copied ? "light" : "filled"}
-                color={copied ? "green" : undefined}
-                style={copied ? {} : { background: "var(--gk-accent-primary)", color: "#000" }}
               >
-                {copied ? "Copied!" : "Copy Message"}
-              </Button>
+                <Group gap={4} wrap="nowrap" justify="center">
+                  {copied ? <IconCheck size={13} /> : <IconCopy size={13} />}
+                  {copied ? "Copied!" : "Copy Message"}
+                </Group>
+              </button>
             )}
           </CopyButton>
 
           <Group gap="xs">
-            <Button
-              size="xs"
-              radius="xl"
-              variant={lastChannel === "whatsapp" ? "filled" : "light"}
-              color="teal"
-              leftSection={<IconBrandWhatsapp size={12} />}
-              loading={confirming === "whatsapp"}
+            <button
+              type="button"
+              style={nativeBtn({ primary: lastChannel === "whatsapp", small: true, disabled: confirming === "sms" })}
               disabled={confirming === "sms"}
               onClick={() => handleConfirm("whatsapp")}
             >
-              Confirmed via WhatsApp
-            </Button>
-            <Button
-              size="xs"
-              radius="xl"
-              variant={lastChannel === "sms" ? "filled" : "light"}
-              color="blue"
-              leftSection={<IconMessage size={12} />}
-              loading={confirming === "sms"}
+              <Group gap={4} wrap="nowrap" justify="center">
+                {confirming === "whatsapp"
+                  ? <Loader size={12} color={lastChannel === "whatsapp" ? "#fff" : undefined} />
+                  : <IconBrandWhatsapp size={13} />}
+                Confirmed via WhatsApp
+              </Group>
+            </button>
+            <button
+              type="button"
+              style={nativeBtn({ primary: lastChannel === "sms", small: true, disabled: confirming === "whatsapp" })}
               disabled={confirming === "whatsapp"}
               onClick={() => handleConfirm("sms")}
             >
-              Confirmed via Text
-            </Button>
+              <Group gap={4} wrap="nowrap" justify="center">
+                {confirming === "sms"
+                  ? <Loader size={12} color={lastChannel === "sms" ? "#fff" : undefined} />
+                  : <IconMessage size={13} />}
+                Confirmed via Text
+              </Group>
+            </button>
           </Group>
         </Group>
 
