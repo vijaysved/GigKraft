@@ -1,10 +1,14 @@
 """GigKraft super-admin API — gk_admin role only, cross-node visibility."""
 import os
+from datetime import datetime, timedelta
 from typing import List, Optional
+from urllib.parse import urlparse
 
 import stripe
 from django.db.models import Count, Q, Sum
+from django.utils import timezone
 from ninja import Router, Schema
+from ninja.errors import HttpError
 
 from accounts.auth import jwt_auth
 from accounts.models import ProProfile, User
@@ -18,6 +22,19 @@ from nodes.models import Node, SafetyLog
 router = Router(tags=["gk_admin"], auth=jwt_auth)
 
 
+def _tracked_pages() -> list[tuple[str, str, str]]:
+    """Returns (label, slug, url) for every page the Marketing tab tracks."""
+    cfg = SiteSettings.get()
+    is_prod = not os.environ.get("DEBUG", "").lower() in ("1", "true")
+    pages = [
+        ("Template Pro", "template-pro", cfg.template_pro_url_prod if is_prod else cfg.template_pro_url_local),
+        ("Template Member", "template-member", cfg.template_member_url_prod if is_prod else cfg.template_member_url_local),
+    ]
+    for i, extra in enumerate(cfg.extra_template_urls or []):
+        pages.append((extra.get("label", "Page"), f"extra-{i}", extra.get("url", "")))
+    return [(label, slug, url) for label, slug, url in pages if url]
+
+
 class NodeSummary(Schema):
     node_id: str
     name: str
@@ -29,9 +46,26 @@ class NodeSummary(Schema):
 
 class SiteTrafficRow(Schema):
     label: str
+    slug: str
     url: str
     views_30d: int
     views_7d: int
+
+
+class TrafficViewRow(Schema):
+    referrer: str
+    visited_at: datetime
+
+
+class TrafficDetailOut(Schema):
+    label: str
+    url: str
+    views_7d: int
+    views_30d: int
+    total: int
+    page: int
+    page_size: int
+    rows: List[TrafficViewRow]
 
 
 class CampaignMetrics(Schema):
@@ -141,9 +175,6 @@ class UserListOut(Schema):
 @router.get("/metrics", response=PlatformMetrics)
 def platform_metrics(request):
     require_gk_admin(request)
-    from datetime import timedelta
-
-    from django.utils import timezone
     from comms.models import OutreachLog
     from vendors.models import Prospect
 
@@ -178,25 +209,13 @@ def platform_metrics(request):
         ))
 
     # ── Site traffic ──────────────────────────────────────────────────────────
-    cfg = SiteSettings.get()
-    is_prod = not os.environ.get("DEBUG", "").lower() in ("1", "true")
-    tracked_pages = [
-        ("Template Pro", cfg.template_pro_url_prod if is_prod else cfg.template_pro_url_local),
-        ("Template Member", cfg.template_member_url_prod if is_prod else cfg.template_member_url_local),
-    ]
-    for extra in (cfg.extra_template_urls or []):
-        tracked_pages.append((extra.get("label", "Page"), extra.get("url", "")))
-
     site_traffic = []
-    for label, url in tracked_pages:
-        if not url:
-            continue
+    for label, slug, url in _tracked_pages():
         # Normalise to path portion so http/https and domain don't matter
-        from urllib.parse import urlparse
         path = urlparse(url).path or url
         views_30d = SitePageView.objects.filter(url__endswith=path, visited_at__gte=cutoff_30d).count()
         views_7d = SitePageView.objects.filter(url__endswith=path, visited_at__gte=cutoff_7d).count()
-        site_traffic.append(SiteTrafficRow(label=label, url=url, views_30d=views_30d, views_7d=views_7d))
+        site_traffic.append(SiteTrafficRow(label=label, slug=slug, url=url, views_30d=views_30d, views_7d=views_7d))
 
     # ── Campaign stats ────────────────────────────────────────────────────────
     total_sent = OutreachLog.objects.count()
@@ -257,6 +276,39 @@ def platform_metrics(request):
         inbox_unread=inbox_unread,
         feedback_unread=feedback_unread,
         new_users_today=new_users_today,
+    )
+
+
+@router.get("/traffic/{slug}", response=TrafficDetailOut)
+def traffic_detail(request, slug: str, range: str = "30d", page: int = 1, page_size: int = 50):
+    require_gk_admin(request)
+
+    match = next((p for p in _tracked_pages() if p[1] == slug), None)
+    if not match:
+        raise HttpError(404, "Tracked page not found.")
+    label, _, url = match
+    path = urlparse(url).path or url
+    qs = SitePageView.objects.filter(url__endswith=path)
+
+    now = timezone.now()
+    if range == "7d":
+        qs = qs.filter(visited_at__gte=now - timedelta(days=7))
+    elif range == "30d":
+        qs = qs.filter(visited_at__gte=now - timedelta(days=30))
+    # range == "all": no additional filter
+
+    total = qs.count()
+    rows = qs.order_by("-visited_at")[(page - 1) * page_size : page * page_size]
+
+    return TrafficDetailOut(
+        label=label,
+        url=url,
+        views_7d=SitePageView.objects.filter(url__endswith=path, visited_at__gte=now - timedelta(days=7)).count(),
+        views_30d=SitePageView.objects.filter(url__endswith=path, visited_at__gte=now - timedelta(days=30)).count(),
+        total=total,
+        page=page,
+        page_size=page_size,
+        rows=[TrafficViewRow(referrer=r.referrer, visited_at=r.visited_at) for r in rows],
     )
 
 

@@ -9,20 +9,25 @@ interface GkStatTileProps {
   icon?: ReactNode;
   compact?: boolean;
   tooltip?: string;
+  onClick?: () => void;
 }
 
-export function GkStatTile({ label, value, hint, accent, icon, compact, tooltip }: GkStatTileProps) {
+export function GkStatTile({ label, value, hint, accent, icon, compact, tooltip, onClick }: GkStatTileProps) {
   const card = (
     <Card
       withBorder
       radius="md"
       padding={compact ? "xs" : "lg"}
+      onClick={onClick}
       style={{
         ...(accent ? { borderColor: "var(--gk-accent-primary)" } : {}),
         position: "relative",
         overflow: "hidden",
-        cursor: tooltip ? "default" : undefined,
+        cursor: onClick ? "pointer" : tooltip ? "default" : undefined,
+        transition: onClick ? "box-shadow 0.15s ease" : undefined,
       }}
+      onMouseEnter={onClick ? (e) => (e.currentTarget.style.boxShadow = "var(--mantine-shadow-sm)") : undefined}
+      onMouseLeave={onClick ? (e) => (e.currentTarget.style.boxShadow = "") : undefined}
     >
       <Stack gap={compact ? 2 : 4}>
         <Text size={compact ? "xs" : "sm"} c="dimmed" truncate>{label}</Text>

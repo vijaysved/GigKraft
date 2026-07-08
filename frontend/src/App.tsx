@@ -43,6 +43,7 @@ import { SubscribePage } from "./features/member/SubscribePage";
 
 // GK Admin pages (super-admin, cross-node)
 import { GkAdminDashboardPage } from "./features/gk-admin/GkAdminDashboardPage";
+import { GkAdminTrafficDetailPage } from "./features/gk-admin/GkAdminTrafficDetailPage";
 import { GkAdminFeedbackPage } from "./features/gk-admin/GkAdminFeedbackPage";
 import { GkAdminUsersPage } from "./features/gk-admin/GkAdminUsersPage";
 import { GkAdminNodesPage } from "./features/gk-admin/GkAdminNodesPage";
@@ -198,6 +199,7 @@ export default function App() {
       >
         <Route index element={<Navigate to="/gk-admin/dashboard" replace />} />
         <Route path="dashboard" element={<GkAdminDashboardPage />} />
+        <Route path="traffic/:slug" element={<GkAdminTrafficDetailPage />} />
         <Route path="inbox" element={<AdminInboxPage />} />
         <Route path="inbox/:leadId" element={<AdminInboxPage />} />
         <Route path="feedback" element={<GkAdminFeedbackPage />} />

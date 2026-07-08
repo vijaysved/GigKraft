@@ -326,9 +326,26 @@ export interface GkNodeSummary {
 
 export interface GkSiteTrafficRow {
   label: string;
+  slug: string;
   url: string;
   views_30d: number;
   views_7d: number;
+}
+
+export interface GkTrafficViewRow {
+  referrer: string;
+  visited_at: string;
+}
+
+export interface GkTrafficDetail {
+  label: string;
+  url: string;
+  views_7d: number;
+  views_30d: number;
+  total: number;
+  page: number;
+  page_size: number;
+  rows: GkTrafficViewRow[];
 }
 
 export interface GkCampaignMetrics {
@@ -408,6 +425,19 @@ export async function getGkPlatformMetrics(): Promise<GkPlatformMetrics> {
   const { data, error, response } = await client.GET("/api/gk-admin/metrics" as never);
   if (!data) throw new ApiError(response.status, detailOf(error, "Failed to load platform metrics."));
   return data as GkPlatformMetrics;
+}
+
+export async function getGkTrafficDetail(
+  slug: string,
+  opts: { range?: "7d" | "30d" | "all"; page?: number; page_size?: number } = {},
+): Promise<GkTrafficDetail> {
+  const params: Record<string, string> = {};
+  if (opts.range) params.range = opts.range;
+  if (opts.page) params.page = String(opts.page);
+  if (opts.page_size) params.page_size = String(opts.page_size);
+  const { data, error, response } = await client.GET(`/api/gk-admin/traffic/${slug}` as never, { params: { query: params } } as never);
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to load traffic detail."));
+  return data as GkTrafficDetail;
 }
 
 export async function getGkUsers(opts: {

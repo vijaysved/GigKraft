@@ -25,6 +25,7 @@ import {
   IconUsers,
 } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import {
   ApiError,
@@ -61,6 +62,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export function GkAdminDashboardPage() {
+  const navigate = useNavigate();
   const [metrics, setMetrics] = useState<GkPlatformMetrics | null>(null);
   const [anonLeads, setAnonLeads] = useState<AnonLeadRow[]>([]);
   const [prospectAnalytics, setProspectAnalytics] = useState<ProspectAnalytics | null>(null);
@@ -212,10 +214,21 @@ export function GkAdminDashboardPage() {
                     </Table.Thead>
                     <Table.Tbody>
                       {metrics.site_traffic.map((row: GkSiteTrafficRow) => (
-                        <Table.Tr key={row.url}>
+                        <Table.Tr
+                          key={row.url}
+                          onClick={() => navigate(`/gk-admin/traffic/${row.slug}`)}
+                          style={{ cursor: "pointer" }}
+                        >
                           <Table.Td>
                             <Text size="sm" fw={600}>{row.label}</Text>
-                            <Anchor href={row.url} target="_blank" size="xs" c="dimmed" style={{ fontFamily: "var(--mantine-font-family-monospace)" }}>
+                            <Anchor
+                              href={row.url}
+                              target="_blank"
+                              size="xs"
+                              c="dimmed"
+                              style={{ fontFamily: "var(--mantine-font-family-monospace)" }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               {row.url}
                             </Anchor>
                           </Table.Td>
@@ -325,28 +338,32 @@ export function GkAdminDashboardPage() {
                 label="Pro Profile (7d)"
                 value={trafficMap["Template Pro"]?.views_7d}
                 icon={<IconEye size={32} />}
-                tooltip="Unauthenticated visits to the template Pro profile in the last 7 days"
+                tooltip="Unauthenticated visits to the template Pro profile in the last 7 days — click for detail"
+                onClick={trafficMap["Template Pro"] ? () => navigate(`/gk-admin/traffic/${trafficMap["Template Pro"].slug}`) : undefined}
               />
               <GkStatTile
                 compact
                 label="Pro Profile (30d)"
                 value={trafficMap["Template Pro"]?.views_30d}
                 icon={<IconEye size={32} />}
-                tooltip="Unauthenticated visits to the template Pro profile in the last 30 days"
+                tooltip="Unauthenticated visits to the template Pro profile in the last 30 days — click for detail"
+                onClick={trafficMap["Template Pro"] ? () => navigate(`/gk-admin/traffic/${trafficMap["Template Pro"].slug}`) : undefined}
               />
               <GkStatTile
                 compact
                 label="Member Profile (7d)"
                 value={trafficMap["Template Member"]?.views_7d}
                 icon={<IconEye size={32} />}
-                tooltip="Unauthenticated visits to the template Member profile in the last 7 days"
+                tooltip="Unauthenticated visits to the template Member profile in the last 7 days — click for detail"
+                onClick={trafficMap["Template Member"] ? () => navigate(`/gk-admin/traffic/${trafficMap["Template Member"].slug}`) : undefined}
               />
               <GkStatTile
                 compact
                 label="Member Profile (30d)"
                 value={trafficMap["Template Member"]?.views_30d}
                 icon={<IconEye size={32} />}
-                tooltip="Unauthenticated visits to the template Member profile in the last 30 days"
+                tooltip="Unauthenticated visits to the template Member profile in the last 30 days — click for detail"
+                onClick={trafficMap["Template Member"] ? () => navigate(`/gk-admin/traffic/${trafficMap["Template Member"].slug}`) : undefined}
               />
             </SimpleGrid>
 
