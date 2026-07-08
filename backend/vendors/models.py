@@ -84,7 +84,7 @@ class Prospect(models.Model):
         return self.template_vars_for_log(None)
 
     def template_vars_for_log(self, link_click_token) -> dict:
-        base_url = os.environ.get("BACKEND_URL", "https://gigkraft.com")
+        base_url = os.environ.get("BACKEND_URL", "https://www.gigkraft.com")
         token = link_click_token if link_click_token else self.signup_link_token
         signup_link = f"{base_url}/go/{token}"
         example_link = f"{base_url}/go/example/{token}"
@@ -104,12 +104,12 @@ class Prospect(models.Model):
 
     @property
     def tracked_signup_url(self) -> str:
-        base_url = os.environ.get("BACKEND_URL", "https://gigkraft.com")
+        base_url = os.environ.get("BACKEND_URL", "https://www.gigkraft.com")
         return f"{base_url}/go/{self.signup_link_token}"
 
     @property
     def tracked_example_url(self) -> str:
-        base_url = os.environ.get("BACKEND_URL", "https://gigkraft.com")
+        base_url = os.environ.get("BACKEND_URL", "https://www.gigkraft.com")
         return f"{base_url}/go/example/{self.signup_link_token}"
 
 

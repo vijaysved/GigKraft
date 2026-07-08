@@ -134,7 +134,7 @@ def send_email(
     # Internal @gigkraft.com CC recipients get base_html (no pixel) so their
     # opens don't fire the tracking endpoint and mark the email as "Opened".
     if track_token:
-        base_url = os.environ.get("BACKEND_URL", "https://gigkraft.com")
+        base_url = os.environ.get("BACKEND_URL", "https://www.gigkraft.com")
         pixel = (
             f'<img src="{base_url}{pixel_path}/{track_token}" '
             f'width="1" height="1" style="display:none;opacity:0;position:absolute" '
