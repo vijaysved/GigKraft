@@ -62,6 +62,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
 import { nativeBtn } from "../referrer/components/inviteShared";
+import { formatPhone, formatDateShort } from "../../utils/format";
 import {
   advanceProspectStep,
   checkProspectDuplicates,
@@ -690,8 +691,8 @@ function ChatStepModal({
               border: "1px solid var(--mantine-color-default-border)",
             }}
           >
-            <Text size="sm" fw={600}>{prospect.phone}</Text>
-            <CopyButton value={prospect.phone} timeout={2000}>
+            <Text size="sm" fw={600}>{formatPhone(prospect.phone)}</Text>
+            <CopyButton value={formatPhone(prospect.phone)} timeout={2000}>
               {({ copied, copy }) => (
                 <Button
                   size="xs"
@@ -1112,7 +1113,7 @@ function BulkUploadPanel({
                         <Text size="xs" c={p.email ? undefined : "dimmed"}>{p.email || "—"}</Text>
                       </Table.Td>
                       <Table.Td>
-                        <Text size="xs" c={p.phone ? undefined : "dimmed"}>{p.phone || "—"}</Text>
+                        <Text size="xs" c={p.phone ? undefined : "dimmed"}>{p.phone ? formatPhone(p.phone) : "—"}</Text>
                       </Table.Td>
                       <Table.Td>
                         {p.url ? (
@@ -1839,8 +1840,8 @@ function ProspectsTab() {
                           )}
                           {p.phone && (
                             <Group gap={3} wrap="nowrap">
-                              <Text size="xs" c="dimmed" truncate style={{ maxWidth: 125 }}>{p.phone}</Text>
-                              <CopyButton value={p.phone} timeout={1200}>
+                              <Text size="xs" c="dimmed" truncate style={{ maxWidth: 125 }}>{formatPhone(p.phone)}</Text>
+                              <CopyButton value={formatPhone(p.phone)} timeout={1200}>
                                 {({ copied, copy }) => (
                                   <Tooltip label={copied ? "Copied!" : "Copy phone"} withArrow>
                                     <ActionIcon size="xs" variant="subtle" color={copied ? "green" : "gray"} onClick={copy}>
@@ -1885,7 +1886,7 @@ function ProspectsTab() {
                       </Table.Td>
                       <Table.Td>
                         <Text size="xs" c="dimmed">
-                          {new Date(p.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" })}
+                          {formatDateShort(p.created_at)}
                         </Text>
                       </Table.Td>
                       <Table.Td>
@@ -1896,7 +1897,7 @@ function ProspectsTab() {
                               c={days !== null && days >= 3 ? "orange" : undefined}
                               fw={days !== null && days >= 3 ? 600 : undefined}
                             >
-                              {new Date(p.last_contacted_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                              {formatDateShort(p.last_contacted_at)}
                             </Text>
                             <Text style={{ fontSize: 10 }} c="dimmed">{days}d ago</Text>
                           </Stack>
@@ -1907,7 +1908,7 @@ function ProspectsTab() {
                       <Table.Td>
                         <Group gap={4} wrap="nowrap">
                           {p.signup_link_click_count > 0 ? (
-                            <Tooltip label={`Clicked ${p.signup_link_click_count}x${p.link_clicked_at ? ` — first ${new Date(p.link_clicked_at).toLocaleDateString()}` : ""}`}>
+                            <Tooltip label={`Clicked ${p.signup_link_click_count}x${p.link_clicked_at ? ` — first ${formatDateShort(p.link_clicked_at)}` : ""}`}>
                               <Badge size="xs" variant="dot" style={{ color: "var(--gk-accent-primary)", borderColor: "var(--gk-accent-primary)" }}>
                                 {p.signup_link_click_count}x
                               </Badge>

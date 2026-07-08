@@ -5,6 +5,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { API_BASE_URL } from "../../config";
 import { useAuth } from "../../auth/AuthContext";
 import { getAccessToken } from "../../api/tokens";
+import { formatPhone } from "../../utils/format";
 
 type ClaimState = "idle" | "claiming" | "claimed" | "no_pro_profile" | "error";
 
@@ -131,7 +132,7 @@ export function ClaimLeadPage() {
             </Alert>
             <Text size="sm" c="dimmed">
               Signed in as{" "}
-              <strong>{user?.email ?? user?.phone ?? "unknown"}</strong>.
+              <strong>{user?.email ?? (user?.phone ? formatPhone(user.phone) : "unknown")}</strong>.
               Make sure this matches the email your client used when they added you.
             </Text>
             <Button variant="subtle" onClick={() => navigate("/pro/inbox")}>

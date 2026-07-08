@@ -1,5 +1,6 @@
 """GigKraft super-admin API — gk_admin role only, cross-node visibility."""
 import os
+import re
 from datetime import datetime, timedelta
 from typing import List, Optional
 from urllib.parse import urlparse
@@ -18,6 +19,7 @@ from common.permissions import require_gk_admin
 from krafts.models import Kraft
 from leads.models import Lead
 from nodes.models import Node, SafetyLog
+from vendors.models import ProPageView
 
 router = Router(tags=["gk_admin"], auth=jwt_auth)
 
@@ -33,6 +35,12 @@ def _tracked_pages() -> list[tuple[str, str, str]]:
     for i, extra in enumerate(cfg.extra_template_urls or []):
         pages.append((extra.get("label", "Page"), f"extra-{i}", extra.get("url", "")))
     return [(label, slug, url) for label, slug, url in pages if url]
+
+
+def _pro_handle_for_path(path: str) -> Optional[str]:
+    """If a tracked page's path is a pro profile (/pros/{handle}), return the handle."""
+    match = re.fullmatch(r"/pros/([^/]+)", path)
+    return match.group(1) if match else None
 
 
 class NodeSummary(Schema):
@@ -55,6 +63,8 @@ class SiteTrafficRow(Schema):
 class TrafficViewRow(Schema):
     referrer: str
     visited_at: datetime
+    prospect_name: Optional[str] = None
+    prospect_id: Optional[str] = None
 
 
 class TrafficDetailOut(Schema):
@@ -298,7 +308,44 @@ def traffic_detail(request, slug: str, range: str = "30d", page: int = 1, page_s
     # range == "all": no additional filter
 
     total = qs.count()
-    rows = qs.order_by("-visited_at")[(page - 1) * page_size : page * page_size]
+    rows = list(qs.order_by("-visited_at")[(page - 1) * page_size : page * page_size])
+
+    # Pro profile pages (/pros/{handle}) also get a prospect-linked ProPageView row
+    # per visit (fired alongside the generic SitePageView one). Browser referrer is
+    # blank for nearly all of this traffic — it mostly arrives via WhatsApp/email
+    # outreach links, which don't send an HTTP Referer header — so attribute each
+    # row to the prospect from the closest-in-time ProPageView instead, when one
+    # exists within a short window of the same visit.
+    pro_handle = _pro_handle_for_path(path)
+    prospect_views = []
+    if pro_handle and rows:
+        window = timedelta(seconds=15)
+        prospect_views = list(
+            ProPageView.objects.filter(
+                pro_handle=pro_handle,
+                prospect__isnull=False,
+                viewed_at__gte=rows[-1].visited_at - window,
+                viewed_at__lte=rows[0].visited_at + window,
+            ).select_related("prospect").order_by("viewed_at")
+        )
+
+    def _closest_prospect(visited_at: datetime):
+        best, best_delta = None, timedelta(seconds=15)
+        for pv in prospect_views:
+            delta = abs(pv.viewed_at - visited_at)
+            if delta <= best_delta:
+                best, best_delta = pv, delta
+        return best.prospect if best else None
+
+    out_rows = []
+    for r in rows:
+        prospect = _closest_prospect(r.visited_at) if prospect_views else None
+        out_rows.append(TrafficViewRow(
+            referrer=r.referrer,
+            visited_at=r.visited_at,
+            prospect_name=prospect.name if prospect else None,
+            prospect_id=prospect.prospect_id if prospect else None,
+        ))
 
     return TrafficDetailOut(
         label=label,
@@ -308,7 +355,7 @@ def traffic_detail(request, slug: str, range: str = "30d", page: int = 1, page_s
         total=total,
         page=page,
         page_size=page_size,
-        rows=[TrafficViewRow(referrer=r.referrer, visited_at=r.visited_at) for r in rows],
+        rows=out_rows,
     )
 
 

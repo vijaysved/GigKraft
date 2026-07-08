@@ -1,6 +1,7 @@
 import {
   ActionIcon,
   Alert,
+  Anchor,
   Badge,
   Card,
   CopyButton,
@@ -17,24 +18,15 @@ import {
 } from "@mantine/core";
 import { IconArrowLeft, IconCheck, IconCopy } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { ApiError, getGkTrafficDetail, type GkTrafficDetail, type GkTrafficViewRow } from "../../api/endpoints";
 import { GkStatTile } from "../../components/GkStatTile";
+import { formatDateTime as fmtDateTime } from "../../utils/format";
 
 const PAGE_SIZE = 50;
 
 type Range = "7d" | "30d" | "all";
-
-function fmtDateTime(iso: string) {
-  return new Date(iso).toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 function referrerBadge(referrer: string): { label: string; color: string } {
   if (!referrer) return { label: "Direct / Typed", color: "gray" };
@@ -172,6 +164,7 @@ export function GkAdminTrafficDetailPage() {
                     <Table.Tr>
                       <Table.Th>Timestamp</Table.Th>
                       <Table.Th>Referrer</Table.Th>
+                      <Table.Th>Prospect</Table.Th>
                     </Table.Tr>
                   </Table.Thead>
                   <Table.Tbody>
@@ -191,6 +184,15 @@ export function GkAdminTrafficDetailPage() {
                                 </Text>
                               )}
                             </Stack>
+                          </Table.Td>
+                          <Table.Td>
+                            {row.prospect_name ? (
+                              <Anchor size="sm" component={Link} to={`/gk-admin/prospects/${row.prospect_id}`}>
+                                {row.prospect_name}
+                              </Anchor>
+                            ) : (
+                              <Text size="sm" c="dimmed">—</Text>
+                            )}
                           </Table.Td>
                         </Table.Tr>
                       );

@@ -6,6 +6,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from accounts.managers import UserManager
+from common.phone import normalize_phone
 
 
 class User(AbstractBaseUser, PermissionsMixin):
@@ -60,6 +61,11 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email or self.phone or f"user:{self.pk}"
+
+    def save(self, *args, **kwargs):
+        if self.phone:
+            self.phone = normalize_phone(self.phone)
+        super().save(*args, **kwargs)
 
 
 class ProProfile(models.Model):

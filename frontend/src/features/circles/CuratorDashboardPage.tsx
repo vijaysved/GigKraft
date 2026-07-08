@@ -41,6 +41,7 @@ import { getAccessToken } from "../../api/tokens";
 import type { CircleAnalyticsOut, CircleFollowRequestOut, CircleOut } from "./types";
 import { AddProUnified } from "./components/AddProUnified";
 import { CircleAnalyticsPanel } from "./components/CircleAnalyticsPanel";
+import { formatPhone } from "../../utils/format";
 
 function authHeaders(): Record<string, string> {
   const token = getAccessToken();
@@ -481,7 +482,7 @@ export function CuratorDashboardPage() {
                     </Group>
 
                     <Stack gap={1} mt={2}>
-                      <Group gap={4}><IconPhone size={11} color="var(--gk-accent-primary)" /><Text size="xs" c={cp.phone ? undefined : "dimmed"}>{cp.phone ?? "—"}</Text></Group>
+                      <Group gap={4}><IconPhone size={11} color="var(--gk-accent-primary)" /><Text size="xs" c={cp.phone ? undefined : "dimmed"}>{cp.phone ? formatPhone(cp.phone) : "—"}</Text></Group>
                       <Group gap={4}><IconMail size={11} color="var(--gk-accent-primary)" /><Text size="xs" c={cp.email ? undefined : "dimmed"}>{cp.email ?? "—"}</Text></Group>
                       <Group gap={4}><IconMapPin size={11} color="var(--gk-accent-primary)" /><Text size="xs" c={cp.zip_code ? undefined : "dimmed"}>{cp.zip_code ?? "—"}</Text></Group>
                     </Stack>

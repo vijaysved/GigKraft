@@ -3,11 +3,7 @@ import { IconCheck, IconStar, IconX } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 
 import { decodeRecText, getPublicRecommendations, REC_METRICS, type PublicRecOut } from "../api/recommendations";
-
-function fmtMonthYear(iso: string | null) {
-  if (!iso) return "";
-  return new Date(iso).toLocaleDateString(undefined, { month: "short", year: "numeric" });
-}
+import { formatMonthYear as fmtMonthYear } from "../utils/format";
 
 function StarRow({ stars }: { stars: number | null }) {
   if (!stars || stars < 1) return null;

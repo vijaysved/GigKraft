@@ -44,6 +44,7 @@ import {
   sanitizeHandle,
   useProHandle,
 } from "../../hooks/useProHandle";
+import { formatPhone } from "../../utils/format";
 
 const TRADES = ["Plumber", "Electrician", "HVAC", "Carpenter", "Painter", "Roofer", "General contractor", "Other"];
 
@@ -266,7 +267,7 @@ export function ProMyProfilePage() {
           </Group>
           <Group gap="xs">
             <Text size="sm" fw={500}>Phone:</Text>
-            <Text size="sm" style={{ fontFamily: "var(--mantine-font-family-monospace)" }}>{user?.phone ?? "—"}</Text>
+            <Text size="sm" style={{ fontFamily: "var(--mantine-font-family-monospace)" }}>{user?.phone ? formatPhone(user.phone) : "—"}</Text>
           </Group>
         </Stack>
       </Card>

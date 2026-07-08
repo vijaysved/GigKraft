@@ -23,6 +23,7 @@ from accounts.schemas import (
     TokenPairOut,
     UserOut,
 )
+from common.phone import normalize_phone
 from nodes.models import Node
 
 _ALLOWED_IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
@@ -160,7 +161,7 @@ def patch_me(request, payload: UserPatchIn):
     if "last_name" in data:
         user.last_name = data["last_name"]
     if "phone" in data:
-        phone = data["phone"] or None
+        phone = normalize_phone(data["phone"]) or None
         if phone and User.objects.filter(phone=phone).exclude(pk=user.pk).exists():
             return 400, {"detail": "That phone number is already in use."}
         user.phone = phone

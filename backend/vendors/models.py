@@ -3,6 +3,8 @@ import uuid
 
 from django.db import models
 
+from common.phone import normalize_phone
+
 
 class Prospect(models.Model):
     class Status(models.TextChoices):
@@ -70,6 +72,8 @@ class Prospect(models.Model):
             )
             next_num = (last or 0) + 1
             self.prospect_id = f"GK-{next_num:03d}"
+        if self.phone:
+            self.phone = normalize_phone(self.phone)
         super().save(*args, **kwargs)
 
     def __str__(self):

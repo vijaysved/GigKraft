@@ -21,6 +21,7 @@ from comms.services import render_branded_html as _render_branded_html
 from comms.services import send_email as _send_email
 from common.notify import send_sms
 from common.permissions import require_referrer
+from common.phone import normalize_phone
 from referrals.models import (
     CircleAddNotice,
     CircleShareInvite,
@@ -782,7 +783,7 @@ def follow_referrer(request, slug: str, payload: FollowIn, response):
     # Idempotency: return existing token if already following
     existing = None
     if payload.phone:
-        existing = ReferrerFollower.objects.filter(referrer=referrer, phone=payload.phone).first()
+        existing = ReferrerFollower.objects.filter(referrer=referrer, phone=normalize_phone(payload.phone)).first()
     if not existing and payload.email:
         existing = ReferrerFollower.objects.filter(referrer=referrer, email=payload.email).first()
 
@@ -1024,6 +1025,8 @@ def lookup_pro_by_contact(request, phone: Optional[str] = None, email: Optional[
         raise HttpError(422, "Phone or email is required.")
     from django.db.models import Q as DQ
     from accounts.models import User as GkUser
+    if phone:
+        phone = normalize_phone(phone)
     q = DQ()
     if phone:
         q |= DQ(user__phone=phone)

@@ -335,6 +335,8 @@ export interface GkSiteTrafficRow {
 export interface GkTrafficViewRow {
   referrer: string;
   visited_at: string;
+  prospect_name?: string | null;
+  prospect_id?: string | null;
 }
 
 export interface GkTrafficDetail {

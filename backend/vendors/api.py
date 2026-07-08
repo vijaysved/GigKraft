@@ -27,6 +27,7 @@ from ninja import Router, Schema
 
 from accounts.auth import jwt_auth
 from common.permissions import require_gk_admin
+from common.phone import normalize_phone
 from vendors.models import Prospect, ProPageView
 from vendors.tracking import handle_example_click, handle_signup_click
 
@@ -299,7 +300,7 @@ def bulk_preview(request, payload: BulkPreviewIn):
         if item.email.strip():
             dup = Prospect.objects.filter(email__iexact=item.email.strip()).first()
         if dup is None and item.phone.strip():
-            dup = Prospect.objects.filter(phone=item.phone.strip()).first()
+            dup = Prospect.objects.filter(phone=normalize_phone(item.phone)).first()
         results.append(BulkPreviewResult(
             index=i,
             name=item.name,

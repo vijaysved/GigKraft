@@ -37,6 +37,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { API_BASE_URL } from "../../config";
 import { getAccessToken } from "../../api/tokens";
+import { formatTime, formatDateTime } from "../../utils/format";
 
 // ── types ──────────────────────────────────────────────────────────────────
 
@@ -354,7 +355,7 @@ function SetupTab() {
         live_price_monthly: updated.live_price_monthly,
         live_price_annual: updated.live_price_annual,
       });
-      setSavedAt(new Date().toLocaleTimeString());
+      setSavedAt(formatTime(new Date().toISOString()));
       setConnectionResult(null);
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : "Save failed");
@@ -401,7 +402,7 @@ function SetupTab() {
             <KeyStatusBadge set={cfg.webhook_secret_set} label="STRIPE_WEBHOOK_SECRET" />
           </Group>
           {cfg.updated_at && (
-            <Text size="xs" c="dimmed">Last saved: {new Date(cfg.updated_at).toLocaleString()}</Text>
+            <Text size="xs" c="dimmed">Last saved: {formatDateTime(cfg.updated_at)}</Text>
           )}
         </Stack>
       </Card>

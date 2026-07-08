@@ -2,6 +2,8 @@ import re
 
 from django.db import models
 
+from common.phone import normalize_phone
+
 
 class Circle(models.Model):
     curator = models.OneToOneField(
@@ -76,6 +78,11 @@ class CirclePro(models.Model):
                 name="unique_circle_pro",
             )
         ]
+
+    def save(self, *args, **kwargs):
+        if self.off_platform_phone:
+            self.off_platform_phone = normalize_phone(self.off_platform_phone)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         label = self.pro.display_name if self.pro else self.off_platform_name

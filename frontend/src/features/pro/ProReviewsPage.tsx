@@ -54,6 +54,7 @@ import {
   type RecommendationOut,
 } from "../../api/recommendations";
 import { useAuth } from "../../auth/AuthContext";
+import { formatDate, formatMonthYear, formatDateTime } from "../../utils/format";
 
 function toHandle(firstName?: string, lastName?: string): string | null {
   if (!firstName) return null;
@@ -70,9 +71,7 @@ function displayName(name: string) {
   return name.slice(0, 5);
 }
 
-function fmt(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-}
+const fmt = formatDate;
 
 function isExpired(expiresAt: string) {
   return new Date(expiresAt) < new Date();
@@ -269,9 +268,7 @@ function RecListCard({ rec, onClick }: { rec: RecommendationOut; onClick: () => 
               {displayName(rec.client_name) || "—"}
             </Text>
             <Text size="xs" c="dimmed">
-              {rec.submitted_at
-                ? new Date(rec.submitted_at).toLocaleDateString(undefined, { month: "short", year: "numeric" })
-                : new Date(rec.created_at).toLocaleDateString(undefined, { month: "short", year: "numeric" })}
+              {rec.submitted_at ? formatMonthYear(rec.submitted_at) : formatMonthYear(rec.created_at)}
             </Text>
           </Group>
 
@@ -465,7 +462,7 @@ function RecDetail({
                 background: m.from === "pro" ? "color-mix(in srgb, var(--gk-accent-primary) 10%, transparent)" : "var(--gk-bg-canvas)",
                 border: "1px solid var(--gk-border)",
               }}>
-                <Text size="xs" c="dimmed" mb={4}>{m.from === "pro" ? "You" : "Reviewer"} · {new Date(m.sentAt).toLocaleString()}</Text>
+                <Text size="xs" c="dimmed" mb={4}>{m.from === "pro" ? "You" : "Reviewer"} · {formatDateTime(m.sentAt)}</Text>
                 <Text size="sm">{m.text}</Text>
               </Box>
             ))}

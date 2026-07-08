@@ -18,6 +18,7 @@ import {
 } from "../../../api/endpoints";
 import type { ReferralRequestDetailOut } from "../types";
 import { SendReferralModal } from "../components/SendReferralModal";
+import { formatDate } from "../../../utils/format";
 
 function statusColor(status: string) {
   if (status === "sent") return "teal";
@@ -98,7 +99,7 @@ export function RequestsTab() {
                 {req.job_description && (
                   <Text size="xs" c="dimmed" lineClamp={2}>{req.job_description}</Text>
                 )}
-                <Text size="xs" c="dimmed">{new Date(req.created_at).toLocaleDateString()}</Text>
+                <Text size="xs" c="dimmed">{formatDate(req.created_at)}</Text>
               </Stack>
               {(req.status === "pending" || req.status === "otp_pending") && (
                 <Group gap="xs" wrap="nowrap">

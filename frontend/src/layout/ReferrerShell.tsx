@@ -24,6 +24,7 @@ import { useEffect } from "react";
 
 import { useAuth } from "../auth/AuthContext";
 import { GkLogo } from "../brand/GkLogo";
+import { formatPhone } from "../utils/format";
 
 export function ReferrerShell() {
   const { user, logout } = useAuth();
@@ -121,7 +122,7 @@ export function ReferrerShell() {
               </UnstyledButton>
             </Menu.Target>
             <Menu.Dropdown>
-              <Menu.Label>{user?.email ?? user?.phone ?? "referrer"}</Menu.Label>
+              <Menu.Label>{user?.email ?? (user?.phone ? formatPhone(user.phone) : "referrer")}</Menu.Label>
               <Menu.Item onClick={() => navigate(`/us/${slug}/account`)}>Account</Menu.Item>
               <Menu.Divider />
               <Menu.Item

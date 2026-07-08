@@ -61,6 +61,7 @@ import {
 import { useAuth } from "../../auth/AuthContext";
 import { GkEmptyState } from "../../components/GkEmptyState";
 import { MyFeedbackList, MyFeedbackDetail, useMyFeedback } from "../../components/MyFeedbackPanel";
+import { formatDate } from "../../utils/format";
 
 // ── Role badge ────────────────────────────────────────────────────────────────
 function RoleBadge({ role }: { role: string }) {
@@ -933,7 +934,7 @@ export function ProInboxPage() {
                 </Avatar>
                 <Title order={4}>{selectedNotice.referrer_name}</Title>
                 <Text size="sm" c="dimmed" ta="center">
-                  Added you to their circle on {new Date(selectedNotice.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}.
+                  Added you to their circle on {formatDate(selectedNotice.created_at)}.
                 </Text>
                 {selectedNotice.referrer_slug && (
                   <Button

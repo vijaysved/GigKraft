@@ -31,6 +31,7 @@ import {
   setGkUserVisitor,
   type GkUserRow,
 } from "../../api/endpoints";
+import { formatPhone } from "../../utils/format";
 
 const ROLE_COLORS: Record<string, string> = {
   visitor: "gray",
@@ -253,7 +254,7 @@ export function GkAdminUsersPage() {
                       </Text>
                     </Table.Td>
                     <Table.Td>
-                      <Text size="sm">{u.email ?? u.phone ?? "—"}</Text>
+                      <Text size="sm">{u.email ?? (u.phone ? formatPhone(u.phone) : "—")}</Text>
                     </Table.Td>
                     <Table.Td>
                       <Badge

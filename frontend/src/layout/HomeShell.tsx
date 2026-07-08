@@ -26,6 +26,7 @@ import { useEffect } from "react";
 import { useAuth } from "../auth/AuthContext";
 import { GkLogo } from "../brand/GkLogo";
 import { useProAvatar } from "../hooks/useProAvatar";
+import { formatPhone } from "../utils/format";
 
 const NAV_ITEMS = [
   { label: "Discover", icon: IconSearch, to: "/home/discover" },
@@ -42,7 +43,7 @@ export function HomeShell() {
   const avatarSrc = useProAvatar();
 
   const initials = (user?.first_name?.[0] ?? user?.email?.[0] ?? user?.phone?.[0] ?? "H").toUpperCase();
-  const displayName = [user?.first_name, user?.last_name].filter(Boolean).join(" ") || user?.email || user?.phone || "You";
+  const displayName = [user?.first_name, user?.last_name].filter(Boolean).join(" ") || user?.email || (user?.phone ? formatPhone(user.phone) : "") || "You";
 
   useEffect(() => {
     document.title = displayName !== "You" ? `${displayName} · gigKraft.com` : "gigKraft.com";
@@ -124,7 +125,7 @@ export function HomeShell() {
               </UnstyledButton>
             </Menu.Target>
             <Menu.Dropdown>
-              <Menu.Label>{user?.email ?? user?.phone ?? "homeowner"}</Menu.Label>
+              <Menu.Label>{user?.email ?? (user?.phone ? formatPhone(user.phone) : "homeowner")}</Menu.Label>
               <Menu.Item onClick={() => navigate("/home/account")}>Account</Menu.Item>
               <Menu.Divider />
               <Menu.Item color="red" leftSection={<IconLogout size={14} />} onClick={() => { logout(); navigate("/login"); }}>

@@ -22,6 +22,7 @@ import { getAccessToken } from "../../../api/tokens";
 import { fallbackAvatar } from "../../../assets/fallbackAvatars";
 import type { ProCardOut } from "../types";
 import { RequestReferralModal } from "./RequestReferralModal";
+import { formatPhone } from "../../../utils/format";
 
 interface Props {
   pro: ProCardOut;
@@ -200,9 +201,9 @@ export function ReferrerProCard({
                 {!isAuthenticated && pro.phone ? (
                   <Text size="xs">{maskPhone(pro.phone)}</Text>
                 ) : pro.tap_to_call && pro.phone ? (
-                  <Anchor href={`tel:${pro.phone}`} size="xs">{pro.phone}</Anchor>
+                  <Anchor href={`tel:${pro.phone}`} size="xs">{formatPhone(pro.phone)}</Anchor>
                 ) : (
-                  <Text size="xs" c={pro.phone ? undefined : "dimmed"}>{pro.phone || "—"}</Text>
+                  <Text size="xs" c={pro.phone ? undefined : "dimmed"}>{pro.phone ? formatPhone(pro.phone) : "—"}</Text>
                 )}
               </Group>
               <Group gap={4}>

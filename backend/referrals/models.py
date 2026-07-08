@@ -6,6 +6,8 @@ import uuid
 from django.db import models
 from django.utils import timezone
 
+from common.phone import normalize_phone
+
 
 def _generate_token():
     return secrets.token_urlsafe(11)  # 15-char mixed-case URL-safe
@@ -86,6 +88,11 @@ class ProInvite(models.Model):
         null=True, blank=True, on_delete=models.SET_NULL,
         related_name="claimed_pro_invites",
     )
+
+    def save(self, *args, **kwargs):
+        if self.phone:
+            self.phone = normalize_phone(self.phone)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"ProInvite<{self.name} by {self.invited_by}>"
@@ -213,6 +220,11 @@ class ReferrerFollower(models.Model):
             ),
         ]
 
+    def save(self, *args, **kwargs):
+        if self.phone:
+            self.phone = normalize_phone(self.phone)
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"ReferrerFollower<{self.name} → {self.referrer}>"
 
@@ -315,6 +327,11 @@ class FriendInvite(models.Model):
         related_name="from_friend_invite",
     )
 
+    def save(self, *args, **kwargs):
+        if self.phone:
+            self.phone = normalize_phone(self.phone)
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"FriendInvite<{self.name} from {self.referrer}>"
 
@@ -337,6 +354,11 @@ class CircleShareInvite(models.Model):
     is_archived = models.BooleanField(default=False)
     invited_at = models.DateTimeField(auto_now_add=True)
     last_resent_at = models.DateTimeField(null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        if self.phone:
+            self.phone = normalize_phone(self.phone)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"CircleShareInvite<{self.name} from {self.referrer}>"

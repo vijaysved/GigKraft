@@ -43,6 +43,7 @@ import { GkLogo } from "../../brand/GkLogo";
 import { GoogleSignInButton } from "../../components/GoogleSignInButton";
 import { KraftCard } from "../../components/KraftCard";
 import { ReviewsSection } from "../../components/ReviewsSection";
+import { formatPhone } from "../../utils/format";
 
 const TIMELINE_OPTIONS = ["ASAP", "Within a week", "This month", "Within 3 months", "Just exploring"];
 
@@ -493,7 +494,7 @@ export function ProPublicProfilePage() {
                             </Group>
                             <Group gap={6}>
                               <IconMessage size={14} color="var(--gk-accent-primary)" />
-                              <Text size="sm">{pro.phone ?? "—"}</Text>
+                              <Text size="sm">{pro.phone ? formatPhone(pro.phone) : "—"}</Text>
                             </Group>
                           </Stack>
                         ) : (

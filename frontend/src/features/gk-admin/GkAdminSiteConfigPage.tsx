@@ -29,6 +29,7 @@ import {
 import { useEffect, useState } from "react";
 
 import { getSiteConfig, updateSiteConfig, getTemplateProfile, updateTemplateProfile, type SiteConfigData, type TemplateProfileData } from "../../api/endpoints";
+import { formatTime, formatDateTime } from "../../utils/format";
 
 // ── types ──────────────────────────────────────────────────────────────────
 
@@ -89,7 +90,7 @@ function TemplateProfileEditor({ handle, label }: { handle: string; label: strin
       const updated = await updateTemplateProfile(handle, form);
       setProfile(updated);
       setForm(updated);
-      setSavedAt(new Date().toLocaleTimeString());
+      setSavedAt(formatTime(new Date().toISOString()));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed");
     } finally {
@@ -264,7 +265,7 @@ export function GkAdminSiteConfigPage() {
         pros_signup_url_prod: updated.pros_signup_url_prod,
         extra_template_urls: updated.extra_template_urls,
       });
-      setSavedAt(new Date().toLocaleTimeString());
+      setSavedAt(formatTime(new Date().toISOString()));
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : "Save failed");
     } finally {
@@ -385,7 +386,7 @@ export function GkAdminSiteConfigPage() {
             </Text>
 
             {cfg.updated_at && (
-              <Text size="xs" c="dimmed">Last saved: {new Date(cfg.updated_at).toLocaleString()}</Text>
+              <Text size="xs" c="dimmed">Last saved: {formatDateTime(cfg.updated_at)}</Text>
             )}
 
             <Divider />

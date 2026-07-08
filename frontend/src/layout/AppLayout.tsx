@@ -9,6 +9,7 @@ import { Outlet } from "react-router-dom";
 
 import { useAuth } from "../auth/AuthContext";
 import { ThemeSelector } from "../theme/ThemeSelector";
+import { formatPhone } from "../utils/format";
 
 export function AppLayout() {
   const { user, logout } = useAuth();
@@ -22,7 +23,7 @@ export function AppLayout() {
             <ThemeSelector />
             {user && (
               <Text size="sm" c="dimmed">
-                {user.email ?? user.phone ?? `user #${user.id}`}
+                {user.email ?? (user.phone ? formatPhone(user.phone) : `user #${user.id}`)}
               </Text>
             )}
             <Button variant="light" size="xs" onClick={logout}>

@@ -52,21 +52,13 @@ import {
   saveAvatar,
   useProAvatar,
 } from "../../hooks/useProAvatar";
+import { formatPhone } from "../../utils/format";
 
 function authHeaders(): Record<string, string> {
   const token = getAccessToken();
   return token
     ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
     : { "Content-Type": "application/json" };
-}
-
-/** Auto-formats digits into (XXX) XXX-XXXX as user types */
-function formatPhone(raw: string): string {
-  const digits = raw.replace(/\D/g, "").slice(0, 10);
-  if (digits.length === 0) return "";
-  if (digits.length <= 3) return `(${digits}`;
-  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
-  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
 }
 
 function isValidEmail(v: string) {

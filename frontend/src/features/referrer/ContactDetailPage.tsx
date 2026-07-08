@@ -24,6 +24,7 @@ import {
 import type { InviteTimelineEventOut } from "./types";
 import type { UnifiedInvite } from "./components/InviteTimeline";
 import { EmailChannelIcon, htmlToPlainText, htmlToWhatsApp, nativeBtn, PhoneChannelIcons } from "./components/inviteShared";
+import { formatDate as fmtDate, formatDateTime as fmtDateTime } from "../../utils/format";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -44,16 +45,6 @@ const EVENT_META: Record<string, { label: string; color: string }> = {
 
 const SCENARIO_LABELS: Record<string, string> = { pro: "Pro", friend: "Friend", circle: "Circle" };
 const SCENARIO_COLORS: Record<string, string>  = { pro: "blue", friend: "orange", circle: "grape" };
-
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" });
-}
-
-function fmtDateTime(iso: string) {
-  const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
 
 function secondsSince(iso: string | null): number {
   if (!iso) return Infinity;

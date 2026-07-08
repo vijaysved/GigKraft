@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { getInviteContactTimeline } from "../../../api/endpoints";
 import type { InviteTimelineEventOut } from "../types";
 import type { UnifiedInvite } from "./InviteTimeline";
+import { formatDateTime as fmtDateTime } from "../../../utils/format";
 
 const SCENARIO_LABELS: Record<UnifiedInvite["scenario"], string> = {
   pro: "Pro",
@@ -19,12 +20,6 @@ const EVENT_META: Record<InviteTimelineEventOut["event_type"], { label: string; 
   clicked: { label: "Link Clicked", color: "var(--mantine-color-indigo-5)" },
   joined: { label: "Joined", color: "var(--mantine-color-green-6)" },
 };
-
-function fmtDateTime(iso: string) {
-  return new Date(iso).toLocaleString("en-US", {
-    month: "short", day: "numeric", year: "2-digit", hour: "2-digit", minute: "2-digit",
-  });
-}
 
 function DotCol({ color, isLast }: { color: string; isLast: boolean }) {
   return (

@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 
 import { getReferrerFollowers } from "../../../api/endpoints";
 import type { FollowerOut } from "../types";
+import { formatDate, formatPhone } from "../../../utils/format";
 
 export function FollowersTab() {
   const [followers, setFollowers] = useState<FollowerOut[]>([]);
@@ -54,9 +55,9 @@ export function FollowersTab() {
               <Avatar size={40} radius="xl" color="teal">{f.name[0]?.toUpperCase()}</Avatar>
               <Stack gap={2} style={{ flex: 1 }}>
                 <Text fw={600} size="sm">{f.name}</Text>
-                <Text size="xs" c="dimmed">{f.phone || f.email}</Text>
+                <Text size="xs" c="dimmed">{f.phone ? formatPhone(f.phone) : f.email}</Text>
                 <Text size="xs" c="dimmed">
-                  Followed {new Date(f.followed_at).toLocaleDateString()} ·{" "}
+                  Followed {formatDate(f.followed_at)} ·{" "}
                   {f.referrals_received} referral{f.referrals_received !== 1 ? "s" : ""} received
                 </Text>
               </Stack>

@@ -72,13 +72,20 @@ def handle_example_click(token: str) -> HttpResponseRedirect:
 
     now = timezone.now()
     uid = _parse_token(token)
+    redirect_url = GK_EXAMPLE_URL
 
     if uid:
-        log = OutreachLog.objects.filter(link_click_token=uid).first()
+        log = OutreachLog.objects.select_related("prospect").filter(link_click_token=uid).first()
         if log:
             if not log.example_clicked_at:
                 log.example_clicked_at = now
                 log.save(update_fields=["example_clicked_at"])
             OutreachEvent.objects.create(log=log, event_type="profile_view", occurred_at=now)
+            # Pass the prospect through so the destination page's view-tracking
+            # (ProPublicProfilePage -> trackProPageView) can attribute this visit
+            # instead of relying on the browser referrer, which WhatsApp/email
+            # clients typically don't send.
+            if log.prospect_id:
+                redirect_url = f"{GK_EXAMPLE_URL}?ref={log.prospect.prospect_id}"
 
-    return HttpResponseRedirect(GK_EXAMPLE_URL)
+    return HttpResponseRedirect(redirect_url)

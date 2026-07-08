@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 
 import { getReferrerActivity } from "../../../api/endpoints";
 import type { ReferralSentSummaryOut } from "../types";
+import { formatDate } from "../../../utils/format";
 
 export function ActivityTab() {
   const [items, setItems] = useState<ReferralSentSummaryOut[]>([]);
@@ -56,7 +57,7 @@ export function ActivityTab() {
                 <Text size="sm" fw={500}>
                   {s.follower_name} → {s.pro_name || "general"}
                 </Text>
-                <Text size="xs" c="dimmed">{new Date(s.sent_at).toLocaleDateString()}</Text>
+                <Text size="xs" c="dimmed">{formatDate(s.sent_at)}</Text>
               </Stack>
             </Group>
           ))}

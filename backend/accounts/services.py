@@ -8,6 +8,7 @@ from django.conf import settings
 from django.db import transaction
 
 from accounts.models import HomeownerProfile, ProProfile, User
+from common.phone import normalize_phone
 
 
 class AuthProviderUnavailable(Exception):
@@ -69,6 +70,7 @@ def ensure_role_profile(user):
 
 @transaction.atomic
 def get_or_create_phone_user(phone, role):
+    phone = normalize_phone(phone)
     user, created = User.objects.get_or_create(
         phone=phone, defaults={"role": role}
     )

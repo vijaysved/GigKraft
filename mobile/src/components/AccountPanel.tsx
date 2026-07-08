@@ -14,6 +14,7 @@ import { GkButton } from './GkButton';
 import { GkCard } from './GkCard';
 import { GkSelect } from './GkSelect';
 import { PhoneScaffold } from './PhoneScaffold';
+import { formatPhone } from '../utils/format';
 
 export function AccountPanel({ children }: { children?: React.ReactNode }) {
   const { scheme, themeName, setTheme } = useTheme();
@@ -31,7 +32,7 @@ export function AccountPanel({ children }: { children?: React.ReactNode }) {
         <View style={styles.profileText}>
           <Text style={[styles.name, { color: scheme.text }]}>{fullName}</Text>
           <Text style={[styles.meta, { color: scheme.text3 }]}>
-            {user?.email ?? user?.phone ?? ''}
+            {user?.email ?? (user?.phone ? formatPhone(user.phone) : '')}
           </Text>
           {role ? <GkBadge label={role} tone="blue" /> : null}
         </View>

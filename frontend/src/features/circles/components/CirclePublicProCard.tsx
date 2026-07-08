@@ -23,6 +23,7 @@ import { useState } from "react";
 import type { CircleProOut } from "../types";
 import { RequestIntroModal } from "./RequestIntroModal";
 import { RequestProModal } from "./RequestProModal";
+import { formatPhone } from "../../../utils/format";
 
 interface Props {
   cp: CircleProOut;
@@ -127,7 +128,7 @@ export function CirclePublicProCard({ cp, slug, curatorName }: Props) {
               <Stack gap={1} mt={2}>
                 <Group gap={4}>
                   <IconPhone size={11} color="var(--gk-accent-primary)" />
-                  <Text size="xs" c={cp.phone ? undefined : "dimmed"}>{cp.phone ?? "—"}</Text>
+                  <Text size="xs" c={cp.phone ? undefined : "dimmed"}>{cp.phone ? formatPhone(cp.phone) : "—"}</Text>
                 </Group>
                 <Group gap={4}>
                   <IconMail size={11} color="var(--gk-accent-primary)" />

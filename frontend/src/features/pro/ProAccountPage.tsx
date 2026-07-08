@@ -77,6 +77,7 @@ import {
   useProAvatar,
 } from "../../hooks/useProAvatar";
 import { isValidHandle, sanitizeHandle, useProHandle } from "../../hooks/useProHandle";
+import { formatPhone } from "../../utils/format";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const TRADES = ["Plumber", "Electrician", "HVAC", "Carpenter", "Painter", "Roofer", "General contractor", "Other"];
@@ -101,14 +102,6 @@ const WALLPAPERS: { id: number; label: string; gradient: string }[] = [
 ];
 
 const PHOTO_MAX_MB = 5;
-
-function formatPhone(raw: string): string {
-  const digits = raw.replace(/\D/g, "").slice(0, 10);
-  if (digits.length === 0) return "";
-  if (digits.length <= 3) return `(${digits}`;
-  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
-  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
-}
 
 function isValidPhone(v: string) {
   return v.replace(/\D/g, "").length === 10;
@@ -623,7 +616,7 @@ export function ProAccountPage() {
           </Avatar>
           <Stack gap={2}>
             <Text fw={700} size="lg">{displayName}</Text>
-            <Text size="sm" c="dimmed">{user?.email ?? user?.phone ?? "—"}</Text>
+            <Text size="sm" c="dimmed">{user?.email ?? (user?.phone ? formatPhone(user.phone) : "—")}</Text>
             <Badge size="sm" variant="light">Pro</Badge>
           </Stack>
         </Group>
@@ -864,7 +857,7 @@ export function ProAccountPage() {
                             </Group>
                             <Group gap={6}>
                               <IconMessage size={14} color="var(--gk-accent-primary)" />
-                              <Text size="sm">{contactPhone || user?.phone || "—"}</Text>
+                              <Text size="sm">{contactPhone || (user?.phone ? formatPhone(user.phone) : "—")}</Text>
                             </Group>
                           </Stack>
                         )}

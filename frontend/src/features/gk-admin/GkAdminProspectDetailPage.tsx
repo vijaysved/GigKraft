@@ -33,6 +33,7 @@ import type {
   OutreachLog,
   Prospect,
 } from "../../api/endpoints";
+import { formatPhone, formatDate, formatDateTime } from "../../utils/format";
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -56,23 +57,10 @@ const SOURCE_COLORS: Record<string, string> = {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fmtDate(iso: string | null) {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  return iso ? formatDate(iso) : "—";
 }
 
-function fmtDateTime(iso: string) {
-  return new Date(iso).toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
+const fmtDateTime = formatDateTime;
 
 function renderTemplate(body: string, p: Prospect): string {
   return body
@@ -252,13 +240,7 @@ function NoteInputRow({
     setSaving(false);
   };
 
-  const now = new Date().toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const now = formatDateTime(new Date().toISOString());
 
   return (
     <Box style={{ display: "flex", gap: 0, alignItems: "flex-start" }}>
@@ -617,7 +599,7 @@ export function GkAdminProspectDetailPage() {
               </Badge>
               {infoParts && <Text size="xs" c="dimmed">{infoParts}</Text>}
               {prospect.email && <Text size="xs">{prospect.email}</Text>}
-              {prospect.phone && <Text size="xs" c="dimmed">{prospect.phone}</Text>}
+              {prospect.phone && <Text size="xs" c="dimmed">{formatPhone(prospect.phone)}</Text>}
             </Group>
             <Group gap="md" wrap="wrap">
               <Text size="xs" c="dimmed">Added {fmtDate(prospect.created_at)}</Text>

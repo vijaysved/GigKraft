@@ -38,10 +38,7 @@ import {
   type ProspectAnalytics,
 } from "../../api/endpoints";
 import { GkStatTile } from "../../components/GkStatTile";
-
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
-}
+import { formatDateTime as fmtDate } from "../../utils/format";
 
 const STATUS_COLORS: Record<string, string> = {
   prospect: "blue",

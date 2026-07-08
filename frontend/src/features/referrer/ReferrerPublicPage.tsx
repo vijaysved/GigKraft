@@ -41,6 +41,7 @@ import { AddProModal } from "./components/AddProModal";
 import { FollowModal } from "./components/FollowModal";
 import { ReferrerProCard } from "./components/ReferrerProCard";
 import { RequestReferralModal } from "./components/RequestReferralModal";
+import { formatPhone } from "../../utils/format";
 
 const GK_LOGO_URL = "https://gigkraft.com/brand/gigKraftLogo.png";
 
@@ -341,7 +342,7 @@ export function ReferrerPublicPage() {
     ];
     if (page!.bio) lines.push(`_"${page!.bio}"_`);
     lines.push("");
-    if (isOwner && page!.phone) lines.push(`📞 ${page!.phone}`);
+    if (isOwner && page!.phone) lines.push(`📞 ${formatPhone(page!.phone)}`);
     if (isOwner && page!.email) lines.push(`✉️ ${page!.email}`);
     lines.push(
       `👥 ${page!.follower_count} follower${page!.follower_count !== 1 ? "s" : ""}`,
@@ -490,7 +491,7 @@ export function ReferrerPublicPage() {
               <Stack gap={4} w="100%">
                 <Group gap={6}>
                   <IconPhone size={12} style={iconColor} />
-                  <Text size="xs">{page.phone || "—"}</Text>
+                  <Text size="xs">{page.phone ? formatPhone(page.phone) : "—"}</Text>
                 </Group>
                 <Group gap={6}>
                   <IconMail size={12} style={iconColor} />
