@@ -3,7 +3,6 @@ import {
   Alert,
   Badge,
   Box,
-  Button,
   Card,
   Checkbox,
   Chip,
@@ -12,7 +11,9 @@ import {
   Group,
   Loader,
   Modal,
+  Pagination,
   Popover,
+  SegmentedControl,
   Select,
   SimpleGrid,
   Stack,
@@ -694,16 +695,16 @@ function ChatStepModal({
             <Text size="sm" fw={600}>{formatPhone(prospect.phone)}</Text>
             <CopyButton value={formatPhone(prospect.phone)} timeout={2000}>
               {({ copied, copy }) => (
-                <Button
-                  size="xs"
-                  radius="xl"
-                  variant="light"
-                  color={copied ? "green" : "gray"}
-                  leftSection={copied ? <IconCheck size={12} /> : <IconCopy size={12} />}
+                <button
+                  type="button"
+                  style={nativeBtn({ small: true, color: copied ? "var(--mantine-color-green-6)" : "var(--gk-accent-secondary)" })}
                   onClick={copy}
                 >
-                  {copied ? "Copied!" : "Copy"}
-                </Button>
+                  <Group gap={4} wrap="nowrap" justify="center">
+                    {copied ? <IconCheck size={12} /> : <IconCopy size={12} />}
+                    {copied ? "Copied!" : "Copy"}
+                  </Group>
+                </button>
               )}
             </CopyButton>
           </Group>
@@ -1083,26 +1084,27 @@ function BulkUploadPanel({
                           {isDup && (
                             <Group gap={4} wrap="nowrap">
                               <Tooltip label={isForced ? "Cancel override" : "Add anyway with new source"} withArrow>
-                                <Button
-                                  size="compact-xs"
-                                  variant={isForced ? "light" : "subtle"}
-                                  color={isForced ? "teal" : "gray"}
+                                <button
+                                  type="button"
+                                  style={nativeBtn({ small: true, color: isForced ? "var(--mantine-color-teal-6)" : "var(--gk-accent-secondary)" })}
                                   onClick={() => toggleForce(i)}
                                 >
                                   {isForced ? "Undo" : "Add anyway"}
-                                </Button>
+                                </button>
                               </Tooltip>
                               {existingId && (
                                 <Tooltip label="Delete existing record so this adds fresh" withArrow>
-                                  <Button
-                                    size="compact-xs"
-                                    variant="subtle"
-                                    color="red"
-                                    loading={deletingId === existingId}
+                                  <button
+                                    type="button"
+                                    style={nativeBtn({ small: true, disabled: deletingId === existingId, color: "var(--mantine-color-red-6)" })}
+                                    disabled={deletingId === existingId}
                                     onClick={() => handleDeleteExisting(existingId, i)}
                                   >
-                                    Delete existing
-                                  </Button>
+                                    <Group gap={4} wrap="nowrap" justify="center">
+                                      {deletingId === existingId && <Loader size={10} />}
+                                      Delete existing
+                                    </Group>
+                                  </button>
                                 </Tooltip>
                               )}
                             </Group>
@@ -1151,29 +1153,35 @@ function BulkUploadPanel({
       />
       {error && <Alert color="red">{error}</Alert>}
       <Group justify="flex-end">
-        <Button variant="default" onClick={onClose}>Cancel</Button>
+        <button type="button" style={nativeBtn({ small: true })} onClick={onClose}>Cancel</button>
         {!preview ? (
-          <Button
+          <button
+            type="button"
+            style={nativeBtn({ primary: true, small: true, disabled: parsed.length === 0 || checking })}
+            disabled={parsed.length === 0 || checking}
             onClick={handleCheck}
-            loading={checking}
-            disabled={parsed.length === 0}
-            style={parsed.length > 0 ? { background: "var(--gk-accent-primary)", color: "#000" } : undefined}
           >
-            {parsed.length > 0
-              ? `Check ${parsed.length} Prospect${parsed.length !== 1 ? "s" : ""}`
-              : "Check Prospects"}
-          </Button>
+            <Group gap={4} wrap="nowrap" justify="center">
+              {checking && <Loader size={12} color="#fff" />}
+              {parsed.length > 0
+                ? `Check ${parsed.length} Prospect${parsed.length !== 1 ? "s" : ""}`
+                : "Check Prospects"}
+            </Group>
+          </button>
         ) : (
-          <Button
+          <button
+            type="button"
+            style={nativeBtn({ primary: true, small: true, disabled: addCount === 0 || saving })}
+            disabled={addCount === 0 || saving}
             onClick={handleSaveAll}
-            loading={saving}
-            disabled={addCount === 0}
-            style={addCount > 0 ? { background: "var(--gk-accent-primary)", color: "#000" } : undefined}
           >
-            {addCount > 0
-              ? `Add ${addCount} Prospect${addCount !== 1 ? "s" : ""}`
-              : "No Prospects to Add"}
-          </Button>
+            <Group gap={4} wrap="nowrap" justify="center">
+              {saving && <Loader size={12} color="#fff" />}
+              {addCount > 0
+                ? `Add ${addCount} Prospect${addCount !== 1 ? "s" : ""}`
+                : "No Prospects to Add"}
+            </Group>
+          </button>
         )}
       </Group>
     </Stack>
@@ -1266,15 +1274,18 @@ function ProspectDrawer({
       <Textarea label="Notes" value={form.notes ?? ""} onChange={(e) => f("notes")(e.target.value)} minRows={3} />
       {error && <Alert color="red">{error}</Alert>}
       <Group justify="flex-end">
-        <Button radius="xl" variant="default" onClick={onClose}>Cancel</Button>
-        <Button
-          radius="xl"
+        <button type="button" style={nativeBtn({ small: true })} onClick={onClose}>Cancel</button>
+        <button
+          type="button"
+          style={nativeBtn({ primary: true, small: true, disabled: saving })}
+          disabled={saving}
           onClick={handleSave}
-          loading={saving}
-          style={{ background: "var(--gk-accent-primary)", color: "#000" }}
         >
-          Save
-        </Button>
+          <Group gap={4} wrap="nowrap" justify="center">
+            {saving && <Loader size={12} color="#fff" />}
+            Save
+          </Group>
+        </button>
       </Group>
     </Stack>
   );
@@ -1308,14 +1319,15 @@ function ProspectDrawer({
                 styles={{ input: { fontFamily: "monospace", fontSize: 13 } }}
               />
               <Group justify="flex-end">
-                <Button variant="default" onClick={onClose}>Cancel</Button>
-                <Button
-                  onClick={handleParse}
+                <button type="button" style={nativeBtn({ small: true })} onClick={onClose}>Cancel</button>
+                <button
+                  type="button"
+                  style={nativeBtn({ primary: true, small: true, disabled: !rawText.trim() })}
                   disabled={!rawText.trim()}
-                  style={{ background: "var(--gk-accent-primary)", color: "#000" }}
+                  onClick={handleParse}
                 >
                   Next →
-                </Button>
+                </button>
               </Group>
             </Stack>
           </Tabs.Panel>
@@ -1403,6 +1415,9 @@ function ProspectsTab() {
   const [emailTemplates, setEmailTemplates] = useState<MessageTemplate[]>([]);
   const [stepFilters, setStepFilters] = useState<string[]>([]);
   const [channelFilters, setChannelFilters] = useState<string[]>([]);
+  const [dateRange, setDateRange] = useState<"today" | "7d" | "all">("all");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 25;
 
   const { sorted, sortBy, sortDir, toggle } = useSort(prospects, "created_at", "desc");
 
@@ -1421,8 +1436,28 @@ function ProspectsTab() {
         ),
       );
     }
+    if (dateRange !== "all") {
+      const cutoff = new Date();
+      if (dateRange === "today") cutoff.setHours(0, 0, 0, 0);
+      else cutoff.setDate(cutoff.getDate() - 7);
+      result = result.filter((p) => new Date(p.created_at) >= cutoff);
+    }
     return result;
-  }, [sorted, statusFilter, stepFilters, channelFilters]);
+  }, [sorted, statusFilter, stepFilters, channelFilters, dateRange]);
+
+  const totalPages = Math.max(1, Math.ceil(displayed.length / PAGE_SIZE));
+  const pageItems = useMemo(
+    () => displayed.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [displayed, page],
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter, sourceFilter, stepFilters, channelFilters, dateRange, debouncedSearch]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
 
   const stepCounts = useMemo(() => ({
     "0": sorted.filter((p) => p.current_sequence_step === 0).length,
@@ -1520,8 +1555,8 @@ function ProspectsTab() {
   const openEdit = (p: Prospect) => { setEditing(p); openDrawer(); };
   const openAdd = () => { setEditing(null); openDrawer(); };
 
-  const allSelected = displayed.length > 0 && displayed.every((p) => selectedIds.has(p.id));
-  const someSelected = !allSelected && displayed.some((p) => selectedIds.has(p.id));
+  const allSelected = pageItems.length > 0 && pageItems.every((p) => selectedIds.has(p.id));
+  const someSelected = !allSelected && pageItems.some((p) => selectedIds.has(p.id));
 
   const handleToggleSelect = (id: number) =>
     setSelectedIds((prev) => {
@@ -1531,7 +1566,12 @@ function ProspectsTab() {
     });
 
   const handleToggleAll = () =>
-    setSelectedIds(allSelected ? new Set() : new Set(displayed.map((p) => p.id)));
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allSelected) { pageItems.forEach((p) => next.delete(p.id)); }
+      else { pageItems.forEach((p) => next.add(p.id)); }
+      return next;
+    });
 
   const handleBulkAdvance = async () => {
     setBulkLoading(true);
@@ -1591,14 +1631,22 @@ function ProspectsTab() {
             clearable
             w={160}
           />
-          <Button
-            leftSection={<IconPlus size={14} />}
-            onClick={openAdd}
-            radius="xl"
-            style={{ background: "var(--gk-accent-primary)", color: "#000" }}
-          >
-            Add Prospect
-          </Button>
+          <SegmentedControl
+            size="xs"
+            value={dateRange}
+            onChange={(v) => setDateRange(v as "today" | "7d" | "all")}
+            data={[
+              { label: "Today", value: "today" },
+              { label: "7 days", value: "7d" },
+              { label: "All", value: "all" },
+            ]}
+          />
+          <button type="button" style={nativeBtn({ primary: true, small: true })} onClick={openAdd}>
+            <Group gap={4} wrap="nowrap" justify="center">
+              <IconPlus size={13} />
+              Add Prospect
+            </Group>
+          </button>
         </Group>
 
         <Group gap="xs" align="center">
@@ -1634,19 +1682,24 @@ function ProspectsTab() {
             }}
           >
             <Text size="sm" fw={500}>{selectedIds.size} selected</Text>
-            <Button
-              size="xs"
-              radius="xl"
-              color="teal"
-              leftSection={<IconBrandWhatsapp size={12} />}
-              loading={bulkLoading}
+            <button
+              type="button"
+              style={nativeBtn({ primary: true, small: true, disabled: bulkLoading, color: "var(--mantine-color-teal-6)" })}
+              disabled={bulkLoading}
               onClick={handleBulkAdvance}
             >
-              Mark WhatsApp Sent
-            </Button>
-            <Button size="xs" radius="xl" variant="subtle" color="gray" onClick={() => setSelectedIds(new Set())}>
+              <Group gap={4} wrap="nowrap" justify="center">
+                {bulkLoading ? <Loader size={12} color="#fff" /> : <IconBrandWhatsapp size={12} />}
+                Mark WhatsApp Sent
+              </Group>
+            </button>
+            <button
+              type="button"
+              style={nativeBtn({ small: true, color: "var(--mantine-color-gray-6)" })}
+              onClick={() => setSelectedIds(new Set())}
+            >
               Clear
-            </Button>
+            </button>
           </Group>
         )}
 
@@ -1680,7 +1733,7 @@ function ProspectsTab() {
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
-                {displayed.map((p) => {
+                {pageItems.map((p) => {
                   const isActionLoading = actionLoading === p.id;
                   const isDeleting = deleting === p.id;
                   const ns = p.current_sequence_step === 0 ? 1 : Math.min(p.current_sequence_step + 1, 3);
@@ -1932,6 +1985,15 @@ function ProspectsTab() {
             </Table>
           </TableBox>
         )}
+
+        {displayed.length > PAGE_SIZE && (
+          <Group justify="space-between">
+            <Text size="xs" c="dimmed">
+              {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, displayed.length)} of {displayed.length}
+            </Text>
+            <Pagination value={page} onChange={setPage} total={totalPages} size="sm" />
+          </Group>
+        )}
       </Stack>
     </>
   );
@@ -2058,14 +2120,18 @@ function TemplatesTab() {
           </Box>
           {saveError && <Alert color="red">{saveError}</Alert>}
           <Group justify="flex-end">
-            <Button variant="default" onClick={closeDrawer}>Cancel</Button>
-            <Button
+            <button type="button" style={nativeBtn({ small: true })} onClick={closeDrawer}>Cancel</button>
+            <button
+              type="button"
+              style={nativeBtn({ primary: true, small: true, disabled: saving })}
+              disabled={saving}
               onClick={handleSave}
-              loading={saving}
-              style={{ background: "var(--gk-accent-primary)", color: "#000" }}
             >
-              Save Changes
-            </Button>
+              <Group gap={4} wrap="nowrap" justify="center">
+                {saving && <Loader size={12} color="#fff" />}
+                Save Changes
+              </Group>
+            </button>
           </Group>
         </Stack>
       </Drawer>
@@ -2075,9 +2141,17 @@ function TemplatesTab() {
           <Alert color="yellow" title="Default Templates Missing">
             <Stack gap="xs">
               <Text size="sm">Set up the 6 default outreach templates (email + WhatsApp for each of the 3 steps).</Text>
-              <Button size="xs" onClick={seedDefaults} loading={seeding} w="fit-content">
-                Seed Defaults
-              </Button>
+              <button
+                type="button"
+                style={{ ...nativeBtn({ primary: true, small: true, disabled: seeding }), width: "fit-content" }}
+                disabled={seeding}
+                onClick={seedDefaults}
+              >
+                <Group gap={4} wrap="nowrap" justify="center">
+                  {seeding && <Loader size={12} color="#fff" />}
+                  Seed Defaults
+                </Group>
+              </button>
             </Stack>
           </Alert>
         )}

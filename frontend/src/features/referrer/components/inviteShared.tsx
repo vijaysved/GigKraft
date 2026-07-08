@@ -113,12 +113,12 @@ export function ChannelPicker({
 // Solid accent-primary fill for the primary action, outlined accent-primary
 // for everything else — shared here so every invite popup matches /account.
 
-export function nativeBtn(opts: { primary?: boolean; small?: boolean; disabled?: boolean } = {}): React.CSSProperties {
-  const { primary = false, small = false, disabled = false } = opts;
+export function nativeBtn(opts: { primary?: boolean; small?: boolean; disabled?: boolean; color?: string } = {}): React.CSSProperties {
+  const { primary = false, small = false, disabled = false, color = "var(--gk-accent-primary)" } = opts;
   return {
-    background: disabled ? "var(--gk-border)" : primary ? "var(--gk-accent-primary)" : "transparent",
-    color: primary ? "#fff" : "var(--gk-accent-primary)",
-    border: primary ? "none" : "1.5px solid var(--gk-accent-primary)",
+    background: disabled ? "var(--gk-border)" : primary ? color : "transparent",
+    color: primary ? "#fff" : color,
+    border: primary ? "none" : `1.5px solid ${color}`,
     borderRadius: 99,
     padding: small ? "3px 12px" : "6px 20px",
     fontSize: small ? 11 : 13,
@@ -131,7 +131,7 @@ export function nativeBtn(opts: { primary?: boolean; small?: boolean; disabled?:
     opacity: disabled ? 0.6 : 1,
     boxShadow: disabled || !primary
       ? "0 1px 3px rgba(0,0,0,0.06)"
-      : "0 3px 10px -2px var(--gk-accent-primary), inset 0 1px 0 rgba(255,255,255,0.18)",
+      : `0 3px 10px -2px ${color}, inset 0 1px 0 rgba(255,255,255,0.18)`,
     transition: "all 0.15s ease",
   };
 }
