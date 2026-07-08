@@ -1,6 +1,5 @@
 import os
 import uuid
-import urllib.parse
 
 from django.db import models
 
@@ -40,6 +39,7 @@ class Prospect(models.Model):
     last_contacted_at = models.DateTimeField(null=True, blank=True)
     signup_link_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     link_clicked_at = models.DateTimeField(null=True, blank=True)
+    signup_link_click_count = models.PositiveIntegerField(default=0)
     converted_user = models.ForeignKey(
         "accounts.User",
         null=True,
@@ -99,16 +99,14 @@ class Prospect(models.Model):
         }
 
     @property
-    def whatsapp_link(self) -> str:
-        if not self.phone:
-            return ""
-        digits = "".join(c for c in self.phone if c.isdigit() or c == "+")
-        msg = urllib.parse.quote(
-            "Hi! I'm reaching out from GigKraft — a platform that connects skilled "
-            "professionals with local homeowners. I came across your work and think "
-            "you'd be a great fit. Would you be open to a quick chat?"
-        )
-        return f"https://wa.me/{digits}?text={msg}"
+    def tracked_signup_url(self) -> str:
+        base_url = os.environ.get("BACKEND_URL", "https://gigkraft.com")
+        return f"{base_url}/api/prospects/track/{self.signup_link_token}"
+
+    @property
+    def tracked_example_url(self) -> str:
+        base_url = os.environ.get("BACKEND_URL", "https://gigkraft.com")
+        return f"{base_url}/api/prospects/track-example/{self.signup_link_token}"
 
 
 class ProPageView(models.Model):

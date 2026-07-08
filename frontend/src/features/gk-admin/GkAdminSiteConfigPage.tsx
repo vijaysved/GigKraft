@@ -238,6 +238,8 @@ export function GkAdminSiteConfigPage() {
         template_pro_url_prod: data.template_pro_url_prod,
         template_member_url_local: data.template_member_url_local,
         template_member_url_prod: data.template_member_url_prod,
+        pros_signup_url_local: data.pros_signup_url_local,
+        pros_signup_url_prod: data.pros_signup_url_prod,
         extra_template_urls: data.extra_template_urls,
       });
     } catch {
@@ -258,6 +260,8 @@ export function GkAdminSiteConfigPage() {
         template_pro_url_prod: updated.template_pro_url_prod,
         template_member_url_local: updated.template_member_url_local,
         template_member_url_prod: updated.template_member_url_prod,
+        pros_signup_url_local: updated.pros_signup_url_local,
+        pros_signup_url_prod: updated.pros_signup_url_prod,
         extra_template_urls: updated.extra_template_urls,
       });
       setSavedAt(new Date().toLocaleTimeString());
@@ -314,6 +318,51 @@ export function GkAdminSiteConfigPage() {
         <TemplateProfileEditor handle="template-member" label="Member Demo Profile" />
 
         <Divider my="xs" />
+
+        {/* Pros signup URL */}
+        <Card withBorder radius="md" padding="md">
+          <Stack gap="md">
+            <Title order={6}>Pros Signup Page URL</Title>
+
+            <Text size="xs" c="dimmed">
+              Where tracked outreach links (WhatsApp, SMS, email) sent to prospects redirect to.
+              Every prospect's message uses a unique tracked link that logs a click, then forwards
+              here.
+            </Text>
+
+            <Group align="flex-end" gap="xs">
+              <TextInput
+                label="Local / dev URL"
+                description="Used when running the backend locally (DEBUG=true)"
+                placeholder="http://localhost:5173/for-pros"
+                value={form.pros_signup_url_local}
+                onChange={(e) => {
+                  const v = e.currentTarget.value;
+                  setForm((f) => f ? { ...f, pros_signup_url_local: v } : f);
+                }}
+                style={{ flex: 1 }}
+                styles={{ input: { fontFamily: "var(--mantine-font-family-monospace)", fontSize: 13 } }}
+              />
+              <OpenLink url={form.pros_signup_url_local} />
+            </Group>
+
+            <Group align="flex-end" gap="xs">
+              <TextInput
+                label="Production URL"
+                description="Used on the live site (gigkraft.com)"
+                placeholder="https://www.gigkraft.com/for-pros"
+                value={form.pros_signup_url_prod}
+                onChange={(e) => {
+                  const v = e.currentTarget.value;
+                  setForm((f) => f ? { ...f, pros_signup_url_prod: v } : f);
+                }}
+                style={{ flex: 1 }}
+                styles={{ input: { fontFamily: "var(--mantine-font-family-monospace)", fontSize: 13 } }}
+              />
+              <OpenLink url={form.pros_signup_url_prod} />
+            </Group>
+          </Stack>
+        </Card>
 
         {/* Template pro URLs */}
         <Card withBorder radius="md" padding="md">

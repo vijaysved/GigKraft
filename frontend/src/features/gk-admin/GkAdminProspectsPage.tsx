@@ -138,16 +138,12 @@ const SOURCE_OPTIONS = [
 
 const CHAT_TEMPLATES: Record<number, (p: Prospect) => string> = {
   1: (p) =>
-    `Hi ${p.name}! Noticed your excellent work on ${p.source}. I'm Vijay, admin for *gigKraft.com*—a local trust network for pros in ${p.primary_zip}. We build sovereign digital portfolios for independent contractors. No lead fees or hidden cuts—just your own verified link to show clients. It's *$24.99/mo* or *$249.99/yr* flat.\n\nIf you'd like to reserve your profile link, check it out here: ${buildSignupUrl()}`,
+    `Hi ${p.name}! Noticed your excellent work on ${p.source}. I'm Vijay, admin for *gigKraft.com*—a local trust network for pros in ${p.primary_zip}. We build sovereign digital portfolios for independent contractors. No lead fees or hidden cuts—just your own verified link to show clients. It's *$24.99/mo* or *$249.99/yr* flat.\n\nSee a live example profile here: ${p.tracked_example_url}\n\nIf you'd like to reserve your profile link, check it out here: ${p.tracked_signup_url}`,
   2: (p) =>
-    `Hey ${p.name}, just following up! Local pros are loving *gigKraft.com* because they fully own their reviews and portfolio link, bypassing unpredictable platform algorithms. Great for dropping directly into your WhatsApp groups or Nextdoor replies.\n\nSet up your verified local profile in 2 mins: ${buildSignupUrl()}`,
+    `Hey ${p.name}, just following up! Local pros are loving *gigKraft.com* because they fully own their reviews and portfolio link, bypassing unpredictable platform algorithms. Great for dropping directly into your WhatsApp groups or Nextdoor replies.\n\nHere's an example of what your profile could look like: ${p.tracked_example_url}\n\nSet up your verified local profile in 2 mins: ${p.tracked_signup_url}`,
   3: (p) =>
-    `Hi ${p.name}, closing out your pending invite for now so I don't bug you. If you ever want to stand out to nearby homeowners with a clean profile for *$24.99/mo*, you can unlock it anytime here: ${buildSignupUrl()}. Wish you all the best!`,
+    `Hi ${p.name}, closing out your pending invite for now so I don't bug you. If you ever want to stand out to nearby homeowners with a clean profile for *$24.99/mo*, here's an example profile: ${p.tracked_example_url}\n\nYou can unlock it anytime here: ${p.tracked_signup_url}. Wish you all the best!`,
 };
-
-function buildSignupUrl(): string {
-  return "https://www.gigkraft.com/for-pros";
-}
 
 function buildWaUrl(phone: string, text?: string | null): string {
   const digits = phone.replace(/\D/g, "");
@@ -162,7 +158,8 @@ function renderTemplate(body: string, p: Prospect): string {
     .replace(/\{\{source\}\}/g, p.source)
     .replace(/\{\{neighborhood\}\}/g, p.neighborhood || p.primary_zip || "")
     .replace(/\{\{primaryZip\}\}/g, p.primary_zip || "")
-    .replace(/\{\{signup_link\}\}/g, buildSignupUrl())
+    .replace(/\{\{signup_link\}\}/g, p.tracked_signup_url)
+    .replace(/\{\{example_link\}\}/g, p.tracked_example_url)
     .replace(/\{\{contact_person\}\}/g, "Vijay")
     .replace(/\{\{business_name\}\}/g, "GigKraft")
     .replace(/\{\{prospect_id\}\}/g, p.prospect_id);
@@ -176,7 +173,7 @@ const DEFAULT_TEMPLATES: TemplateIn[] = [
     channel: "email",
     kind: "sequence_1",
     subject: "Your GigKraft Profile Invite — {{name}}",
-    body: "Hi {{name}},\n\nI came across your work on {{source}} and wanted to personally invite you to check out GigKraft.com — a local trust network for pros in {{neighborhood}}.\n\nWe help independent contractors build sovereign digital portfolios. No lead fees, no hidden cuts — just your own verified profile link for a flat $24.99/mo or $249.99/yr.\n\nCheck it out here: {{signup_link}}\n\nAny questions? Just reply to this email or reach out to Vijay directly.\n\nBest,\nVijay\ngigKraft.com",
+    body: "Hi {{name}},\n\nI came across your work on {{source}} and wanted to personally invite you to check out GigKraft.com — a local trust network for pros in {{neighborhood}}.\n\nWe help independent contractors build sovereign digital portfolios. No lead fees, no hidden cuts — just your own verified profile link for a flat $24.99/mo or $249.99/yr.\n\nSee a live example profile here: {{example_link}}\n\nCheck it out here: {{signup_link}}\n\nAny questions? Just reply to this email or reach out to Vijay directly.\n\nBest,\nVijay\ngigKraft.com",
     is_default: true,
   },
   {
@@ -184,7 +181,7 @@ const DEFAULT_TEMPLATES: TemplateIn[] = [
     channel: "email",
     kind: "sequence_2",
     subject: "GigKraft Pricing Breakdown — {{name}}",
-    body: "Hi {{name}},\n\nFollowing up on your GigKraft invite! Here's a quick pricing breakdown:\n\n• $24.99/month — cancel anytime\n• $249.99/year — save ~17%\n• Your own verified profile link you fully own\n• No platform fees or lead cuts\n• Reviews you control\n\nSet up your profile in minutes: {{signup_link}}\n\nBest,\nVijay\ngigKraft.com",
+    body: "Hi {{name}},\n\nFollowing up on your GigKraft invite! Here's a quick pricing breakdown:\n\n• $24.99/month — cancel anytime\n• $249.99/year — save ~17%\n• Your own verified profile link you fully own\n• No platform fees or lead cuts\n• Reviews you control\n\nHere's an example of what your profile could look like: {{example_link}}\n\nSet up your profile in minutes: {{signup_link}}\n\nBest,\nVijay\ngigKraft.com",
     is_default: true,
   },
   {
@@ -192,7 +189,7 @@ const DEFAULT_TEMPLATES: TemplateIn[] = [
     channel: "email",
     kind: "sequence_3",
     subject: "Quick call about GigKraft? — {{name}}",
-    body: "Hi {{name}},\n\nOne last follow-up! I'd love to hop on a quick call to answer any questions about GigKraft and how it could help your business in {{neighborhood}}.\n\nYour invite is still active: {{signup_link}}\n\nFeel free to reply anytime or reach out to Vijay — no pressure at all.\n\nBest,\nVijay\ngigKraft.com",
+    body: "Hi {{name}},\n\nOne last follow-up! I'd love to hop on a quick call to answer any questions about GigKraft and how it could help your business in {{neighborhood}}.\n\nExample profile: {{example_link}}\n\nYour invite is still active: {{signup_link}}\n\nFeel free to reply anytime or reach out to Vijay — no pressure at all.\n\nBest,\nVijay\ngigKraft.com",
     is_default: true,
   },
   {
@@ -200,7 +197,7 @@ const DEFAULT_TEMPLATES: TemplateIn[] = [
     channel: "whatsapp",
     kind: "sequence_1",
     subject: "",
-    body: "Hi {{name}}! Noticed your excellent work on {{source}}. I'm Vijay, admin for *gigKraft.com* — a local trust network for pros in {{neighborhood}}. We build sovereign digital portfolios for independent contractors. No lead fees or hidden cuts — just your own verified link for $24.99/mo or $249.99/yr.\n\nCheck it out and reach out if you have any questions: {{signup_link}}",
+    body: "Hi {{name}}! Noticed your excellent work on {{source}}. I'm Vijay, admin for *gigKraft.com* — a local trust network for pros in {{neighborhood}}. We build sovereign digital portfolios for independent contractors. No lead fees or hidden cuts — just your own verified link for $24.99/mo or $249.99/yr.\n\nSee a live example profile here: {{example_link}}\n\nCheck it out and reach out if you have any questions: {{signup_link}}",
     is_default: true,
   },
   {
@@ -208,7 +205,7 @@ const DEFAULT_TEMPLATES: TemplateIn[] = [
     channel: "whatsapp",
     kind: "sequence_2",
     subject: "",
-    body: "Hey {{name}}, just sharing a quick pricing breakdown for *GigKraft.com*:\n\n• $24.99/month or $249.99/year\n• Your own verified local profile link\n• No lead fees or platform cuts\n\nLocal pros love dropping their GigKraft link in WhatsApp groups or Nextdoor replies. Set up in 2 mins: {{signup_link}}",
+    body: "Hey {{name}}, just sharing a quick pricing breakdown for *GigKraft.com*:\n\n• $24.99/month or $249.99/year\n• Your own verified local profile link\n• No lead fees or platform cuts\n\nHere's an example profile: {{example_link}}\n\nLocal pros love dropping their GigKraft link in WhatsApp groups or Nextdoor replies. Set up in 2 mins: {{signup_link}}",
     is_default: true,
   },
   {
@@ -216,7 +213,7 @@ const DEFAULT_TEMPLATES: TemplateIn[] = [
     channel: "whatsapp",
     kind: "sequence_3",
     subject: "",
-    body: "Hi {{name}}, closing out your pending invite so I don't keep bugging you! If you ever want to stand out to nearby homeowners with a clean verified profile, you can unlock it anytime: {{signup_link}}\n\nFeel free to reach out to Vijay if you have any questions. Wishing you all the best!",
+    body: "Hi {{name}}, closing out your pending invite so I don't keep bugging you! If you ever want to stand out to nearby homeowners with a clean verified profile, here's an example: {{example_link}}\n\nYou can unlock it anytime: {{signup_link}}\n\nFeel free to reach out to Vijay if you have any questions. Wishing you all the best!",
     is_default: true,
   },
 ];
@@ -560,11 +557,12 @@ function DashboardTab() {
 
   return (
     <Stack gap="xl">
-      <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="md">
+      <SimpleGrid cols={{ base: 2, sm: 5 }} spacing="md">
         <KpiCard label="Total Prospects" value={analytics.total} accent />
         <KpiCard label="New (7 days)" value={analytics.new_7_days} />
         <KpiCard label="Conversion Rate" value={`${analytics.conversion_rate}%`} accent />
         <KpiCard label="Link CTR" value={`${analytics.link_ctr}%`} />
+        <KpiCard label="Total Link Clicks" value={analytics.total_link_clicks} />
       </SimpleGrid>
 
       <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
@@ -1902,14 +1900,15 @@ function ProspectsTab() {
                         )}
                       </Table.Td>
                       <Table.Td>
-                        {p.link_clicked_at ? (
-                          <Tooltip label={`Clicked ${new Date(p.link_clicked_at).toLocaleDateString()}`}>
-                            <Badge size="xs" variant="dot" style={{ color: "var(--gk-accent-primary)", borderColor: "var(--gk-accent-primary)" }}>
-                              Clicked
-                            </Badge>
-                          </Tooltip>
-                        ) : (
-                          <CopyButton value={buildSignupUrl()} timeout={1500}>
+                        <Group gap={4} wrap="nowrap">
+                          {p.signup_link_click_count > 0 ? (
+                            <Tooltip label={`Clicked ${p.signup_link_click_count}x${p.link_clicked_at ? ` — first ${new Date(p.link_clicked_at).toLocaleDateString()}` : ""}`}>
+                              <Badge size="xs" variant="dot" style={{ color: "var(--gk-accent-primary)", borderColor: "var(--gk-accent-primary)" }}>
+                                {p.signup_link_click_count}x
+                              </Badge>
+                            </Tooltip>
+                          ) : null}
+                          <CopyButton value={p.tracked_signup_url} timeout={1500}>
                             {({ copied, copy }) => (
                               <Tooltip label={copied ? "Copied!" : "Copy signup link"}>
                                 <ActionIcon size="xs" variant="subtle" onClick={copy} color={copied ? "green" : "gray"}>
@@ -1918,7 +1917,7 @@ function ProspectsTab() {
                               </Tooltip>
                             )}
                           </CopyButton>
-                        )}
+                        </Group>
                       </Table.Td>
                     </Table.Tr>
                   );
@@ -2048,7 +2047,7 @@ function TemplatesTab() {
           >
             <Text size="xs" fw={600} mb={4}>Available Variables</Text>
             <Text size="xs" ff="monospace" c="dimmed">
-              {"{{name}}  {{source}}  {{neighborhood}}  {{primaryZip}}  {{signup_link}}"}
+              {"{{name}}  {{source}}  {{neighborhood}}  {{primaryZip}}  {{signup_link}}  {{example_link}}"}
             </Text>
           </Box>
           {saveError && <Alert color="red">{saveError}</Alert>}

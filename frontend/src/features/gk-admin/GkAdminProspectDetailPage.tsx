@@ -80,7 +80,8 @@ function renderTemplate(body: string, p: Prospect): string {
     .replace(/\{\{source\}\}/g, p.source)
     .replace(/\{\{neighborhood\}\}/g, p.neighborhood || p.primary_zip || "")
     .replace(/\{\{primaryZip\}\}/g, p.primary_zip || "")
-    .replace(/\{\{signup_link\}\}/g, "https://www.gigkraft.com/for-pros")
+    .replace(/\{\{signup_link\}\}/g, p.tracked_signup_url)
+    .replace(/\{\{example_link\}\}/g, p.tracked_example_url)
     .replace(/\{\{contact_person\}\}/g, "Vijay")
     .replace(/\{\{business_name\}\}/g, "GigKraft")
     .replace(/\{\{prospect_id\}\}/g, p.prospect_id);
@@ -622,7 +623,10 @@ export function GkAdminProspectDetailPage() {
               <Text size="xs" c="dimmed">Added {fmtDate(prospect.created_at)}</Text>
               <Text size="xs" c="dimmed">Last contact {fmtDate(prospect.last_contacted_at)}</Text>
               {prospect.link_clicked_at && (
-                <Text size="xs" c="dimmed">Link clicked {fmtDate(prospect.link_clicked_at)}</Text>
+                <Text size="xs" c="dimmed">
+                  Link clicked {fmtDate(prospect.link_clicked_at)}
+                  {prospect.signup_link_click_count > 0 && ` (${prospect.signup_link_click_count}x)`}
+                </Text>
               )}
             </Group>
           </Stack>

@@ -33,6 +33,18 @@ class SiteSettings(models.Model):
         help_text="Template free member profile URL used in production.",
     )
 
+    # Pros signup/landing page — destination for tracked outreach links
+    pros_signup_url_local = models.URLField(
+        max_length=500,
+        default="http://localhost:5173/for-pros",
+        help_text="Pros signup page URL used in local/dev environment (tracked link redirect target).",
+    )
+    pros_signup_url_prod = models.URLField(
+        max_length=500,
+        default="https://www.gigkraft.com/for-pros",
+        help_text="Pros signup page URL used in production (tracked link redirect target).",
+    )
+
     # Extra template URLs (list of {label, url} objects stored as JSON)
     extra_template_urls = models.JSONField(
         default=list,

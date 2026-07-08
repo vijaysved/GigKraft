@@ -1375,6 +1375,86 @@
         ]
       }
     },
+    "/api/pros/me/circle-notices": {
+      "get": {
+        "operationId": "accounts_pros_api_list_circle_notices",
+        "summary": "List Circle Notices",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CircleAddNoticeOut"
+                  },
+                  "title": "Response",
+                  "type": "array"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "pros"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/pros/me/circle-notices/{notice_id}/read": {
+      "post": {
+        "operationId": "accounts_pros_api_mark_circle_notice_read",
+        "summary": "Mark Circle Notice Read",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "notice_id",
+            "schema": {
+              "title": "Notice Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response",
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "pros"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
     "/api/pros/me/stats": {
       "get": {
         "operationId": "accounts_pros_api_my_performance",
@@ -4560,6 +4640,73 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PlatformMetrics"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "gk_admin"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/gk-admin/traffic/{slug}": {
+      "get": {
+        "operationId": "common_gk_admin_api_traffic_detail",
+        "summary": "Traffic Detail",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "schema": {
+              "title": "Slug",
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "range",
+            "schema": {
+              "default": "30d",
+              "title": "Range",
+              "type": "string"
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "default": 1,
+              "title": "Page",
+              "type": "integer"
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "schema": {
+              "default": 50,
+              "title": "Page Size",
+              "type": "integer"
+            },
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrafficDetailOut"
                 }
               }
             }
@@ -8080,6 +8227,23 @@
         "tags": [
           "referrals"
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ResendMessageIn"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "required": false
+        },
         "security": [
           {
             "JWTAuth": []
@@ -8229,6 +8393,23 @@
         "tags": [
           "referrals"
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ResendMessageIn"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "required": false
+        },
         "security": [
           {
             "JWTAuth": []
@@ -8340,6 +8521,23 @@
         "tags": [
           "referrals"
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ResendMessageIn"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "required": false
+        },
         "security": [
           {
             "JWTAuth": []
@@ -8568,6 +8766,170 @@
         "tags": [
           "referrals"
         ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/referrer/me/invites/{scenario}/{invite_id}/send-channel": {
+      "post": {
+        "operationId": "referrals_api_send_invite_channel",
+        "summary": "Send Invite Channel",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scenario",
+            "schema": {
+              "title": "Scenario",
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "invite_id",
+            "schema": {
+              "title": "Invite Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendChannelOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response",
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Send (or prepare) an invite via a channel independent of the invite's original `channel`.\n\nEmail is delivered immediately through Resend. SMS/WhatsApp can't be sent server-side \u2014\nthe referrer sends it themselves via a deep link, then confirms via /confirm-sent.",
+        "tags": [
+          "referrals"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendChannelIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/referrer/me/invites/{scenario}/{invite_id}/confirm-sent": {
+      "post": {
+        "operationId": "referrals_api_confirm_invite_sent",
+        "summary": "Confirm Invite Sent",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scenario",
+            "schema": {
+              "title": "Scenario",
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "invite_id",
+            "schema": {
+              "title": "Invite Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response",
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response",
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Referrer confirms they manually sent an SMS/WhatsApp message via their own device.",
+        "tags": [
+          "referrals"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmSentIn"
+              }
+            }
+          },
+          "required": true
+        },
         "security": [
           {
             "JWTAuth": []
@@ -9542,6 +9904,32 @@
           }
         },
         "description": "Public. Fire-and-forget \u2014 atomically increments click_count.",
+        "tags": [
+          "referrals"
+        ]
+      }
+    },
+    "/api/referrer/invite-pixel/{token}": {
+      "get": {
+        "operationId": "referrals_api_invite_pixel",
+        "summary": "Invite Pixel",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "description": "Public. 1x1 GIF \u2014 records an email-open event for any of the three invite types.",
         "tags": [
           "referrals"
         ]
@@ -10810,6 +11198,44 @@
           "handle"
         ],
         "title": "HandleIn",
+        "type": "object"
+      },
+      "CircleAddNoticeOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "referrer_name": {
+            "title": "Referrer Name",
+            "type": "string"
+          },
+          "referrer_slug": {
+            "title": "Referrer Slug",
+            "type": "string"
+          },
+          "referrer_avatar_url": {
+            "title": "Referrer Avatar Url",
+            "type": "string"
+          },
+          "is_read": {
+            "title": "Is Read",
+            "type": "boolean"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "referrer_name",
+          "referrer_slug",
+          "referrer_avatar_url",
+          "is_read",
+          "created_at"
+        ],
+        "title": "CircleAddNoticeOut",
         "type": "object"
       },
       "ProPerformanceOut": {
@@ -13885,6 +14311,10 @@
             "title": "Label",
             "type": "string"
           },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
           "url": {
             "title": "Url",
             "type": "string"
@@ -13900,11 +14330,82 @@
         },
         "required": [
           "label",
+          "slug",
           "url",
           "views_30d",
           "views_7d"
         ],
         "title": "SiteTrafficRow",
+        "type": "object"
+      },
+      "TrafficDetailOut": {
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          },
+          "views_7d": {
+            "title": "Views 7D",
+            "type": "integer"
+          },
+          "views_30d": {
+            "title": "Views 30D",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "page_size": {
+            "title": "Page Size",
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/TrafficViewRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "label",
+          "url",
+          "views_7d",
+          "views_30d",
+          "total",
+          "page",
+          "page_size",
+          "rows"
+        ],
+        "title": "TrafficDetailOut",
+        "type": "object"
+      },
+      "TrafficViewRow": {
+        "properties": {
+          "referrer": {
+            "title": "Referrer",
+            "type": "string"
+          },
+          "visited_at": {
+            "format": "date-time",
+            "title": "Visited At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "referrer",
+          "visited_at"
+        ],
+        "title": "TrafficViewRow",
         "type": "object"
       },
       "UserListOut": {
@@ -14574,6 +15075,14 @@
             "title": "Template Member Url Prod",
             "type": "string"
           },
+          "pros_signup_url_local": {
+            "title": "Pros Signup Url Local",
+            "type": "string"
+          },
+          "pros_signup_url_prod": {
+            "title": "Pros Signup Url Prod",
+            "type": "string"
+          },
           "extra_template_urls": {
             "items": {
               "$ref": "#/components/schemas/ExtraTemplateUrl"
@@ -14598,6 +15107,8 @@
           "template_pro_url_prod",
           "template_member_url_local",
           "template_member_url_prod",
+          "pros_signup_url_local",
+          "pros_signup_url_prod",
           "extra_template_urls",
           "updated_at"
         ],
@@ -14622,6 +15133,14 @@
             "title": "Template Member Url Prod",
             "type": "string"
           },
+          "pros_signup_url_local": {
+            "title": "Pros Signup Url Local",
+            "type": "string"
+          },
+          "pros_signup_url_prod": {
+            "title": "Pros Signup Url Prod",
+            "type": "string"
+          },
           "extra_template_urls": {
             "items": {
               "$ref": "#/components/schemas/ExtraTemplateUrl"
@@ -14635,6 +15154,8 @@
           "template_pro_url_prod",
           "template_member_url_local",
           "template_member_url_prod",
+          "pros_signup_url_local",
+          "pros_signup_url_prod",
           "extra_template_urls"
         ],
         "title": "SiteConfigIn",
@@ -14919,6 +15440,10 @@
             "title": "Link Ctr",
             "type": "number"
           },
+          "total_link_clicks": {
+            "title": "Total Link Clicks",
+            "type": "integer"
+          },
           "by_status": {
             "additionalProperties": true,
             "title": "By Status",
@@ -14954,6 +15479,7 @@
           "total_emails_sent",
           "conversion_rate",
           "link_ctr",
+          "total_link_clicks",
           "by_status",
           "by_source",
           "by_sequence_step",
@@ -15039,6 +15565,10 @@
             ],
             "title": "Link Clicked At"
           },
+          "signup_link_click_count": {
+            "title": "Signup Link Click Count",
+            "type": "integer"
+          },
           "converted_user_id": {
             "anyOf": [
               {
@@ -15054,8 +15584,12 @@
             "title": "Notes",
             "type": "string"
           },
-          "whatsapp_link": {
-            "title": "Whatsapp Link",
+          "tracked_signup_url": {
+            "title": "Tracked Signup Url",
+            "type": "string"
+          },
+          "tracked_example_url": {
+            "title": "Tracked Example Url",
             "type": "string"
           },
           "created_at": {
@@ -15090,9 +15624,11 @@
           "last_contacted_at",
           "signup_link_token",
           "link_clicked_at",
+          "signup_link_click_count",
           "converted_user_id",
           "notes",
-          "whatsapp_link",
+          "tracked_signup_url",
+          "tracked_example_url",
           "created_at",
           "updated_at",
           "journey"
@@ -16936,6 +17472,39 @@
             ],
             "title": "Invite Status"
           },
+          "invite_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invite Id"
+          },
+          "last_resent_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Resent At"
+          },
+          "handle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Handle"
+          },
           "added_at": {
             "title": "Added At",
             "type": "string"
@@ -17193,6 +17762,23 @@
         "title": "InviteProResendOut",
         "type": "object"
       },
+      "ResendMessageIn": {
+        "properties": {
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          }
+        },
+        "title": "ResendMessageIn",
+        "type": "object"
+      },
       "InviteFriendOut": {
         "properties": {
           "sent_count": {
@@ -17295,8 +17881,15 @@
             "type": "string"
           },
           "phone": {
-            "title": "Phone",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
           },
           "email": {
             "anyOf": [
@@ -17327,8 +17920,7 @@
           }
         },
         "required": [
-          "name",
-          "phone"
+          "name"
         ],
         "title": "InviteFriendSingleIn",
         "type": "object"
@@ -17483,6 +18075,21 @@
             "title": "Click Count",
             "type": "integer"
           },
+          "email_count": {
+            "default": 0,
+            "title": "Email Count",
+            "type": "integer"
+          },
+          "whatsapp_count": {
+            "default": 0,
+            "title": "Whatsapp Count",
+            "type": "integer"
+          },
+          "sms_count": {
+            "default": 0,
+            "title": "Sms Count",
+            "type": "integer"
+          },
           "invited_at": {
             "title": "Invited At",
             "type": "string"
@@ -17540,6 +18147,21 @@
           },
           "click_count": {
             "title": "Click Count",
+            "type": "integer"
+          },
+          "email_count": {
+            "default": 0,
+            "title": "Email Count",
+            "type": "integer"
+          },
+          "whatsapp_count": {
+            "default": 0,
+            "title": "Whatsapp Count",
+            "type": "integer"
+          },
+          "sms_count": {
+            "default": 0,
+            "title": "Sms Count",
             "type": "integer"
           },
           "invited_at": {
@@ -17637,6 +18259,21 @@
             "title": "Click Count",
             "type": "integer"
           },
+          "email_count": {
+            "default": 0,
+            "title": "Email Count",
+            "type": "integer"
+          },
+          "whatsapp_count": {
+            "default": 0,
+            "title": "Whatsapp Count",
+            "type": "integer"
+          },
+          "sms_count": {
+            "default": 0,
+            "title": "Sms Count",
+            "type": "integer"
+          },
           "invited_at": {
             "title": "Invited At",
             "type": "string"
@@ -17667,11 +18304,82 @@
         "title": "InviteListProOut",
         "type": "object"
       },
+      "SendChannelOut": {
+        "properties": {
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          },
+          "channel": {
+            "title": "Channel",
+            "type": "string"
+          },
+          "requires_manual_confirm": {
+            "title": "Requires Manual Confirm",
+            "type": "boolean"
+          },
+          "message_body": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message Body"
+          }
+        },
+        "required": [
+          "ok",
+          "channel",
+          "requires_manual_confirm"
+        ],
+        "title": "SendChannelOut",
+        "type": "object"
+      },
+      "SendChannelIn": {
+        "properties": {
+          "channel": {
+            "title": "Channel",
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel"
+        ],
+        "title": "SendChannelIn",
+        "type": "object"
+      },
+      "ConfirmSentIn": {
+        "properties": {
+          "channel": {
+            "title": "Channel",
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel"
+        ],
+        "title": "ConfirmSentIn",
+        "type": "object"
+      },
       "InviteTimelineEventOut": {
         "properties": {
           "event_type": {
             "title": "Event Type",
             "type": "string"
+          },
+          "channel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channel"
           },
           "message_body": {
             "anyOf": [

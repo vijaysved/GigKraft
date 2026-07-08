@@ -27,6 +27,7 @@ from django.utils import timezone
 from ninja import Router, Schema
 
 from accounts.auth import jwt_auth
+from common.models import SiteSettings
 from common.permissions import require_gk_admin
 from vendors.models import Prospect, ProPageView
 
@@ -77,9 +78,11 @@ class ProspectOut(Schema):
     last_contacted_at: Optional[str]
     signup_link_token: str
     link_clicked_at: Optional[str]
+    signup_link_click_count: int
     converted_user_id: Optional[int]
     notes: str
-    whatsapp_link: str
+    tracked_signup_url: str
+    tracked_example_url: str
     created_at: str
     updated_at: str
     journey: list[StepJourney]
@@ -146,6 +149,7 @@ class AnalyticsOut(Schema):
     total_emails_sent: int
     conversion_rate: float
     link_ctr: float
+    total_link_clicks: int
     by_status: dict
     by_source: dict
     by_sequence_step: dict
@@ -194,9 +198,11 @@ def _serialize(p: Prospect) -> dict:
         "last_contacted_at": p.last_contacted_at.isoformat() if p.last_contacted_at else None,
         "signup_link_token": str(p.signup_link_token),
         "link_clicked_at": p.link_clicked_at.isoformat() if p.link_clicked_at else None,
+        "signup_link_click_count": p.signup_link_click_count,
         "converted_user_id": p.converted_user_id,
         "notes": p.notes,
-        "whatsapp_link": p.whatsapp_link,
+        "tracked_signup_url": p.tracked_signup_url,
+        "tracked_example_url": p.tracked_example_url,
         "created_at": p.created_at.isoformat(),
         "updated_at": p.updated_at.isoformat(),
         "journey": _build_journey(sequence_logs),
@@ -229,6 +235,7 @@ def _qs_with_logs():
 @router.get("/analytics", response=AnalyticsOut)
 def get_analytics(request):
     require_gk_admin(request)
+    from django.db.models import Sum
     from comms.models import OutreachLog
 
     cutoff = timezone.now() - timedelta(days=7)
@@ -237,6 +244,7 @@ def get_analytics(request):
     total_emails = OutreachLog.objects.filter(channel="email").count()
     converted = Prospect.objects.filter(status=Prospect.Status.CONVERTED).count()
     clicked = Prospect.objects.filter(link_clicked_at__isnull=False).count()
+    total_link_clicks = Prospect.objects.aggregate(total=Sum("signup_link_click_count"))["total"] or 0
 
     by_status = {s: Prospect.objects.filter(status=s).count() for s, _ in Prospect.Status.choices}
     by_source = {s: Prospect.objects.filter(source=s).count() for s, _ in Prospect.LeadSource.choices}
@@ -259,6 +267,7 @@ def get_analytics(request):
         "total_emails_sent": total_emails,
         "conversion_rate": round((converted / total * 100) if total else 0, 1),
         "link_ctr": round((clicked / total * 100) if total else 0, 1),
+        "total_link_clicks": total_link_clicks,
         "by_status": by_status,
         "by_source": by_source,
         "by_sequence_step": by_step,
@@ -589,6 +598,8 @@ def track_signup_click(request, token: str):
         uid = None
 
     if uid:
+        from django.db.models import F
+
         # Per-message token (new path) — look up via OutreachLog first
         log = OutreachLog.objects.select_related("prospect").filter(link_click_token=uid).first()
         if log:
@@ -596,17 +607,31 @@ def track_signup_click(request, token: str):
                 log.link_clicked_at = now
                 log.save(update_fields=["link_clicked_at"])
             # Also backfill prospect-level timestamp for backwards compat
-            if log.prospect and not log.prospect.link_clicked_at:
-                log.prospect.link_clicked_at = now
-                log.prospect.save(update_fields=["link_clicked_at", "updated_at"])
+            if log.prospect:
+                if not log.prospect.link_clicked_at:
+                    Prospect.objects.filter(pk=log.prospect_id, link_clicked_at__isnull=True).update(
+                        link_clicked_at=now, updated_at=now
+                    )
+                Prospect.objects.filter(pk=log.prospect_id).update(
+                    signup_link_click_count=F("signup_link_click_count") + 1
+                )
         else:
-            # Legacy path — prospect-level token for old sent messages
+            # Legacy path — prospect-level token for old sent messages (also the
+            # path used by manual WhatsApp/SMS sends, which reuse the prospect's
+            # single signup_link_token rather than a per-message token)
             p = Prospect.objects.filter(signup_link_token=uid).first()
-            if p and not p.link_clicked_at:
-                p.link_clicked_at = now
-                p.save(update_fields=["link_clicked_at", "updated_at"])
+            if p:
+                if not p.link_clicked_at:
+                    Prospect.objects.filter(pk=p.pk, link_clicked_at__isnull=True).update(
+                        link_clicked_at=now, updated_at=now
+                    )
+                Prospect.objects.filter(pk=p.pk).update(
+                    signup_link_click_count=F("signup_link_click_count") + 1
+                )
 
-    signup_url = os.environ.get("SIGNUP_URL", "https://gigkraft.com/signup")
+    cfg = SiteSettings.get()
+    is_prod = os.environ.get("DEBUG", "").lower() not in ("1", "true")
+    signup_url = cfg.pros_signup_url_prod if is_prod else cfg.pros_signup_url_local
     return HttpResponseRedirect(signup_url)
 
 

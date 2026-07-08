@@ -536,6 +536,8 @@ export interface SiteConfigData {
   template_pro_url_prod: string;
   template_member_url_local: string;
   template_member_url_prod: string;
+  pros_signup_url_local: string;
+  pros_signup_url_prod: string;
   extra_template_urls: { label: string; url: string }[];
   updated_at: string | null;
 }
@@ -737,9 +739,11 @@ export interface Prospect {
   last_contacted_at: string | null;
   signup_link_token: string;
   link_clicked_at: string | null;
+  signup_link_click_count: number;
   converted_user_id: number | null;
   notes: string;
-  whatsapp_link: string;
+  tracked_signup_url: string;
+  tracked_example_url: string;
   created_at: string;
   updated_at: string;
   journey: StepJourney[];
@@ -763,6 +767,7 @@ export interface ProspectAnalytics {
   total_emails_sent: number;
   conversion_rate: number;
   link_ctr: number;
+  total_link_clicks: number;
   by_status: Record<string, number>;
   by_source: Record<string, number>;
   by_sequence_step: Record<string, number>;

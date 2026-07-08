@@ -820,6 +820,8 @@ class SiteConfigOut(Schema):
     template_pro_url_prod: str
     template_member_url_local: str
     template_member_url_prod: str
+    pros_signup_url_local: str
+    pros_signup_url_prod: str
     extra_template_urls: List[ExtraTemplateUrl]
     updated_at: Optional[str]
 
@@ -829,6 +831,8 @@ class SiteConfigIn(Schema):
     template_pro_url_prod: str
     template_member_url_local: str
     template_member_url_prod: str
+    pros_signup_url_local: str
+    pros_signup_url_prod: str
     extra_template_urls: List[ExtraTemplateUrl]
 
 
@@ -839,6 +843,8 @@ def _site_cfg_out(cfg: SiteSettings) -> SiteConfigOut:
         template_pro_url_prod=cfg.template_pro_url_prod,
         template_member_url_local=cfg.template_member_url_local,
         template_member_url_prod=cfg.template_member_url_prod,
+        pros_signup_url_local=cfg.pros_signup_url_local,
+        pros_signup_url_prod=cfg.pros_signup_url_prod,
         extra_template_urls=extras,
         updated_at=cfg.updated_at.isoformat() if cfg.updated_at else None,
     )
@@ -857,13 +863,17 @@ def update_site_config(request, payload: SiteConfigIn):
     prod_url = payload.template_pro_url_prod.strip()
     member_local = payload.template_member_url_local.strip()
     member_prod = payload.template_member_url_prod.strip()
-    if not local_url or not prod_url or not member_local or not member_prod:
+    pros_local = payload.pros_signup_url_local.strip()
+    pros_prod = payload.pros_signup_url_prod.strip()
+    if not local_url or not prod_url or not member_local or not member_prod or not pros_local or not pros_prod:
         return 400, {"detail": "All template URLs are required."}
     cfg = SiteSettings.get()
     cfg.template_pro_url_local = local_url
     cfg.template_pro_url_prod = prod_url
     cfg.template_member_url_local = member_local
     cfg.template_member_url_prod = member_prod
+    cfg.pros_signup_url_local = pros_local
+    cfg.pros_signup_url_prod = pros_prod
     cfg.extra_template_urls = [item.dict() for item in payload.extra_template_urls]
     cfg.updated_by = request.auth
     cfg.save()

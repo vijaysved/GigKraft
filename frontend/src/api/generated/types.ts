@@ -527,6 +527,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/pros/me/circle-notices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Circle Notices */
+        get: operations["accounts_pros_api_list_circle_notices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pros/me/circle-notices/{notice_id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark Circle Notice Read */
+        post: operations["accounts_pros_api_mark_circle_notice_read"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/pros/me/stats": {
         parameters: {
             query?: never;
@@ -1671,6 +1705,23 @@ export interface paths {
         };
         /** Platform Metrics */
         get: operations["common_gk_admin_api_platform_metrics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gk-admin/traffic/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Traffic Detail */
+        get: operations["common_gk_admin_api_traffic_detail"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2967,6 +3018,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/referrer/me/invites/{scenario}/{invite_id}/send-channel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send Invite Channel
+         * @description Send (or prepare) an invite via a channel independent of the invite's original `channel`.
+         *
+         *     Email is delivered immediately through Resend. SMS/WhatsApp can't be sent server-side —
+         *     the referrer sends it themselves via a deep link, then confirms via /confirm-sent.
+         */
+        post: operations["referrals_api_send_invite_channel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/referrer/me/invites/{scenario}/{invite_id}/confirm-sent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm Invite Sent
+         * @description Referrer confirms they manually sent an SMS/WhatsApp message via their own device.
+         */
+        post: operations["referrals_api_confirm_invite_sent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/referrer/me/invites/{scenario}/{invite_id}/timeline": {
         parameters: {
             query?: never;
@@ -3290,6 +3384,26 @@ export interface paths {
          * @description Public. Fire-and-forget — atomically increments click_count.
          */
         post: operations["referrals_api_circle_share_click"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/referrer/invite-pixel/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Invite Pixel
+         * @description Public. 1x1 GIF — records an email-open event for any of the three invite types.
+         */
+        get: operations["referrals_api_invite_pixel"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3756,6 +3870,21 @@ export interface components {
         HandleIn: {
             /** Handle */
             handle: string;
+        };
+        /** CircleAddNoticeOut */
+        CircleAddNoticeOut: {
+            /** Id */
+            id: number;
+            /** Referrer Name */
+            referrer_name: string;
+            /** Referrer Slug */
+            referrer_slug: string;
+            /** Referrer Avatar Url */
+            referrer_avatar_url: string;
+            /** Is Read */
+            is_read: boolean;
+            /** Created At */
+            created_at: string;
         };
         /** ProPerformanceOut */
         ProPerformanceOut: {
@@ -4862,12 +4991,43 @@ export interface components {
         SiteTrafficRow: {
             /** Label */
             label: string;
+            /** Slug */
+            slug: string;
             /** Url */
             url: string;
             /** Views 30D */
             views_30d: number;
             /** Views 7D */
             views_7d: number;
+        };
+        /** TrafficDetailOut */
+        TrafficDetailOut: {
+            /** Label */
+            label: string;
+            /** Url */
+            url: string;
+            /** Views 7D */
+            views_7d: number;
+            /** Views 30D */
+            views_30d: number;
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Rows */
+            rows: components["schemas"]["TrafficViewRow"][];
+        };
+        /** TrafficViewRow */
+        TrafficViewRow: {
+            /** Referrer */
+            referrer: string;
+            /**
+             * Visited At
+             * Format: date-time
+             */
+            visited_at: string;
         };
         /** UserListOut */
         UserListOut: {
@@ -5094,6 +5254,10 @@ export interface components {
             template_member_url_local: string;
             /** Template Member Url Prod */
             template_member_url_prod: string;
+            /** Pros Signup Url Local */
+            pros_signup_url_local: string;
+            /** Pros Signup Url Prod */
+            pros_signup_url_prod: string;
             /** Extra Template Urls */
             extra_template_urls: components["schemas"]["ExtraTemplateUrl"][];
             /** Updated At */
@@ -5109,6 +5273,10 @@ export interface components {
             template_member_url_local: string;
             /** Template Member Url Prod */
             template_member_url_prod: string;
+            /** Pros Signup Url Local */
+            pros_signup_url_local: string;
+            /** Pros Signup Url Prod */
+            pros_signup_url_prod: string;
             /** Extra Template Urls */
             extra_template_urls: components["schemas"]["ExtraTemplateUrl"][];
         };
@@ -5191,6 +5359,8 @@ export interface components {
             conversion_rate: number;
             /** Link Ctr */
             link_ctr: number;
+            /** Total Link Clicks */
+            total_link_clicks: number;
             /** By Status */
             by_status: {
                 [key: string]: unknown;
@@ -5244,12 +5414,16 @@ export interface components {
             signup_link_token: string;
             /** Link Clicked At */
             link_clicked_at: string | null;
+            /** Signup Link Click Count */
+            signup_link_click_count: number;
             /** Converted User Id */
             converted_user_id: number | null;
             /** Notes */
             notes: string;
-            /** Whatsapp Link */
-            whatsapp_link: string;
+            /** Tracked Signup Url */
+            tracked_signup_url: string;
+            /** Tracked Example Url */
+            tracked_example_url: string;
             /** Created At */
             created_at: string;
             /** Updated At */
@@ -5958,6 +6132,12 @@ export interface components {
             is_pending: boolean;
             /** Invite Status */
             invite_status?: string | null;
+            /** Invite Id */
+            invite_id?: number | null;
+            /** Last Resent At */
+            last_resent_at?: string | null;
+            /** Handle */
+            handle?: string | null;
             /** Added At */
             added_at: string;
         };
@@ -6045,6 +6225,11 @@ export interface components {
             /** Referrer Slug */
             referrer_slug: string;
         };
+        /** ResendMessageIn */
+        ResendMessageIn: {
+            /** Message */
+            message?: string | null;
+        };
         /** InviteFriendOut */
         InviteFriendOut: {
             /** Sent Count */
@@ -6080,7 +6265,7 @@ export interface components {
             /** Name */
             name: string;
             /** Phone */
-            phone: string;
+            phone?: string | null;
             /** Email */
             email?: string | null;
             /**
@@ -6150,6 +6335,21 @@ export interface components {
             status: string;
             /** Click Count */
             click_count: number;
+            /**
+             * Email Count
+             * @default 0
+             */
+            email_count: number;
+            /**
+             * Whatsapp Count
+             * @default 0
+             */
+            whatsapp_count: number;
+            /**
+             * Sms Count
+             * @default 0
+             */
+            sms_count: number;
             /** Invited At */
             invited_at: string;
             /** Last Resent At */
@@ -6171,6 +6371,21 @@ export interface components {
             status: string;
             /** Click Count */
             click_count: number;
+            /**
+             * Email Count
+             * @default 0
+             */
+            email_count: number;
+            /**
+             * Whatsapp Count
+             * @default 0
+             */
+            whatsapp_count: number;
+            /**
+             * Sms Count
+             * @default 0
+             */
+            sms_count: number;
             /** Invited At */
             invited_at: string;
             /** Last Resent At */
@@ -6206,15 +6421,53 @@ export interface components {
             status: string;
             /** Click Count */
             click_count: number;
+            /**
+             * Email Count
+             * @default 0
+             */
+            email_count: number;
+            /**
+             * Whatsapp Count
+             * @default 0
+             */
+            whatsapp_count: number;
+            /**
+             * Sms Count
+             * @default 0
+             */
+            sms_count: number;
             /** Invited At */
             invited_at: string;
             /** Last Resent At */
             last_resent_at?: string | null;
         };
+        /** SendChannelOut */
+        SendChannelOut: {
+            /** Ok */
+            ok: boolean;
+            /** Channel */
+            channel: string;
+            /** Requires Manual Confirm */
+            requires_manual_confirm: boolean;
+            /** Message Body */
+            message_body?: string | null;
+        };
+        /** SendChannelIn */
+        SendChannelIn: {
+            /** Channel */
+            channel: string;
+        };
+        /** ConfirmSentIn */
+        ConfirmSentIn: {
+            /** Channel */
+            channel: string;
+        };
         /** InviteTimelineEventOut */
         InviteTimelineEventOut: {
             /** Event Type */
             event_type: string;
+            /** Channel */
+            channel?: string | null;
             /** Message Body */
             message_body?: string | null;
             /** Occurred At */
@@ -7323,6 +7576,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    accounts_pros_api_list_circle_notices: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CircleAddNoticeOut"][];
+                };
+            };
+        };
+    };
+    accounts_pros_api_mark_circle_notice_read: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                notice_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Not Found */
@@ -9315,6 +9621,32 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PlatformMetrics"];
+                };
+            };
+        };
+    };
+    common_gk_admin_api_traffic_detail: {
+        parameters: {
+            query?: {
+                range?: string;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrafficDetailOut"];
                 };
             };
         };
@@ -11554,7 +11886,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ResendMessageIn"] | null;
+            };
+        };
         responses: {
             /** @description OK */
             200: {
@@ -11657,7 +11993,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ResendMessageIn"] | null;
+            };
+        };
         responses: {
             /** @description OK */
             200: {
@@ -11736,7 +12076,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ResendMessageIn"] | null;
+            };
+        };
         responses: {
             /** @description OK */
             200: {
@@ -11927,6 +12271,106 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InviteListOut"];
+                };
+            };
+        };
+    };
+    referrals_api_send_invite_channel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                scenario: string;
+                invite_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SendChannelIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SendChannelOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    referrals_api_confirm_invite_sent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                scenario: string;
+                invite_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmSentIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
@@ -12526,6 +12970,26 @@ export interface operations {
                         [key: string]: unknown;
                     };
                 };
+            };
+        };
+    };
+    referrals_api_invite_pixel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
