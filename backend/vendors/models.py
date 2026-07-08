@@ -124,6 +124,15 @@ class ProPageView(models.Model):
         on_delete=models.SET_NULL,
         related_name="page_views",
     )
+    # The specific outreach touchpoint (channel + sequence step) whose tracked
+    # link produced this visit, when resolvable.
+    outreach_log = models.ForeignKey(
+        "comms.OutreachLog",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="page_views",
+    )
     viewed_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

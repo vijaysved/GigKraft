@@ -22,11 +22,30 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { ApiError, getGkTrafficDetail, type GkTrafficDetail, type GkTrafficViewRow } from "../../api/endpoints";
 import { GkStatTile } from "../../components/GkStatTile";
-import { formatDateTime as fmtDateTime } from "../../utils/format";
+import { formatDateTime as fmtDateTime, formatPhone } from "../../utils/format";
 
 const PAGE_SIZE = 50;
 
 type Range = "7d" | "30d" | "all";
+
+const CHANNEL_LABELS: Record<string, string> = {
+  email: "Email",
+  whatsapp: "WhatsApp",
+  sms: "SMS",
+  other: "Other",
+};
+
+const CHANNEL_COLORS: Record<string, string> = {
+  email: "blue",
+  whatsapp: "teal",
+  sms: "cyan",
+  other: "gray",
+};
+
+function touchpointLabel(channel?: string | null, step?: number | null): string {
+  const label = channel ? (CHANNEL_LABELS[channel] ?? channel) : "Unknown";
+  return step ? `${label} · Step ${step}` : label;
+}
 
 function referrerBadge(referrer: string): { label: string; color: string } {
   if (!referrer) return { label: "Direct / Typed", color: "gray" };
@@ -165,6 +184,8 @@ export function GkAdminTrafficDetailPage() {
                       <Table.Th>Timestamp</Table.Th>
                       <Table.Th>Referrer</Table.Th>
                       <Table.Th>Prospect</Table.Th>
+                      <Table.Th>Contact</Table.Th>
+                      <Table.Th>Touchpoint</Table.Th>
                     </Table.Tr>
                   </Table.Thead>
                   <Table.Tbody>
@@ -190,6 +211,27 @@ export function GkAdminTrafficDetailPage() {
                               <Anchor size="sm" component={Link} to={`/gk-admin/prospects/${row.prospect_id}`}>
                                 {row.prospect_name}
                               </Anchor>
+                            ) : (
+                              <Text size="sm" c="dimmed">—</Text>
+                            )}
+                          </Table.Td>
+                          <Table.Td>
+                            {row.prospect_email || row.prospect_phone ? (
+                              <Stack gap={0}>
+                                {row.prospect_email && <Text size="xs">{row.prospect_email}</Text>}
+                                {row.prospect_phone && (
+                                  <Text size="xs" c="dimmed">{formatPhone(row.prospect_phone)}</Text>
+                                )}
+                              </Stack>
+                            ) : (
+                              <Text size="sm" c="dimmed">—</Text>
+                            )}
+                          </Table.Td>
+                          <Table.Td>
+                            {row.channel ? (
+                              <Badge size="xs" color={CHANNEL_COLORS[row.channel] ?? "gray"} variant="light">
+                                {touchpointLabel(row.channel, row.sequence_step)}
+                              </Badge>
                             ) : (
                               <Text size="sm" c="dimmed">—</Text>
                             )}

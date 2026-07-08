@@ -398,6 +398,16 @@ def delete_prospect(request, prospect_id: int):
 
 # ── Sequence helpers ─────────────────────────────────────────────────────────
 
+def _parse_client_token(raw: Optional[str]):
+    """Parse a client-supplied link_click_token; ignore anything malformed."""
+    if not raw:
+        return None
+    try:
+        return _uuid.UUID(raw)
+    except (ValueError, AttributeError, TypeError):
+        return None
+
+
 def _get_template(kind: str, channel: str, source: str):
     """Return the source-specific template if one exists, else the global default."""
     from comms.models import MessageTemplate
@@ -460,6 +470,7 @@ def start_sequence(request, prospect_id: int):
 
 class AdvanceStepIn(Schema):
     channel: str = "whatsapp"
+    link_click_token: Optional[str] = None
 
 
 @router.post("/{prospect_id}/advance-step", response={200: ProspectOut, 400: ErrorOut, 404: ErrorOut})
@@ -488,7 +499,10 @@ def advance_chat_step(request, prospect_id: int, data: AdvanceStepIn):
         to_address=p.phone or "",
         notes=f"Chat step {p.current_sequence_step} confirmed sent via {data.channel}.",
         sequence_step=p.current_sequence_step,
-        link_click_token=_uuid.uuid4(),
+        # Prefer the token the admin's message text was actually built with
+        # (see GkAdminProspectsPage's pending-token cache), so the /go/example/
+        # link the prospect clicks resolves back to this exact log.
+        link_click_token=_parse_client_token(data.link_click_token) or _uuid.uuid4(),
     )
     _attach_logs(p)
     return 200, _serialize(p)
@@ -610,8 +624,19 @@ class TrackViewIn(Schema):
 
 @public_router.post("/track-view", auth=None, response={200: dict})
 def track_page_view(request, payload: TrackViewIn):
+    from comms.models import OutreachLog
+
     prospect = None
+    outreach_log = None
     if payload.ref:
-        prospect = Prospect.objects.filter(prospect_id=payload.ref).first()
-    ProPageView.objects.create(pro_handle=payload.pro_handle, prospect=prospect)
+        token = _parse_client_token(payload.ref)
+        if token:
+            outreach_log = OutreachLog.objects.select_related("prospect").filter(link_click_token=token).first()
+        if outreach_log:
+            prospect = outreach_log.prospect
+        else:
+            # Back-compat: older cached/bookmarked links may still carry a
+            # bare prospect_id in ref instead of a click token.
+            prospect = Prospect.objects.filter(prospect_id=payload.ref).first()
+    ProPageView.objects.create(pro_handle=payload.pro_handle, prospect=prospect, outreach_log=outreach_log)
     return {"ok": True}

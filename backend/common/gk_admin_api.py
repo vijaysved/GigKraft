@@ -65,6 +65,10 @@ class TrafficViewRow(Schema):
     visited_at: datetime
     prospect_name: Optional[str] = None
     prospect_id: Optional[str] = None
+    prospect_email: Optional[str] = None
+    prospect_phone: Optional[str] = None
+    channel: Optional[str] = None
+    sequence_step: Optional[int] = None
 
 
 class TrafficDetailOut(Schema):
@@ -326,25 +330,31 @@ def traffic_detail(request, slug: str, range: str = "30d", page: int = 1, page_s
                 prospect__isnull=False,
                 viewed_at__gte=rows[-1].visited_at - window,
                 viewed_at__lte=rows[0].visited_at + window,
-            ).select_related("prospect").order_by("viewed_at")
+            ).select_related("prospect", "outreach_log").order_by("viewed_at")
         )
 
-    def _closest_prospect(visited_at: datetime):
+    def _closest_prospect_view(visited_at: datetime):
         best, best_delta = None, timedelta(seconds=15)
         for pv in prospect_views:
             delta = abs(pv.viewed_at - visited_at)
             if delta <= best_delta:
                 best, best_delta = pv, delta
-        return best.prospect if best else None
+        return best
 
     out_rows = []
     for r in rows:
-        prospect = _closest_prospect(r.visited_at) if prospect_views else None
+        pv = _closest_prospect_view(r.visited_at) if prospect_views else None
+        prospect = pv.prospect if pv else None
+        log = pv.outreach_log if pv else None
         out_rows.append(TrafficViewRow(
             referrer=r.referrer,
             visited_at=r.visited_at,
             prospect_name=prospect.name if prospect else None,
             prospect_id=prospect.prospect_id if prospect else None,
+            prospect_email=prospect.email if prospect else None,
+            prospect_phone=prospect.phone if prospect else None,
+            channel=log.channel if log else None,
+            sequence_step=log.sequence_step if log else None,
         ))
 
     return TrafficDetailOut(

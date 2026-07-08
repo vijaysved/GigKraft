@@ -59,11 +59,12 @@ import {
   IconUpload,
   IconWorld,
 } from "@tabler/icons-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
 import { nativeBtn } from "../referrer/components/inviteShared";
 import { formatPhone, formatDateShort } from "../../utils/format";
+import { TRACKING_BASE_URL } from "../../config";
 import {
   advanceProspectStep,
   checkProspectDuplicates,
@@ -139,13 +140,24 @@ const SOURCE_OPTIONS = [
   { value: "trade_school", label: "Trade School" },
 ];
 
-const CHAT_TEMPLATES: Record<number, (p: Prospect) => string> = {
-  1: (p) =>
-    `Hi ${p.name}! Noticed your excellent work on ${p.source}. I'm Vijay, admin for *gigKraft.com*—a local trust network for pros in ${p.primary_zip}. We build sovereign digital portfolios for independent contractors. No lead fees or hidden cuts—just your own verified link to show clients. It's *$24.99/mo* or *$249.99/yr* flat.\n\nSee a live example profile here: ${p.tracked_example_url}\n\nIf you'd like to reserve your profile link, check it out here: ${p.tracked_signup_url}`,
-  2: (p) =>
-    `Hey ${p.name}, just following up! Local pros are loving *gigKraft.com* because they fully own their reviews and portfolio link, bypassing unpredictable platform algorithms. Great for dropping directly into your WhatsApp groups or Nextdoor replies.\n\nHere's an example of what your profile could look like: ${p.tracked_example_url}\n\nSet up your verified local profile in 2 mins: ${p.tracked_signup_url}`,
-  3: (p) =>
-    `Hi ${p.name}, closing out your pending invite for now so I don't bug you. If you ever want to stand out to nearby homeowners with a clean profile for *$24.99/mo*, here's an example profile: ${p.tracked_example_url}\n\nYou can unlock it anytime here: ${p.tracked_signup_url}. Wish you all the best!`,
+// Per-message tracked links: built from a token minted client-side for this
+// specific pending send (see getPendingToken), rather than the prospect's
+// stable signup_link_token — so the click on this exact message resolves
+// back to the OutreachLog row created when the send is confirmed.
+function trackedSignupUrl(token: string): string {
+  return `${TRACKING_BASE_URL}/go/${token}`;
+}
+function trackedExampleUrl(token: string): string {
+  return `${TRACKING_BASE_URL}/go/example/${token}`;
+}
+
+const CHAT_TEMPLATES: Record<number, (p: Prospect, token: string) => string> = {
+  1: (p, token) =>
+    `Hi ${p.name}! Noticed your excellent work on ${p.source}. I'm Vijay, admin for *gigKraft.com*—a local trust network for pros in ${p.primary_zip}. We build sovereign digital portfolios for independent contractors. No lead fees or hidden cuts—just your own verified link to show clients. It's *$24.99/mo* or *$249.99/yr* flat.\n\nSee a live example profile here: ${trackedExampleUrl(token)}\n\nIf you'd like to reserve your profile link, check it out here: ${trackedSignupUrl(token)}`,
+  2: (p, token) =>
+    `Hey ${p.name}, just following up! Local pros are loving *gigKraft.com* because they fully own their reviews and portfolio link, bypassing unpredictable platform algorithms. Great for dropping directly into your WhatsApp groups or Nextdoor replies.\n\nHere's an example of what your profile could look like: ${trackedExampleUrl(token)}\n\nSet up your verified local profile in 2 mins: ${trackedSignupUrl(token)}`,
+  3: (p, token) =>
+    `Hi ${p.name}, closing out your pending invite for now so I don't bug you. If you ever want to stand out to nearby homeowners with a clean profile for *$24.99/mo*, here's an example profile: ${trackedExampleUrl(token)}\n\nYou can unlock it anytime here: ${trackedSignupUrl(token)}. Wish you all the best!`,
 };
 
 function buildWaUrl(phone: string, text?: string | null): string {
@@ -155,14 +167,14 @@ function buildWaUrl(phone: string, text?: string | null): string {
   return text ? `${base}?text=${encodeURIComponent(text)}` : base;
 }
 
-function renderTemplate(body: string, p: Prospect): string {
+function renderTemplate(body: string, p: Prospect, token: string): string {
   return body
     .replace(/\{\{name\}\}/g, p.name)
     .replace(/\{\{source\}\}/g, p.source)
     .replace(/\{\{neighborhood\}\}/g, p.neighborhood || p.primary_zip || "")
     .replace(/\{\{primaryZip\}\}/g, p.primary_zip || "")
-    .replace(/\{\{signup_link\}\}/g, p.tracked_signup_url)
-    .replace(/\{\{example_link\}\}/g, p.tracked_example_url)
+    .replace(/\{\{signup_link\}\}/g, trackedSignupUrl(token))
+    .replace(/\{\{example_link\}\}/g, trackedExampleUrl(token))
     .replace(/\{\{contact_person\}\}/g, "Vijay")
     .replace(/\{\{business_name\}\}/g, "GigKraft")
     .replace(/\{\{prospect_id\}\}/g, p.prospect_id);
@@ -639,18 +651,20 @@ function ChatStepModal({
   onClose,
   onSent,
   templateBody,
+  linkToken,
 }: {
   prospect: Prospect;
   opened: boolean;
   onClose: () => void;
   onSent: (updated: Prospect) => void;
   templateBody?: string;
+  linkToken: string;
 }) {
   const nextStep =
     prospect.current_sequence_step === 0 ? 1 : Math.min(prospect.current_sequence_step + 1, 3);
   const text = templateBody
-    ? renderTemplate(templateBody, prospect)
-    : (CHAT_TEMPLATES[nextStep]?.(prospect) ?? "");
+    ? renderTemplate(templateBody, prospect, linkToken)
+    : (CHAT_TEMPLATES[nextStep]?.(prospect, linkToken) ?? "");
 
   const [confirming, setConfirming] = useState<ChatChannel | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -661,8 +675,9 @@ function ChatStepModal({
     setConfirming(channel);
     setError(null);
     try {
-      // Backend now stores the correct channel in the OutreachLog and journey
-      const updated = await advanceProspectStep(prospect.id, channel);
+      // Pass the same token the confirmed message text was built with, so the
+      // OutreachLog row matches the /go/example/ link the prospect will click.
+      const updated = await advanceProspectStep(prospect.id, channel, linkToken);
       localStorage.setItem(`gk-ch-${prospect.id}`, channel);
       onSent(updated);
       onClose();
@@ -1408,6 +1423,19 @@ function ProspectsTab() {
   const [editing, setEditing] = useState<Prospect | null>(null);
   const [deleting, setDeleting] = useState<number | null>(null);
   const [chatTarget, setChatTarget] = useState<Prospect | null>(null);
+  // Caches one link-click token per (prospect, step) so the message text a
+  // row previews/copies and the ChatStepModal confirmation it's later
+  // matched against always carry the same token.
+  const pendingTokensRef = useRef<Map<string, string>>(new Map());
+  const getPendingToken = (prospectId: number, step: number): string => {
+    const key = `${prospectId}-${step}`;
+    let token = pendingTokensRef.current.get(key);
+    if (!token) {
+      token = crypto.randomUUID();
+      pendingTokensRef.current.set(key, token);
+    }
+    return token;
+  };
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
@@ -1598,6 +1626,7 @@ function ProspectsTab() {
           prospect={chatTarget}
           opened
           templateBody={chatWaTemplate?.body}
+          linkToken={getPendingToken(chatTarget.id, chatNextStep)}
           onClose={() => setChatTarget(null)}
           onSent={(updated) => {
             setProspects((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
@@ -1739,7 +1768,7 @@ function ProspectsTab() {
                   const ns = p.current_sequence_step === 0 ? 1 : Math.min(p.current_sequence_step + 1, 3);
                   const waTmpl = waTemplates.find(t => t.kind === `sequence_${ns}`);
                   const emailTmpl = emailTemplates.find(t => t.kind === `sequence_${ns}`);
-                  const waMsg = waTmpl ? renderTemplate(waTmpl.body, p) : null;
+                  const waMsg = waTmpl ? renderTemplate(waTmpl.body, p, getPendingToken(p.id, ns)) : null;
                   const isActionable = ["prospect", "in_progress"].includes(p.status);
                   const days = daysSince(p.last_contacted_at);
                   const lastJourneyChannel = [...(p.journey ?? [])]

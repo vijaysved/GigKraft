@@ -337,6 +337,10 @@ export interface GkTrafficViewRow {
   visited_at: string;
   prospect_name?: string | null;
   prospect_id?: string | null;
+  prospect_email?: string | null;
+  prospect_phone?: string | null;
+  channel?: string | null;
+  sequence_step?: number | null;
 }
 
 export interface GkTrafficDetail {
@@ -883,10 +887,14 @@ export async function startProspectSequence(id: number): Promise<Prospect> {
   return data as Prospect;
 }
 
-export async function advanceProspectStep(id: number, channel: "whatsapp" | "sms" = "whatsapp"): Promise<Prospect> {
+export async function advanceProspectStep(
+  id: number,
+  channel: "whatsapp" | "sms" = "whatsapp",
+  linkClickToken?: string,
+): Promise<Prospect> {
   const { data, error, response } = await client.POST(
     `/api/prospects/${id}/advance-step` as never,
-    { body: { channel } } as never,
+    { body: { channel, link_click_token: linkClickToken } } as never,
   );
   if (!data) throw new ApiError(response.status, detailOf(error, "Failed to advance step."));
   return data as Prospect;
