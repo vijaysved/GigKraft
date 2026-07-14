@@ -90,7 +90,7 @@ def _build_pro_card(rp: ReferrerPro, follower: Optional[ReferrerFollower]) -> di
         is_licensed = False
         is_insured = False
         is_on_platform = False
-        is_pending = True
+        is_pending = invite.status == ProInvite.Status.PENDING if invite else False
 
     request_status = None
     tap_to_call = False
@@ -1089,9 +1089,12 @@ def update_pro(request, rp_id: int, payload: UpdateProIn):
 @router.delete("/me/pros/{rp_id}", response={204: None, 404: dict})
 def remove_pro(request, rp_id: int):
     profile = require_referrer(request)
-    deleted, _ = ReferrerPro.objects.filter(pk=rp_id, referrer=request.auth).delete()
-    if not deleted:
+    rp = ReferrerPro.objects.filter(pk=rp_id, referrer=request.auth).first()
+    if not rp:
         return 404, {"detail": "Not found."}
+    if rp.pro_invite_id and not rp.pro_id:
+        ProInvite.objects.filter(pk=rp.pro_invite_id).update(is_archived=True)
+    rp.delete()
     return 204, None
 
 
