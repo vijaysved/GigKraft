@@ -1604,6 +1604,7 @@ export async function createProInvite(payload: {
   note?: string;
   channel?: string;
   message?: string;
+  tags?: string[];
 }): Promise<{ invite_id: number; referrer_pro_id: number; token: string; referrer_slug: string }> {
   const { data, error, response } = await _post("/api/referrer/me/invite-pro", { body: payload });
   if (!data) throw new ApiError(response.status, detailOf(error, "Failed to create invite."));

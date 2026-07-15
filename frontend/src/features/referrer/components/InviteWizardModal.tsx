@@ -8,6 +8,7 @@ import {
   Modal,
   Stack,
   Stepper,
+  TagsInput,
   Text,
   TextInput,
 } from "@mantine/core";
@@ -20,6 +21,7 @@ import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 
 import { createCircleShare, createFriendInvite, createProInvite } from "../../../api/endpoints";
+import { toCamelTag } from "../../../utils/tags";
 import type { InviteScenario } from "../types";
 import {
   ChannelPicker, buildSmsLink, buildWaLink, htmlToPlainText, htmlToWhatsApp,
@@ -38,28 +40,34 @@ interface Recipient {
   /** Email address or phone number — auto-detected by presence of "@". */
   contact: string;
   channel: string;
+  tags: string[];
 }
 
-const EMPTY_RECIPIENT: Recipient = { name: "", trade: "", contact: "", channel: "whatsapp" };
+const EMPTY_RECIPIENT: Recipient = { name: "", trade: "", contact: "", channel: "whatsapp", tags: [] };
 
-const SCENARIO_META: Record<InviteScenario, { title: string; intro: string; multiRecipient: boolean; needsTrade: boolean }> = {
+const GENERIC_TAG_SUGGESTIONS = ["reliable", "licensed", "insured", "fastResponse", "affordable", "recommended"];
+
+const SCENARIO_META: Record<InviteScenario, { title: string; intro: string; multiRecipient: boolean; needsTrade: boolean; needsTags: boolean }> = {
   pro: {
     title: "Invite a Pro",
     intro: "Add someone to your trusted circle — they'll get a link to claim their free profile.",
     multiRecipient: false,
     needsTrade: false,
+    needsTags: true,
   },
   friend: {
     title: "Invite a Friend",
     intro: "Invite a neighbor or friend to follow your page so they can request referrals.",
     multiRecipient: false,
     needsTrade: false,
+    needsTags: false,
   },
   circle: {
     title: "Share My Circle",
     intro: "Share your page with people you want in your circle — add up to 10 at once.",
     multiRecipient: true,
     needsTrade: false,
+    needsTags: false,
   },
 };
 
@@ -86,6 +94,16 @@ const MESSAGE_TEMPLATES: Record<InviteScenario, string> = {
     "Here's my link to join: {{link}} 🙌",
   ].join("\n"),
 };
+
+/** Validates the combined "email or phone" field — email format if it looks like an email, else a min-length phone number. */
+function validateContact(v: string): string | null {
+  if (!v.trim()) return null;
+  if (isEmailContact(v)) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()) ? null : "Enter a valid email address.";
+  }
+  const digits = v.replace(/\D/g, "");
+  return digits.length >= 10 ? null : "Enter a valid phone number (min 10 digits).";
+}
 
 function resolveMessage(template: string, vars: { recipientName: string; senderName: string; link: string }) {
   return template
@@ -119,6 +137,7 @@ export function InviteWizardModal({ opened, onClose, scenario, slug, senderName,
     entries: Array<{ recipient: Recipient; message: string; channel: string }>;
   } | null>(null);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [contactErrors, setContactErrors] = useState<Record<number, string | null>>({});
 
   function copyMessage(i: number, text: string) {
     void navigator.clipboard.writeText(text).then(() => {
@@ -142,7 +161,7 @@ export function InviteWizardModal({ opened, onClose, scenario, slug, senderName,
   });
 
   function isValid(r: Recipient) {
-    return !!(r.name.trim() && r.contact.trim() && (!meta.needsTrade || r.trade));
+    return !!(r.name.trim() && r.contact.trim() && !validateContact(r.contact) && (!meta.needsTrade || r.trade));
   }
 
   const validRecipients = recipients.filter(isValid);
@@ -154,6 +173,7 @@ export function InviteWizardModal({ opened, onClose, scenario, slug, senderName,
     setMessageTouched(false);
     setError(null);
     setResult(null);
+    setContactErrors({});
     editor?.commands.setContent("");
   }
 
@@ -162,7 +182,7 @@ export function InviteWizardModal({ opened, onClose, scenario, slug, senderName,
     onClose();
   }
 
-  function updateRecipient(i: number, field: keyof Recipient, val: string) {
+  function updateRecipient(i: number, field: "name" | "trade" | "channel", val: string) {
     setRecipients((rs) => rs.map((r, idx) => (idx === i ? { ...r, [field]: val } : r)));
   }
 
@@ -170,6 +190,15 @@ export function InviteWizardModal({ opened, onClose, scenario, slug, senderName,
     setRecipients((rs) => rs.map((r, idx) =>
       idx === i ? { ...r, contact: val, channel: resolveChannel(val, r.channel) } : r
     ));
+    setContactErrors((errs) => ({ ...errs, [i]: null }));
+  }
+
+  function updateTags(i: number, tags: string[]) {
+    // Split defensively — Mantine's splitChars only fires on certain keystroke paths, so a
+    // fast-typed or pasted "#a #b" can still arrive here as one entry instead of two.
+    const flattened = tags.flatMap((t) => t.split(/\s+/));
+    const clean = [...new Set(flattened.map(toCamelTag).filter(Boolean))];
+    setRecipients((rs) => rs.map((r, idx) => (idx === i ? { ...r, tags: clean } : r)));
   }
 
   function addRecipient() {
@@ -215,6 +244,7 @@ export function InviteWizardModal({ opened, onClose, scenario, slug, senderName,
           const res = await createProInvite({
             name: r.name, phone: phone || undefined, email: email || undefined,
             channel: r.channel, message: plainMessage,
+            tags: r.tags.length ? r.tags : undefined,
           });
           token = res.token; referrerSlug = res.referrer_slug;
         } else if (scenario === "friend") {
@@ -359,7 +389,9 @@ export function InviteWizardModal({ opened, onClose, scenario, slug, senderName,
                   <TextInput
                     placeholder="Email or phone"
                     value={r.contact}
+                    error={contactErrors[i]}
                     onChange={(e) => updateContact(i, e.target.value)}
+                    onBlur={() => setContactErrors((errs) => ({ ...errs, [i]: validateContact(r.contact) }))}
                     size="sm"
                     style={{ flex: 1.2, minWidth: 140 }}
                   />
@@ -374,6 +406,18 @@ export function InviteWizardModal({ opened, onClose, scenario, slug, senderName,
                     </ActionIcon>
                   )}
                 </Group>
+                {meta.needsTags && (
+                  <TagsInput
+                    placeholder="#tag"
+                    description="Pick a suggestion, or type your own and hit enter or space"
+                    splitChars={[",", " "]}
+                    value={r.tags}
+                    onChange={(tags) => updateTags(i, tags)}
+                    data={GENERIC_TAG_SUGGESTIONS}
+                    size="sm"
+                    mt="xs"
+                  />
+                )}
               </Box>
             ))}
 

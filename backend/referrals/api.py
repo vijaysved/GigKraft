@@ -59,6 +59,18 @@ def _to_camel_tag(raw: str) -> str:
     return first.lower() + "".join(w[:1].upper() + w[1:].lower() for w in rest)
 
 
+def _normalize_tags(raw: list[str]) -> list[str]:
+    """Camel-case each tag and dedupe case-insensitively, preserving order."""
+    seen = set()
+    tags = []
+    for t in raw:
+        t = _to_camel_tag(t)
+        if t and t.lower() not in seen:
+            seen.add(t.lower())
+            tags.append(t)
+    return tags
+
+
 def _get_referrer_profile(slug: str) -> ReferrerProfile:
     profile = ReferrerProfile.objects.select_related("user").filter(slug=slug).first()
     if not profile:
@@ -451,6 +463,7 @@ class InviteProIn(Schema):
     note: Optional[str] = None
     channel: str = ""
     message: Optional[str] = None
+    tags: Optional[list[str]] = None
 
 
 class InviteProOut(Schema):
@@ -1116,14 +1129,7 @@ def update_pro(request, rp_id: int, payload: UpdateProIn):
     if "endorsement" in data:
         rp.endorsement = data["endorsement"]
     if "tags" in data:
-        seen = set()
-        tags = []
-        for t in data["tags"]:
-            t = _to_camel_tag(t)
-            if t and t.lower() not in seen:
-                seen.add(t.lower())
-                tags.append(t)
-        rp.tags = tags
+        rp.tags = _normalize_tags(data["tags"])
     if "show_on_page" in data:
         rp.show_on_page = data["show_on_page"]
     rp.save()
@@ -1174,6 +1180,7 @@ def invite_pro(request, payload: InviteProIn):
         referrer=request.auth,
         pro_invite=invite,
         display_order=max_order,
+        tags=_normalize_tags(payload.tags) if payload.tags else [],
     )
 
     return 201, {
