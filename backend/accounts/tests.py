@@ -6,6 +6,7 @@ from django.test import Client, TestCase
 
 from accounts.models import HomeownerProfile, NotificationPref, ProProfile, SavedPro, User
 from accounts.tokens import create_access_token
+from common.phone import normalize_phone
 from emergencies.models import BroadcastDispatch
 from krafts.models import Kraft
 from leads.models import Lead
@@ -125,7 +126,7 @@ class OtpMockAuthTests(ApiTestCase):
             {"phone": "+15550001111", "code": "123456", "role": "pro"},
         )
         self.assertEqual(resp.status_code, 200, resp.content)
-        user = User.objects.get(phone="+15550001111")
+        user = User.objects.get(phone=normalize_phone("+15550001111"))
         self.assertEqual(user.role, "pro")
         self.assertTrue(ProProfile.objects.filter(user=user).exists())
 
@@ -135,7 +136,7 @@ class OtpMockAuthTests(ApiTestCase):
             {"phone": "+15550002222", "code": "123456", "role": "homeowner"},
         )
         self.assertEqual(resp.status_code, 200, resp.content)
-        user = User.objects.get(phone="+15550002222")
+        user = User.objects.get(phone=normalize_phone("+15550002222"))
         self.assertTrue(HomeownerProfile.objects.filter(user=user).exists())
 
     def test_otp_verify_bad_code(self):

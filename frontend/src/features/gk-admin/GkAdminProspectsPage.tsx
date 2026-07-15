@@ -1626,6 +1626,9 @@ function ProspectsTab() {
           prospect={chatTarget}
           opened
           templateBody={chatWaTemplate?.body}
+          // getPendingToken is an idempotent lazy-cache lookup (returns the same
+          // token for a given prospect+step once generated) — safe during render.
+          // eslint-disable-next-line react-hooks/refs
           linkToken={getPendingToken(chatTarget.id, chatNextStep)}
           onClose={() => setChatTarget(null)}
           onSent={(updated) => {
@@ -1762,6 +1765,9 @@ function ProspectsTab() {
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
+                {/* getPendingToken (used below via waMsg) is an idempotent lazy-cache
+                    lookup keyed by prospect+step — same token every call, safe during render. */}
+                {/* eslint-disable-next-line react-hooks/refs */}
                 {pageItems.map((p) => {
                   const isActionLoading = actionLoading === p.id;
                   const isDeleting = deleting === p.id;

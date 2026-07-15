@@ -433,7 +433,13 @@ export function ContactDetailPage() {
                 size="sm"
                 splitChars={[",", " "]}
                 value={draft.tags}
-                onChange={(tags) => setDraft((d) => ({ ...d, tags: [...new Set(tags.map(toCamelTag).filter(Boolean))] }))}
+                onChange={(tags) => {
+                  // Split defensively on our end too — Mantine's splitChars only fires on
+                  // certain keystroke paths, so a fast-typed or pasted "#a #b" can still
+                  // arrive here as one entry instead of two.
+                  const flattened = tags.flatMap((t) => t.split(/\s+/));
+                  setDraft((d) => ({ ...d, tags: [...new Set(flattened.map(toCamelTag).filter(Boolean))] }));
+                }}
                 data={tagData}
               />
             )}
