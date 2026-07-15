@@ -21,7 +21,7 @@ interface Props {
   onJoined: () => void;
 }
 
-type Step = "start" | "otp" | "name" | "joining" | "done";
+type Step = "start" | "otp" | "name" | "joining" | "retry" | "done" | "pending";
 
 export function JoinCommunityModal({ opened, onClose, slug, communityName, coverImageUrl, theme, onJoined }: Props) {
   const { loginWithPhoneOtp, loginWithGoogle, updateUser } = useAuth();
@@ -54,13 +54,13 @@ export function JoinCommunityModal({ opened, onClose, slug, communityName, cover
     setError(null);
     try {
       const res = await communityFetch(`/api/communities/${slug}/join`, { method: "POST" });
-      const data = await res.json() as { detail?: string };
+      const data = await res.json() as { status?: string; detail?: string };
       if (!res.ok) throw new Error(data.detail ?? "Could not join this Community.");
-      setStep("done");
+      setStep(data.status === "pending" ? "pending" : "done");
       onJoined();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong.");
-      setStep("name");
+      setStep("retry");
     }
   }
 
@@ -101,8 +101,12 @@ export function JoinCommunityModal({ opened, onClose, slug, communityName, cover
 
   async function joinWithGoogle(idToken: string) {
     setError(null);
-    const { user } = await loginWithGoogle(idToken, "member");
-    await afterAuth(user);
+    try {
+      const { user } = await loginWithGoogle(idToken, "member");
+      await afterAuth(user);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Google sign-in failed.");
+    }
   }
 
   async function confirmName() {
@@ -212,10 +216,29 @@ export function JoinCommunityModal({ opened, onClose, slug, communityName, cover
           <Center py="md"><Text size="sm" c="dimmed">Joining {communityName}…</Text></Center>
         )}
 
+        {step === "retry" && (
+          <Stack gap="xs" align="center">
+            <Text size="sm" c="dimmed" ta="center">You're signed in — we just couldn't finish joining {communityName}.</Text>
+            <Button fullWidth size="xs" radius="xl" style={{ background: "var(--gk-accent-secondary)", color: "#fff" }} onClick={() => void finishJoining()}>
+              Try Again
+            </Button>
+          </Stack>
+        )}
+
         {step === "done" && (
           <Stack gap="sm">
             <Text ta="center" c="green">You're in! Welcome to {communityName}.</Text>
             <Button fullWidth size="xs" radius="xl" style={{ background: "var(--gk-accent-secondary)", color: "#fff" }} onClick={handleClose}>Done</Button>
+          </Stack>
+        )}
+
+        {step === "pending" && (
+          <Stack gap="sm">
+            <Text ta="center" fw={600}>Request sent!</Text>
+            <Text ta="center" size="sm" c="dimmed">
+              The owner of {communityName} needs to approve your request before you're a Member. We'll let you know.
+            </Text>
+            <Button fullWidth size="xs" radius="xl" style={{ background: "var(--gk-accent-secondary)", color: "#fff" }} onClick={handleClose}>Got it</Button>
           </Stack>
         )}
 

@@ -70,5 +70,19 @@ export function useCommunityMembers() {
     await refetch();
   }
 
-  return { members, loading, refetch, addMembers, uploadCsv, resendInvite, removeMember, setRole };
+  async function approveMember(memberId: number) {
+    const res = await communityFetch(`/api/me/community/members/${memberId}/approve`, { method: "POST" });
+    const body = await res.json() as { detail?: string };
+    if (!res.ok) throw new Error(body.detail ?? "Could not approve this request.");
+    await refetch();
+  }
+
+  async function declineMember(memberId: number) {
+    const res = await communityFetch(`/api/me/community/members/${memberId}/decline`, { method: "POST" });
+    const body = await res.json() as { detail?: string };
+    if (!res.ok) throw new Error(body.detail ?? "Could not decline this request.");
+    await refetch();
+  }
+
+  return { members, loading, refetch, addMembers, uploadCsv, resendInvite, removeMember, setRole, approveMember, declineMember };
 }

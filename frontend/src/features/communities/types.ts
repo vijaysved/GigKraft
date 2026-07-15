@@ -45,7 +45,7 @@ export interface CommunityOut {
   member_count: number;
   page_views: number;
   link_copy_count: number;
-  viewer_status: "owner" | "moderator" | "member" | "none" | null;
+  viewer_status: "owner" | "moderator" | "member" | "pending" | "none" | null;
   pros: CommunityProOut[];
 }
 
@@ -54,7 +54,7 @@ export interface CommunityMemberOut {
   name: string;
   phone: string;
   email: string;
-  status: "invited" | "joined" | "declined";
+  status: "invited" | "pending" | "joined" | "declined";
   role: "member" | "moderator";
   click_count: number;
   invited_at: string;

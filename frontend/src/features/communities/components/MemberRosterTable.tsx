@@ -6,6 +6,7 @@ import type { CommunityMemberOut } from "../types";
 
 const STATUS_COLOR: Record<string, string> = {
   invited: "orange",
+  pending: "yellow",
   joined: "green",
   declined: "gray",
 };
@@ -16,9 +17,11 @@ interface Props {
   onResend: (id: number) => void;
   onRemove: (id: number) => void;
   onSetRole: (id: number, role: "moderator" | "member") => void;
+  onApprove: (id: number) => void;
+  onDecline: (id: number) => void;
 }
 
-export function MemberRosterTable({ members, viewerRole, onResend, onRemove, onSetRole }: Props) {
+export function MemberRosterTable({ members, viewerRole, onResend, onRemove, onSetRole, onApprove, onDecline }: Props) {
   if (members.length === 0) {
     return <Text size="sm" c="dimmed">No members yet — add your first member above.</Text>;
   }
@@ -55,6 +58,12 @@ export function MemberRosterTable({ members, viewerRole, onResend, onRemove, onS
                   <Button variant="subtle" size="xs" px={6}><IconDots size={16} /></Button>
                 </Menu.Target>
                 <Menu.Dropdown>
+                  {m.status === "pending" && (
+                    <>
+                      <Menu.Item onClick={() => onApprove(m.id)}>Approve</Menu.Item>
+                      <Menu.Item onClick={() => onDecline(m.id)}>Decline</Menu.Item>
+                    </>
+                  )}
                   {m.status === "invited" && (
                     <Menu.Item onClick={() => onResend(m.id)}>Resend Invite</Menu.Item>
                   )}

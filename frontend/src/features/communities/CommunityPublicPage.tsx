@@ -2,6 +2,7 @@ import {
   Alert,
   Avatar,
   Badge,
+  Box,
   Center,
   Container,
   Group,
@@ -367,6 +368,12 @@ export function CommunityPublicPage() {
                 Join This Community
               </button>
             )}
+
+            {data.viewer_status === "pending" && (
+              <Badge color="yellow" variant="light" size="lg" radius="xl" style={{ textTransform: "none" }}>
+                Request Pending
+              </Badge>
+            )}
           </Group>
         </div>
 
@@ -377,9 +384,10 @@ export function CommunityPublicPage() {
         )}
 
         <Group align="flex-start" gap="lg" wrap="wrap">
-          {/* ── Left: filters — a scrollable line running top to bottom ── */}
+          {/* ── Left: filters — a scrollable line running top to bottom (hidden on mobile) ── */}
           {(uniqueTrades.length > 0 || uniqueTags.length > 0) && (
-            <div
+            <Box
+              visibleFrom="sm"
               className="gk-slick-scroll"
               style={{
                 width: 220,
@@ -442,7 +450,7 @@ export function CommunityPublicPage() {
                   );
                 })}
               </div>
-            </div>
+            </Box>
           )}
 
           {/* ── Right: Search + pros grid ── */}

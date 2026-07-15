@@ -171,8 +171,9 @@ export function CommunityDashboardPage() {
   const [searchParams] = useSearchParams();
   const defaultTab = searchParams.get("tab") ?? "members";
   const { data: community, loading, notFound, refetch } = useMyCommunity();
-  const { members, addMembers, uploadCsv, resendInvite, removeMember, setRole } = useCommunityMembers();
+  const { members, addMembers, uploadCsv, resendInvite, removeMember, setRole, approveMember, declineMember } = useCommunityMembers();
   const [addOpen, setAddOpen] = useState(false);
+  const pendingCount = members.filter((m) => m.status === "pending").length;
 
   // Only show the full-page loader on first load — not on every refetch()
   // after a save, which would otherwise unmount the Tabs and bounce the
@@ -230,7 +231,13 @@ export function CommunityDashboardPage() {
 
       <Tabs defaultValue={defaultTab} keepMounted={false}>
         <Tabs.List mb="md">
-          <Tabs.Tab value="members" leftSection={<IconUsers size={15} />}>Members</Tabs.Tab>
+          <Tabs.Tab
+            value="members"
+            leftSection={<IconUsers size={15} />}
+            rightSection={pendingCount > 0 ? <Badge size="xs" circle color="yellow">{pendingCount}</Badge> : undefined}
+          >
+            Members
+          </Tabs.Tab>
           <Tabs.Tab value="pros" leftSection={<IconBriefcase size={15} />}>Pro List</Tabs.Tab>
           <Tabs.Tab value="analytics" leftSection={<IconChartBar size={15} />}>Analytics</Tabs.Tab>
           {isOwner && <Tabs.Tab value="settings" leftSection={<IconSettings size={15} />}>Settings</Tabs.Tab>}
@@ -249,6 +256,8 @@ export function CommunityDashboardPage() {
               onResend={(id) => void resendInvite(id).catch((e: Error) => alert(e.message))}
               onRemove={(id) => { if (confirm("Remove this member?")) void removeMember(id).catch((e: Error) => alert(e.message)); }}
               onSetRole={(id, role) => void setRole(id, role).catch((e: Error) => alert(e.message))}
+              onApprove={(id) => void approveMember(id).catch((e: Error) => alert(e.message))}
+              onDecline={(id) => void declineMember(id).catch((e: Error) => alert(e.message))}
             />
           </Stack>
         </Tabs.Panel>

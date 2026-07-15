@@ -75,6 +75,7 @@ class Community(models.Model):
 class CommunityMember(models.Model):
     class Status(models.TextChoices):
         INVITED = "invited", "Invited"
+        PENDING = "pending", "Pending Approval"
         JOINED = "joined", "Joined"
         DECLINED = "declined", "Declined"
 

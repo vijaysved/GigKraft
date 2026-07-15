@@ -71,7 +71,7 @@ class CommunityOut(Schema):
     member_count: int = 0
     page_views: int = 0
     link_copy_count: int = 0
-    viewer_status: Optional[str] = None  # None=anon, "none"|"member"|"moderator"|"owner"
+    viewer_status: Optional[str] = None  # None=anon, "none"|"pending"|"member"|"moderator"|"owner"
     pros: list[CommunityProOut] = []
 
 
@@ -317,11 +317,11 @@ def _viewer_status(community: Community, user) -> Optional[str]:
         return None
     if user.pk == community.lead_id:
         return "owner"
-    membership = CommunityMember.objects.filter(
-        community=community, user=user, status=CommunityMember.Status.JOINED
-    ).first()
-    if membership:
+    membership = CommunityMember.objects.filter(community=community, user=user).first()
+    if membership and membership.status == CommunityMember.Status.JOINED:
         return membership.role  # "member" | "moderator"
+    if membership and membership.status == CommunityMember.Status.PENDING:
+        return "pending"
     return "none"
 
 
@@ -572,9 +572,12 @@ def join_community(request, slug: str, token: str, payload: JoinIn):
 
 @public_router.post("/{slug}/join", response={200: dict, 400: ErrorOut, 404: ErrorOut}, auth=jwt_auth)
 def join_community_self(request, slug: str):
-    """Self-serve join for an already-authenticated visitor — no invite token required.
+    """Self-serve join request for an already-authenticated visitor — no invite token required.
 
-    Distinct from POST /{slug}/join/{token} above, which is for pre-known invitees.
+    Distinct from POST /{slug}/join/{token} above, which is for pre-known invitees the
+    owner already added to the directory (and therefore already vetted) — those still
+    auto-join. A brand-new self-serve request instead lands as PENDING until the
+    owner/moderator approves it via POST /me/community/members/{id}/approve.
     """
     community = _get_community_or_404(slug)
     if community.is_read_only:
@@ -584,18 +587,30 @@ def join_community_self(request, slug: str):
         return 400, {"detail": "You already own this Community."}
 
     member = CommunityMember.objects.filter(community=community, user=user).first()
+    pre_vetted = False
     if not member and user.phone:
         member = CommunityMember.objects.filter(community=community, phone=user.phone, user__isnull=True).first()
+        pre_vetted = member is not None
     if not member and user.email:
         member = CommunityMember.objects.filter(community=community, email=user.email, user__isnull=True).first()
+        pre_vetted = member is not None
 
-    just_joined = not member or member.status != CommunityMember.Status.JOINED
     name = f"{user.first_name} {user.last_name}".strip() or user.phone or user.email or "Member"
+
+    if member and member.status == CommunityMember.Status.JOINED:
+        return 200, {"status": member.status}
+    if member and member.status == CommunityMember.Status.PENDING:
+        return 200, {"status": member.status}
+
+    # Owner-added invitees (status=INVITED, added via Add Members) are already vetted —
+    # let them straight in. Everyone else (new or previously-declined) needs approval.
+    target_status = CommunityMember.Status.JOINED if pre_vetted else CommunityMember.Status.PENDING
 
     if member:
         member.user = user
-        member.status = CommunityMember.Status.JOINED
-        member.joined_at = member.joined_at or timezone.now()
+        member.status = target_status
+        if target_status == CommunityMember.Status.JOINED:
+            member.joined_at = member.joined_at or timezone.now()
         if not member.name:
             member.name = name
         member.save(update_fields=["user", "status", "joined_at", "name"])
@@ -606,12 +621,12 @@ def join_community_self(request, slug: str):
             name=name,
             phone=user.phone or "",
             email=user.email or "",
-            status=CommunityMember.Status.JOINED,
+            status=target_status,
             role=CommunityMember.Role.MEMBER,
-            joined_at=timezone.now(),
+            joined_at=timezone.now() if target_status == CommunityMember.Status.JOINED else None,
         )
 
-    if just_joined:
+    if target_status == CommunityMember.Status.JOINED:
         _log_invite_event(InviteEvent.Scenario.COMMUNITY_MEMBER, member.pk, InviteEvent.EventType.JOINED)
         notify.notify_user(community.lead, f"{member.name} joined {community.name}!")
         CommunityAnalyticsEvent.objects.create(
@@ -619,6 +634,9 @@ def join_community_self(request, slug: str):
             event_type=CommunityAnalyticsEvent.EventType.MEMBER_JOINED,
             metadata={"member_id": member.pk},
         )
+    else:
+        notify.notify_user(community.lead, f"{member.name} wants to join {community.name} — review their request.")
+
     return 200, {"status": member.status}
 
 
@@ -975,6 +993,41 @@ def remove_member(request, member_id: int):
         return 404, {"detail": "Member not found."}
     member.delete()
     return 204, None
+
+
+@me_router.post("/members/{member_id}/approve", response={200: CommunityMemberOut, 404: ErrorOut})
+def approve_member(request, member_id: int):
+    community, _role = _managed_community(request)
+    member = CommunityMember.objects.filter(
+        pk=member_id, community=community, status=CommunityMember.Status.PENDING
+    ).first()
+    if not member:
+        return 404, {"detail": "Pending request not found."}
+    member.status = CommunityMember.Status.JOINED
+    member.joined_at = timezone.now()
+    member.save(update_fields=["status", "joined_at"])
+
+    _log_invite_event(InviteEvent.Scenario.COMMUNITY_MEMBER, member.pk, InviteEvent.EventType.JOINED)
+    notify.notify_user(member.user or request.auth, f"You're in! {request.auth.first_name} approved your request to join {community.name}.")
+    CommunityAnalyticsEvent.objects.create(
+        community=community,
+        event_type=CommunityAnalyticsEvent.EventType.MEMBER_JOINED,
+        metadata={"member_id": member.pk},
+    )
+    return 200, _serialize_member(member)
+
+
+@me_router.post("/members/{member_id}/decline", response={200: CommunityMemberOut, 404: ErrorOut})
+def decline_member(request, member_id: int):
+    community, _role = _managed_community(request)
+    member = CommunityMember.objects.filter(
+        pk=member_id, community=community, status=CommunityMember.Status.PENDING
+    ).first()
+    if not member:
+        return 404, {"detail": "Pending request not found."}
+    member.status = CommunityMember.Status.DECLINED
+    member.save(update_fields=["status"])
+    return 200, _serialize_member(member)
 
 
 @me_router.post("/members/{member_id}/role", response={200: CommunityMemberOut, 400: ErrorOut, 404: ErrorOut})
