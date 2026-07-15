@@ -573,6 +573,8 @@ export interface ReferrerMeOut {
     bio: string;
     default_zip: string;
     page_url: string;
+    short_url: string;
+    link_click_count: number;
     slug_locked: boolean;
     notify_email: boolean;
     notify_sms: boolean;
@@ -680,7 +682,7 @@ export async function patchReferrerProfile(patch: {
   avatar_url?: string;
   notify_email?: boolean;
   notify_sms?: boolean;
-}): Promise<{ ok: boolean; status: number; page_url?: string; slug_locked?: boolean; detail?: string; suggestion?: string }> {
+}): Promise<{ ok: boolean; status: number; page_url?: string; short_url?: string; slug_locked?: boolean; detail?: string; suggestion?: string }> {
   const { data, error, response } = await client.PATCH("/api/referrer/me/profile" as never, {
     body: patch,
   } as never);
@@ -689,6 +691,7 @@ export async function patchReferrerProfile(patch: {
     ok: response.ok,
     status: response.status,
     page_url: body.page_url as string | undefined,
+    short_url: body.short_url as string | undefined,
     slug_locked: body.slug_locked as boolean | undefined,
     detail: body.detail as string | undefined,
     suggestion: body.suggestion as string | undefined,

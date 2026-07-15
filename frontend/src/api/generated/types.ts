@@ -6085,6 +6085,13 @@ export interface components {
             default_zip: string;
             /** Page Url */
             page_url: string;
+            /** Short Url */
+            short_url: string;
+            /**
+             * Link Click Count
+             * @default 0
+             */
+            link_click_count: number;
             /**
              * Slug Locked
              * @default false
@@ -6723,6 +6730,10 @@ export interface components {
             phone?: string | null;
             /** Email */
             email?: string | null;
+            /** Short Url */
+            short_url: string;
+            /** Link Click Count */
+            link_click_count?: number | null;
         };
         /** FollowOut */
         FollowOut: {

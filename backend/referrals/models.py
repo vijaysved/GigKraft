@@ -13,6 +13,14 @@ def _generate_token():
     return secrets.token_urlsafe(11)  # 15-char mixed-case URL-safe
 
 
+# Excludes visually-confusable characters (0/O, 1/l/I).
+_SHORT_CODE_ALPHABET = "abcdefghijkmnpqrstuvwxyz23456789"
+
+
+def _generate_short_code(length: int = 6) -> str:
+    return "".join(secrets.choice(_SHORT_CODE_ALPHABET) for _ in range(length))
+
+
 def _hash_otp(code: str) -> str:
     return hashlib.sha256(code.encode()).hexdigest()
 
@@ -27,6 +35,8 @@ class ReferrerProfile(models.Model):
     default_zip = models.CharField(max_length=10, blank=True, default="")
     referral_count = models.PositiveIntegerField(default=0)
     follower_count = models.PositiveIntegerField(default=0)
+    short_code = models.CharField(max_length=10, unique=True, db_index=True, blank=True, default="")
+    short_link_click_count = models.PositiveIntegerField(default=0)
     slug_locked = models.BooleanField(default=False)
     notify_email = models.BooleanField(default=True)
     notify_sms = models.BooleanField(default=False)
@@ -50,9 +60,17 @@ class ReferrerProfile(models.Model):
             suffix += 1
         return slug
 
+    def _generate_short_code(self) -> str:
+        code = _generate_short_code()
+        while ReferrerProfile.objects.exclude(pk=self.pk).filter(short_code=code).exists():
+            code = _generate_short_code()
+        return code
+
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = self._generate_slug()
+        if not self.short_code:
+            self.short_code = self._generate_short_code()
         super().save(*args, **kwargs)
 
 

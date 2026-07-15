@@ -5,8 +5,10 @@ import {
   Card,
   Divider,
   Group,
+  Popover,
   Stack,
   Text,
+  TextInput,
 } from "@mantine/core";
 import {
   IconBrandWhatsapp,
@@ -37,6 +39,7 @@ interface Props {
   isFollower: boolean;
   isAuthenticated: boolean;
   isOwner: boolean;
+  shareUrl: string;
   onNeedFollow: () => void;
   highlightedProId?: number;
   claimToken?: string;
@@ -81,6 +84,49 @@ function ShareIconBtn({
   );
 }
 
+/** One-line note input shown in the share popovers — prepended to the top of the shared message */
+function ShareNoteForm({
+  note,
+  onNoteChange,
+  onConfirm,
+  confirmLabel,
+}: {
+  note: string;
+  onNoteChange: (v: string) => void;
+  onConfirm: () => void;
+  confirmLabel: string;
+}) {
+  return (
+    <Stack gap={6}>
+      <TextInput
+        size="xs"
+        placeholder="Add a one-line note (optional)"
+        value={note}
+        onChange={(e) => onNoteChange(e.currentTarget.value)}
+        autoFocus
+        onKeyDown={(e) => { if (e.key === "Enter") onConfirm(); }}
+      />
+      <button
+        type="button"
+        onClick={onConfirm}
+        style={{
+          padding: "5px 12px",
+          background: "var(--gk-brand-gradient)",
+          color: "#fff",
+          border: "none",
+          borderRadius: 99,
+          fontSize: 12,
+          fontWeight: 700,
+          cursor: "pointer",
+          fontFamily: "inherit",
+        }}
+      >
+        {confirmLabel}
+      </button>
+    </Stack>
+  );
+}
+
 /** Partially masks a phone number, e.g. "(925) 555-1234" -> "(925) ***-1234" */
 function maskPhone(phone: string): string {
   const digits = phone.replace(/\D/g, "");
@@ -109,6 +155,7 @@ export function ReferrerProCard({
   isFollower,
   isAuthenticated,
   isOwner,
+  shareUrl,
   onNeedFollow,
   highlightedProId,
   claimToken,
@@ -118,6 +165,8 @@ export function ReferrerProCard({
   const [claiming, setClaiming] = useState(false);
   const hasRealAvatar = !!pro.avatar_url;
   const [copied, setCopied] = useState(false);
+  const [notePopover, setNotePopover] = useState<"whatsapp" | "sms" | "copy" | null>(null);
+  const [note, setNote] = useState("");
 
   const isHighlighted = !!highlightedProId && pro.id === highlightedProId && pro.is_pending;
 
@@ -154,32 +203,37 @@ export function ReferrerProCard({
   }
 
   function buildShareText(): string {
-    // Canonical gigkraft.com URL — Vercel proxies bot/crawler user-agents on this path
-    // to the backend social-preview endpoint, so link previews still show the
-    // referrer's real profile pic even though this is the plain frontend URL.
-    const shareUrl = `https://gigkraft.com/us/${slug}/refer`;
-    const lines: string[] = [`👋 ${pro.name}${pro.trade ? ` — ${pro.trade}` : ""}`];
+    const lines: string[] = [];
+    if (note.trim()) lines.push(note.trim(), "");
+    lines.push(`👋 ${pro.name}${pro.trade ? ` — ${pro.trade}` : ""}`);
     if (pro.phone) lines.push(`📞 ${formatPhone(pro.phone)}`);
     if (pro.email) lines.push(`✉️ ${pro.email}`);
     if (pro.endorsement) lines.push(`"${pro.endorsement}" — ${referrerName}`);
     lines.push("", `👀 Check out all of ${referrerName}'s trusted pros: ${shareUrl}`);
-    lines.push("", `Recommended by ${referrerName} on GigKraft`);
     return lines.join("\n");
   }
 
-  function openWhatsAppShare() {
+  function closeNotePopover() {
+    setNotePopover(null);
+    setNote("");
+  }
+
+  function confirmWhatsAppShare() {
     window.open(`https://wa.me/?text=${encodeURIComponent(buildShareText())}`, "_blank", "noopener,noreferrer");
+    closeNotePopover();
   }
 
-  function openSmsShare() {
+  function confirmSmsShare() {
     window.open(`sms:?body=${encodeURIComponent(buildShareText())}`, "_blank", "noopener,noreferrer");
+    closeNotePopover();
   }
 
-  function handleCopyShareText() {
+  function confirmCopyShareText() {
     void navigator.clipboard.writeText(buildShareText()).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
+    closeNotePopover();
   }
 
   const cardStyle = {
@@ -319,19 +373,60 @@ export function ReferrerProCard({
 
             {isOwner && (
               <Group gap={6} mt={4}>
-                <ShareIconBtn label="Share on WhatsApp" onClick={openWhatsAppShare} color="#25D366">
-                  <IconBrandWhatsapp size={14} />
-                </ShareIconBtn>
-                <ShareIconBtn label="Share via Text" onClick={openSmsShare} color="var(--gk-accent-primary)">
-                  <IconMessage size={14} />
-                </ShareIconBtn>
-                <ShareIconBtn
-                  label={copied ? "Copied!" : "Copy contact info"}
-                  onClick={handleCopyShareText}
-                  color={copied ? "var(--mantine-color-green-6)" : "var(--gk-accent-primary)"}
+                <Popover
+                  opened={notePopover === "whatsapp"}
+                  onChange={(v) => setNotePopover(v ? "whatsapp" : null)}
+                  withArrow position="bottom" width={240} shadow="md"
                 >
-                  {copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
-                </ShareIconBtn>
+                  <Popover.Target>
+                    <span>
+                      <ShareIconBtn label="Share on WhatsApp" onClick={() => setNotePopover("whatsapp")} color="#25D366">
+                        <IconBrandWhatsapp size={14} />
+                      </ShareIconBtn>
+                    </span>
+                  </Popover.Target>
+                  <Popover.Dropdown>
+                    <ShareNoteForm note={note} onNoteChange={setNote} onConfirm={confirmWhatsAppShare} confirmLabel="Open WhatsApp" />
+                  </Popover.Dropdown>
+                </Popover>
+
+                <Popover
+                  opened={notePopover === "sms"}
+                  onChange={(v) => setNotePopover(v ? "sms" : null)}
+                  withArrow position="bottom" width={240} shadow="md"
+                >
+                  <Popover.Target>
+                    <span>
+                      <ShareIconBtn label="Share via Text" onClick={() => setNotePopover("sms")} color="var(--gk-accent-primary)">
+                        <IconMessage size={14} />
+                      </ShareIconBtn>
+                    </span>
+                  </Popover.Target>
+                  <Popover.Dropdown>
+                    <ShareNoteForm note={note} onNoteChange={setNote} onConfirm={confirmSmsShare} confirmLabel="Open Text" />
+                  </Popover.Dropdown>
+                </Popover>
+
+                <Popover
+                  opened={notePopover === "copy"}
+                  onChange={(v) => setNotePopover(v ? "copy" : null)}
+                  withArrow position="bottom" width={240} shadow="md"
+                >
+                  <Popover.Target>
+                    <span>
+                      <ShareIconBtn
+                        label={copied ? "Copied!" : "Copy contact info"}
+                        onClick={() => setNotePopover("copy")}
+                        color={copied ? "var(--mantine-color-green-6)" : "var(--gk-accent-primary)"}
+                      >
+                        {copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
+                      </ShareIconBtn>
+                    </span>
+                  </Popover.Target>
+                  <Popover.Dropdown>
+                    <ShareNoteForm note={note} onNoteChange={setNote} onConfirm={confirmCopyShareText} confirmLabel="Copy" />
+                  </Popover.Dropdown>
+                </Popover>
               </Group>
             )}
           </Stack>

@@ -6,7 +6,8 @@ Real users get an instant JS + meta-refresh redirect to the frontend SPA.
 import html
 import os
 
-from django.http import HttpResponse
+from django.db.models import F
+from django.http import HttpResponse, HttpResponseRedirect
 from django.views.decorators.cache import cache_control
 from django.views.decorators.http import require_GET
 
@@ -89,3 +90,25 @@ def referrer_social_preview(request, slug: str) -> HttpResponse:
 </html>"""
 
     return HttpResponse(og_html, content_type="text/html; charset=utf-8")
+
+
+@require_GET
+def referrer_short_link(request, code: str) -> HttpResponseRedirect:
+    """Short `/r/<code>` alias for a referrer's page. Counts real clicks (not bot
+    preview fetches), then hands off to `/us/<slug>/refer`, which the bot-only
+    Vercel rewrite routes back to `referrer_social_preview` above for OG tags —
+    so link-preview crawlers following this redirect still see the real photo.
+    """
+    profile = ReferrerProfile.objects.filter(short_code=code).first()
+    if profile is None:
+        return HttpResponseRedirect(FRONTEND_URL)
+
+    if not _is_bot(request):
+        ReferrerProfile.objects.filter(pk=profile.pk).update(
+            short_link_click_count=F("short_link_click_count") + 1
+        )
+
+    target = f"{FRONTEND_URL}/us/{profile.slug}/refer"
+    if request.META.get("QUERY_STRING"):
+        target = f"{target}?{request.META['QUERY_STRING']}"
+    return HttpResponseRedirect(target)

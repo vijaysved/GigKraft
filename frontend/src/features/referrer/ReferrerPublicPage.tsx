@@ -336,12 +336,12 @@ export function ReferrerPublicPage() {
 
   const isFollower = !!followerState;
   const avatarSrc = page.avatar_url || fallbackAvatar(page.slug);
-  // Canonical gigkraft.com URL — Vercel proxies bot/crawler user-agents on this path to the
-  // backend social-preview endpoint, so link previews still show the real profile pic.
-  const pageUrl = `https://gigkraft.com/us/${slug}/refer`;
+  // Short, click-tracked link (/r/<code>) — redirects to the canonical /us/:slug/refer
+  // URL, which the bot-only Vercel rewrite still routes to the backend for OG tags.
+  const shareUrl = page.short_url;
 
   function handleCopyUrl() {
-    void navigator.clipboard.writeText(pageUrl).then(() => {
+    void navigator.clipboard.writeText(shareUrl).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
@@ -359,7 +359,7 @@ export function ReferrerPublicPage() {
       `👥 ${page!.follower_count} follower${page!.follower_count !== 1 ? "s" : ""}`,
       `📋 ${page!.referral_count} referral${page!.referral_count !== 1 ? "s" : ""} sent`,
     );
-    lines.push("", `🔗 ${pageUrl}`);
+    lines.push("", `🔗 ${shareUrl}`);
 
     const msg = encodeURIComponent(lines.join("\n"));
     window.open(`https://wa.me/?text=${msg}`, "_blank", "noopener,noreferrer");
@@ -724,6 +724,7 @@ export function ReferrerPublicPage() {
                   isFollower={isFollower}
                   isAuthenticated={isAuthenticated}
                   isOwner={isOwner}
+                  shareUrl={shareUrl}
                   onNeedFollow={() => setFollowOpen(true)}
                   highlightedProId={highlightedProId ?? undefined}
                   claimToken={claimToken || undefined}

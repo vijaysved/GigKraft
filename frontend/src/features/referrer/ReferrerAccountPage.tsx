@@ -23,6 +23,8 @@ import {
   IconBell,
   IconBrandGoogle,
   IconCamera,
+  IconCheck,
+  IconCopy,
   IconExternalLink,
   IconInbox,
   IconLock,
@@ -108,6 +110,9 @@ export function ReferrerAccountPage() {
   const [bio, setBio] = useState("");
   const [defaultZip, setDefaultZip] = useState("");
   const [pageUrl, setPageUrl] = useState("");
+  const [shortUrl, setShortUrl] = useState("");
+  const [linkClickCount, setLinkClickCount] = useState(0);
+  const [shortUrlCopied, setShortUrlCopied] = useState(false);
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileError, setProfileError] = useState<string | null>(null);
 
@@ -140,6 +145,8 @@ export function ReferrerAccountPage() {
       setBio(data.profile.bio);
       setDefaultZip(data.profile.default_zip);
       setPageUrl(data.profile.page_url);
+      setShortUrl(data.profile.short_url);
+      setLinkClickCount(data.profile.link_click_count);
       setSlugLocked(data.profile.slug_locked);
       setDispatchEmail(data.profile.notify_email);
       setDispatchSms(data.profile.notify_sms);
@@ -150,6 +157,14 @@ export function ReferrerAccountPage() {
   }
 
   useEffect(() => { void loadProfile(); }, []);
+
+  function handleCopyShortUrl() {
+    if (!shortUrl) return;
+    void navigator.clipboard.writeText(`https://${shortUrl}`).then(() => {
+      setShortUrlCopied(true);
+      setTimeout(() => setShortUrlCopied(false), 2000);
+    });
+  }
 
   function cancelEdit() {
     setFirstName(user?.first_name ?? "");
@@ -234,6 +249,7 @@ export function ReferrerAccountPage() {
       }
       if (!profResult.ok) throw new Error(profResult.detail ?? "Failed to save.");
       if (profResult.page_url) setPageUrl(profResult.page_url);
+      if (profResult.short_url) setShortUrl(profResult.short_url);
       if (profResult.slug_locked) setSlugLocked(true);
 
       // Photo — upload file to server, get back a stable public URL
@@ -333,17 +349,32 @@ export function ReferrerAccountPage() {
             <Text size="sm">{defaultZip || "No ZIP set"}</Text>
           </Group>
           {pageUrl && (
-            <Group gap={10}>
-              <IconExternalLink size={14} style={iconColor} />
-              <Text
-                size="sm"
-                component="a"
-                href={`https://gigkraft.com/us/${slug}/refer`}
-                target="_blank"
-                style={{ color: "var(--gk-accent-primary)", textDecoration: "none" }}
-              >
-                gigkraft.com/us/{slug}/refer
-              </Text>
+            <Group gap={10} align="flex-start">
+              <IconExternalLink size={14} style={{ ...iconColor, marginTop: 3 }} />
+              <Stack gap={2}>
+                <Group gap={6} wrap="nowrap">
+                  <Text
+                    size="sm"
+                    fw={600}
+                    component="a"
+                    href={`https://gigkraft.com/us/${slug}/refer`}
+                    target="_blank"
+                    style={{ color: "var(--gk-accent-primary)", textDecoration: "none" }}
+                  >
+                    {shortUrl || `gigkraft.com/us/${slug}/refer`}
+                  </Text>
+                  {shortUrl && (
+                    <Tooltip label={shortUrlCopied ? "Copied!" : "Copy link"} withArrow>
+                      <ActionIcon size="xs" variant="subtle" onClick={handleCopyShortUrl} aria-label="Copy link">
+                        {shortUrlCopied ? <IconCheck size={12} /> : <IconCopy size={12} />}
+                      </ActionIcon>
+                    </Tooltip>
+                  )}
+                </Group>
+                <Text size="xs" c="dimmed">
+                  {linkClickCount} click{linkClickCount === 1 ? "" : "s"}
+                </Text>
+              </Stack>
             </Group>
           )}
         </Stack>

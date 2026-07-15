@@ -330,6 +330,8 @@ class ReferrerPublicOut(Schema):
     is_owner: bool
     phone: Optional[str] = None
     email: Optional[str] = None
+    short_url: str
+    link_click_count: Optional[int] = None
 
 
 class FollowIn(Schema):
@@ -374,6 +376,8 @@ class ReferrerProfileOut(Schema):
     avatar_url: str
     default_zip: str
     page_url: str
+    short_url: str
+    link_click_count: int = 0
     slug_locked: bool = False
     notify_email: bool = True
     notify_sms: bool = False
@@ -789,6 +793,8 @@ def referrer_public_page(request, slug: str):
         "is_owner": is_owner,
         "phone": profile.user.phone if authed_user else None,
         "email": profile.user.email if authed_user else None,
+        "short_url": f"https://gigkraft.com/r/{profile.short_code}",
+        "link_click_count": profile.short_link_click_count if is_owner else None,
     }
 
 
@@ -894,6 +900,8 @@ def dashboard(request):
             "avatar_url": profile.avatar_url,
             "default_zip": profile.default_zip,
             "page_url": f"gigkraft.com/us/{profile.slug}/refer",
+            "short_url": f"gigkraft.com/r/{profile.short_code}",
+            "link_click_count": profile.short_link_click_count,
             "slug_locked": profile.slug_locked,
             "notify_email": profile.notify_email,
             "notify_sms": profile.notify_sms,
@@ -940,6 +948,8 @@ def update_profile(request, payload: UpdateProfileIn):
         "avatar_url": profile.avatar_url,
         "default_zip": profile.default_zip,
         "page_url": f"gigkraft.com/us/{profile.slug}/refer",
+        "short_url": f"gigkraft.com/r/{profile.short_code}",
+        "link_click_count": profile.short_link_click_count,
         "slug_locked": profile.slug_locked,
         "notify_email": profile.notify_email,
         "notify_sms": profile.notify_sms,

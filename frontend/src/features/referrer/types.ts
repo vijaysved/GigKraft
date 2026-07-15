@@ -34,6 +34,8 @@ export interface ReferrerPublicOut {
   is_owner: boolean;
   phone?: string;
   email?: string;
+  short_url: string;
+  link_click_count: number | null;
 }
 
 export interface ReferrerProfileOut {
@@ -42,6 +44,8 @@ export interface ReferrerProfileOut {
   avatar_url: string;
   default_zip: string;
   page_url: string;
+  short_url: string;
+  link_click_count: number;
 }
 
 export interface ReferrerStatsOut {

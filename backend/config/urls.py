@@ -6,7 +6,7 @@ from django.urls import path
 from billing.webhook import stripe_webhook
 from comms.resend_webhook import resend_webhook
 from config.api import api
-from referrals.views import referrer_social_preview
+from referrals.views import referrer_short_link, referrer_social_preview
 from vendors.views import go_example, go_signup
 
 urlpatterns = [
@@ -17,6 +17,8 @@ urlpatterns = [
     path("api/comms/resend-webhook", resend_webhook),
     # Social preview: serves OG meta tags to WhatsApp/social bots; JS-redirects real users to SPA.
     path("us/<str:slug>/refer", referrer_social_preview),
+    # Short referrer-page link (counts real clicks, then redirects to the full /us/<slug>/refer URL).
+    path("r/<str:code>", referrer_short_link),
     # Short tracked-link redirects for prospect outreach (WhatsApp/SMS/email).
     path("go/example/<str:token>", go_example),
     path("go/<str:token>", go_signup),

@@ -17383,6 +17383,15 @@
             "title": "Page Url",
             "type": "string"
           },
+          "short_url": {
+            "title": "Short Url",
+            "type": "string"
+          },
+          "link_click_count": {
+            "default": 0,
+            "title": "Link Click Count",
+            "type": "integer"
+          },
           "slug_locked": {
             "default": false,
             "title": "Slug Locked",
@@ -17404,7 +17413,8 @@
           "bio",
           "avatar_url",
           "default_zip",
-          "page_url"
+          "page_url",
+          "short_url"
         ],
         "title": "ReferrerProfileOut",
         "type": "object"
@@ -19187,6 +19197,21 @@
               }
             ],
             "title": "Email"
+          },
+          "short_url": {
+            "title": "Short Url",
+            "type": "string"
+          },
+          "link_click_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Link Click Count"
           }
         },
         "required": [
@@ -19197,7 +19222,8 @@
           "follower_count",
           "referral_count",
           "pros",
-          "is_owner"
+          "is_owner",
+          "short_url"
         ],
         "title": "ReferrerPublicOut",
         "type": "object"
