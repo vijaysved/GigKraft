@@ -117,6 +117,7 @@ export function ReferrerProCard({
   const navigate = useNavigate();
   const [requestOpen, setRequestOpen] = useState(false);
   const [claiming, setClaiming] = useState(false);
+  const hasRealAvatar = !!pro.avatar_url;
   const [copied, setCopied] = useState(false);
 
   const isHighlighted = !!highlightedProId && pro.id === highlightedProId && pro.is_pending;
@@ -223,7 +224,8 @@ export function ReferrerProCard({
             style={{
               flexShrink: 0,
               border: "2px solid var(--gk-accent-primary)",
-              filter: isAuthenticated ? undefined : "blur(4px)",
+              filter: !isAuthenticated ? "blur(4px)" : !hasRealAvatar ? "blur(2px) grayscale(40%)" : undefined,
+              opacity: isAuthenticated && !hasRealAvatar ? 0.55 : undefined,
             }}
           >
             {pro.name[0]?.toUpperCase()}
