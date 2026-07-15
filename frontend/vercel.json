@@ -35,6 +35,17 @@
       ],
       "destination": "https://gigkraft-backend-production.up.railway.app/us/:slug/refer"
     },
+    {
+      "source": "/community/:slug",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": "(?i).*(facebookexternalhit|whatsapp|telegrambot|twitterbot|linkedinbot|slackbot|discordbot|googlebot|bingbot|applebot|ia_archiver|redditbot|pinterest).*"
+        }
+      ],
+      "destination": "https://gigkraft-backend-production.up.railway.app/community/:slug"
+    },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

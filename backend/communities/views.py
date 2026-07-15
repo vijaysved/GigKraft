@@ -1,8 +1,10 @@
-"""Short-link redirect for a Community's public page."""
+"""Short-link redirect and social-preview view for a Community's public page."""
+import html
 import os
 
 from django.db.models import F
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
+from django.views.decorators.cache import cache_control
 from django.views.decorators.http import require_GET
 
 from communities.models import Community
@@ -10,6 +12,7 @@ from communities.models import Community
 FRONTEND_URL = os.environ.get("FRONTEND_URL") or (
     "http://localhost:5173" if os.environ.get("DJANGO_DEBUG", "False") == "True" else "https://gigkraft.com"
 )
+GK_LOGO = "https://gigkraft.com/brand/gigKraftLogo.png"
 
 BOT_AGENTS = (
     "whatsapp", "facebookexternalhit", "twitterbot", "linkedinbot",
@@ -40,3 +43,56 @@ def community_short_link(request, code: str) -> HttpResponseRedirect:
     if request.META.get("QUERY_STRING"):
         target = f"{target}?{request.META['QUERY_STRING']}"
     return HttpResponseRedirect(target)
+
+
+@require_GET
+@cache_control(max_age=3600, public=True)
+def community_social_preview(request, slug: str) -> HttpResponse:
+    """Social-preview view for a Community's public page — same shape as
+    `referrals/views.py:referrer_social_preview`. WhatsApp / Facebook / Twitter
+    bots scrape this URL (via the Vercel bot-only rewrite for `/community/:slug`)
+    and get the Community's own logo/name instead of the generic gigKraft.com
+    card; real users get an instant JS + meta-refresh redirect to the SPA."""
+    community = Community.objects.filter(slug=slug).first()
+    frontend_url = f"{FRONTEND_URL}/community/{slug}"
+
+    if community is None:
+        return HttpResponse(
+            f'<html><head><meta http-equiv="refresh" content="0;url={frontend_url}"></head>'
+            f'<body><a href="{frontend_url}">Go to GigKraft</a></body></html>',
+            content_type="text/html",
+        )
+
+    name = html.escape(community.name)
+    desc = html.escape(
+        community.description or f"Trusted home service pros curated by {name} on GigKraft."
+    )
+    image = html.escape(community.cover_image_url or GK_LOGO)
+    title = f"{name} · GigKraft Community"
+    canon = f"https://gigkraft.com/community/{slug}"
+
+    og_html = f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>{html.escape(title)}</title>
+  <meta property="og:type"        content="website" />
+  <meta property="og:site_name"   content="GigKraft" />
+  <meta property="og:title"       content="{html.escape(title)}" />
+  <meta property="og:description" content="{desc}" />
+  <meta property="og:image"       content="{image}" />
+  <meta property="og:url"         content="{canon}" />
+  <meta name="twitter:card"        content="summary_large_image" />
+  <meta name="twitter:title"       content="{html.escape(title)}" />
+  <meta name="twitter:description" content="{desc}" />
+  <meta name="twitter:image"       content="{image}" />
+  <!-- Redirect real users to the SPA immediately -->
+  <meta http-equiv="refresh" content="0;url={frontend_url}" />
+  <script>window.location.replace("{frontend_url}");</script>
+</head>
+<body>
+  <p><a href="{frontend_url}">View {name} on GigKraft</a></p>
+</body>
+</html>"""
+
+    return HttpResponse(og_html, content_type="text/html; charset=utf-8")

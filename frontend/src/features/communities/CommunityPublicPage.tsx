@@ -143,6 +143,7 @@ export function CommunityPublicPage() {
   const [selectedTrades, setSelectedTrades] = useState<Set<string>>(new Set());
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
   const [copied, setCopied] = useState(false);
+  const [linkCopyCount, setLinkCopyCount] = useState(0);
   const [joinOpen, setJoinOpen] = useState(false);
   const [joining, setJoining] = useState(false);
   const [messageOwnerOpen, setMessageOwnerOpen] = useState(false);
@@ -192,6 +193,10 @@ export function CommunityPublicPage() {
   useEffect(() => {
     if (slug) trackSitePageView(window.location.href);
   }, [slug]);
+
+  useEffect(() => {
+    if (data) setLinkCopyCount(data.link_copy_count);
+  }, [data?.link_copy_count]);
 
   if (loading) return <Center h="100vh"><Loader /></Center>;
 
@@ -243,6 +248,13 @@ export function CommunityPublicPage() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
+    setLinkCopyCount((n) => n + 1);
+    void communityFetch(`/api/communities/${slug}/copy-link`, { method: "POST" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((body: { link_copy_count: number } | null) => {
+        if (body) setLinkCopyCount(body.link_copy_count);
+      })
+      .catch(() => {});
   }
 
   const isMemberOrHigher = data.viewer_status === "owner" || data.viewer_status === "moderator" || data.viewer_status === "member";
@@ -252,11 +264,12 @@ export function CommunityPublicPage() {
     { icon: <IconBriefcase size={16} />, count: data.pro_count, label: "Pros", color: "var(--mantine-color-green-6)" },
     { icon: <IconUsers size={16} />, count: data.member_count, label: "Members", color: "var(--mantine-color-red-6)" },
     { icon: <IconEye size={16} />, count: data.page_views, label: "Views", color: "var(--gk-accent-primary)" },
+    { icon: <IconLink size={16} />, count: linkCopyCount, label: "Copied", color: "var(--mantine-color-grape-6)" },
   ] as const;
 
   return (
     <div style={brandCssVars(data.theme)}>
-      <div style={{ maxWidth: 1320, margin: "0 auto", padding: "14px 32px 32px" }}>
+      <div style={{ maxWidth: 1320, margin: "0", padding: "14px 32px 32px" }}>
         {/* ── Top: community line ── */}
         <div
           style={{

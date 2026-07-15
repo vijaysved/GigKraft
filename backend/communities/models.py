@@ -171,6 +171,7 @@ class CommunityAnalyticsEvent(models.Model):
         REQUEST_SUBMITTED = "request_submitted", "Request Submitted"
         MEMBER_JOINED = "member_joined", "Member Joined"
         OWNER_MESSAGE_ANON = "owner_message_anon", "Anonymous Message to Owner"
+        LINK_COPIED = "link_copied", "Page Link Copied"
 
     community = models.ForeignKey(
         Community, on_delete=models.CASCADE, related_name="analytics_events"

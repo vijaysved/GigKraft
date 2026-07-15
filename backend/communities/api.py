@@ -70,6 +70,7 @@ class CommunityOut(Schema):
     pro_count: int
     member_count: int = 0
     page_views: int = 0
+    link_copy_count: int = 0
     viewer_status: Optional[str] = None  # None=anon, "none"|"member"|"moderator"|"owner"
     pros: list[CommunityProOut] = []
 
@@ -401,6 +402,23 @@ def check_slug_available(request, slug: str):
     return {"available": not taken, "slug": cleaned}
 
 
+class CopyLinkOut(Schema):
+    link_copy_count: int
+
+
+@public_router.post("/{slug}/copy-link", response={200: CopyLinkOut, 404: ErrorOut}, auth=None)
+def log_copy_link(request, slug: str):
+    """Fired when a visitor taps 'Copy page link' — powers the copied-count shown on the page."""
+    community = _get_community_or_404(slug)
+    CommunityAnalyticsEvent.objects.create(
+        community=community, event_type=CommunityAnalyticsEvent.EventType.LINK_COPIED
+    )
+    count = community.analytics_events.filter(
+        event_type=CommunityAnalyticsEvent.EventType.LINK_COPIED
+    ).count()
+    return 200, {"link_copy_count": count}
+
+
 @public_router.get("/{slug}", response={200: CommunityOut, 404: ErrorOut}, auth=optional_jwt)
 def get_community(request, slug: str):
     community = (
@@ -455,6 +473,9 @@ def get_community(request, slug: str):
         "member_count": community.members.filter(status=CommunityMember.Status.JOINED).count(),
         "page_views": community.analytics_events.filter(
             event_type=CommunityAnalyticsEvent.EventType.PAGE_VIEW
+        ).count(),
+        "link_copy_count": community.analytics_events.filter(
+            event_type=CommunityAnalyticsEvent.EventType.LINK_COPIED
         ).count(),
         "viewer_status": viewer_status,
         "pros": [_serialize_pro(rp) for rp in pros_qs],

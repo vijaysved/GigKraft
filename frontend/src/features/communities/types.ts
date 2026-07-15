@@ -44,6 +44,7 @@ export interface CommunityOut {
   pro_count: number;
   member_count: number;
   page_views: number;
+  link_copy_count: number;
   viewer_status: "owner" | "moderator" | "member" | "none" | null;
   pros: CommunityProOut[];
 }
