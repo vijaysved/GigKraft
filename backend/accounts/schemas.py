@@ -77,6 +77,7 @@ class UserOut(Schema):
     extra_roles: list[str] = []
     first_name: str
     last_name: str
+    theme: str = ""
     node_id: Optional[str] = None
 
     @staticmethod

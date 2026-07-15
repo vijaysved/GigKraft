@@ -1,6 +1,6 @@
 import {
   ActionIcon, Badge, Box, Card, Divider, Group,
-  Loader, Stack, Text, TextInput, Title,
+  Loader, Stack, Text, TagsInput, TextInput, Title,
 } from "@mantine/core";
 import {
   IconArrowLeft, IconChevronDown, IconChevronUp,
@@ -19,12 +19,14 @@ import {
   deleteReferrerPro,
   getInviteContactTimeline, getInviteList, getReferrerPros,
   resendCircleShare, resendFriendInvite, resendProInvite,
-  updateFriendInvite, updateProInvite,
+  updateFriendInvite, updateProInvite, updateReferrerPro,
 } from "../../api/endpoints";
 import type { InviteTimelineEventOut } from "./types";
 import type { UnifiedInvite } from "./components/InviteTimeline";
 import { EmailChannelIcon, htmlToPlainText, htmlToWhatsApp, nativeBtn, PhoneChannelIcons } from "./components/inviteShared";
 import { formatDate as fmtDate, formatDateTime as fmtDateTime } from "../../utils/format";
+import { decodeContactId } from "../../utils/contactId";
+import { toCamelTag } from "../../utils/tags";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -45,6 +47,17 @@ const EVENT_META: Record<string, { label: string; color: string }> = {
 
 const SCENARIO_LABELS: Record<string, string> = { pro: "Pro", friend: "Friend", circle: "Circle" };
 const SCENARIO_COLORS: Record<string, string>  = { pro: "blue", friend: "orange", circle: "grape" };
+
+// Fallback tag suggestions shown when this referrer hasn't tagged anyone yet.
+const GENERIC_TAG_SUGGESTIONS = ["reliable", "licensed", "insured", "fastResponse", "affordable", "recommended"];
+const TRADE_TAG_SUGGESTIONS: Record<string, string[]> = {
+  plumber: ["emergency", "leakRepair", "waterHeater"],
+  electrician: ["panelUpgrade", "wiring", "evCharger"],
+  hvac: ["acRepair", "furnace", "ductCleaning"],
+  carpenter: ["customBuild", "framing", "cabinetry"],
+  painter: ["interior", "exterior", "drywall"],
+  "general contractor": ["remodel", "permits", "projectManagement"],
+};
 
 function secondsSince(iso: string | null): number {
   if (!iso) return Infinity;
@@ -134,7 +147,7 @@ export function ContactDetailPage() {
   const { slug, scenario, id } = useParams<{ slug: string; scenario: string; id: string }>();
   const location = useLocation();
   const navigate = useNavigate();
-  const numId = Number(id);
+  const numId = decodeContactId(id ?? "") ?? NaN;
 
   // Contact — from navigation state (fast) or fetched (fallback on refresh/direct URL)
   const [contact, setContact] = useState<UnifiedInvite | null>(
@@ -148,8 +161,9 @@ export function ContactDetailPage() {
 
   // Edit mode
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState({ name: "", phone: "", email: "" });
+  const [draft, setDraft] = useState({ name: "", phone: "", email: "", tags: [] as string[] });
   const [saving, setSaving] = useState(false);
+  const [tagSuggestions, setTagSuggestions] = useState<string[]>([]);
 
   // Resend panel
   const [resendOpen, setResendOpen] = useState(false);
@@ -179,7 +193,7 @@ export function ContactDetailPage() {
               channel: pc?.channel ?? "", status: rp.invite_status || "pending", click_count: pc?.click_count ?? 0,
               email_count: pc?.email_count ?? 0, whatsapp_count: pc?.whatsapp_count ?? 0, sms_count: pc?.sms_count ?? 0,
               invited_at: rp.added_at, last_resent_at: rp.last_resent_at,
-              is_on_platform: rp.is_on_platform, show_on_page: rp.show_on_page, endorsement: rp.endorsement,
+              is_on_platform: rp.is_on_platform, show_on_page: rp.show_on_page, endorsement: rp.endorsement, tags: rp.tags,
             });
           }
         } else {
@@ -216,6 +230,18 @@ export function ContactDetailPage() {
       .finally(() => setLoadingEvents(false));
   }, [contact?.invite_id, contact?.scenario]);
 
+  // Tag suggestions — other tags this referrer has already used across their pros
+  useEffect(() => {
+    if (contact?.scenario !== "pro") return;
+    getReferrerPros()
+      .then((pros) => {
+        const all = new Set<string>();
+        for (const p of pros) for (const t of p.tags ?? []) all.add(toCamelTag(t));
+        setTagSuggestions([...all].filter(Boolean).sort());
+      })
+      .catch(() => {});
+  }, [contact?.scenario]);
+
   function goBack() {
     navigate(`/us/${slug}/home?tab=invite`);
   }
@@ -232,25 +258,32 @@ export function ContactDetailPage() {
 
   function openEdit() {
     if (!contact) return;
-    setDraft({ name: contact.name, phone: contact.phone, email: contact.email });
+    setDraft({ name: contact.name, phone: contact.phone, email: contact.email, tags: contact.tags ?? [] });
     setEditing(true);
   }
 
   async function handleSave() {
-    if (!contact?.invite_id) return;
+    if (!contact) return;
     setSaving(true);
     try {
-      const patch = {
-        name: draft.name.trim(),
-        phone: draft.phone.trim(),
-        email: draft.email.trim(),
-      };
-      if (contact.scenario === "pro") {
-        await updateProInvite(contact.invite_id, patch);
-      } else {
-        await updateFriendInvite(contact.invite_id, patch);
+      const canEditContactInfo = !contact.is_on_platform && contact.invite_id != null;
+      if (canEditContactInfo && contact.invite_id != null) {
+        const patch = {
+          name: draft.name.trim(),
+          phone: draft.phone.trim(),
+          email: draft.email.trim(),
+        };
+        if (contact.scenario === "pro") {
+          await updateProInvite(contact.invite_id, patch);
+        } else {
+          await updateFriendInvite(contact.invite_id, patch);
+        }
+        setContact((c) => c ? { ...c, ...patch } : c);
       }
-      setContact((c) => c ? { ...c, ...patch } : c);
+      if (contact.scenario === "pro") {
+        await updateReferrerPro(contact.id, { tags: draft.tags });
+        setContact((c) => c ? { ...c, tags: draft.tags } : c);
+      }
       setEditing(false);
     } catch (e) {
       alert(e instanceof Error ? e.message : "Could not save.");
@@ -335,6 +368,15 @@ export function ContactDetailPage() {
     (a, b) => new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime(),
   );
 
+  // Contact info (name/phone/email) is only editable for pending, off-platform invites —
+  // on-platform pros' info comes from their real account. Tags are page-curation and
+  // editable for any pro row regardless of platform status.
+  const canEditContactInfo = !contact.is_on_platform && contact.invite_id != null;
+  const canEditTags = contact.scenario === "pro";
+  const canEdit = canEditContactInfo || canEditTags;
+  const tradeTagSuggestions = TRADE_TAG_SUGGESTIONS[contact.trade.toLowerCase()] ?? [];
+  const tagData = [...new Set([...tagSuggestions, ...tradeTagSuggestions, ...GENERIC_TAG_SUGGESTIONS])];
+
   return (
     <Stack gap="lg" p="md" style={{ maxWidth: 680 }}>
 
@@ -351,14 +393,14 @@ export function ContactDetailPage() {
       <Card withBorder radius="md" p="md" style={cardStyle}>
         <Group justify="space-between" align="flex-start" mb="sm">
           <Group gap="xs" wrap="wrap">
-            {!editing && <Text fw={700} size="lg">{contact.name}</Text>}
+            {(!editing || !canEditContactInfo) && <Text fw={700} size="lg">{contact.name}</Text>}
             <Badge size="sm" variant="light" color={SCENARIO_COLORS[contact.scenario]}>
               {SCENARIO_LABELS[contact.scenario]}
             </Badge>
             <Badge size="sm" variant="light" color={sm.color}>{sm.label}</Badge>
           </Group>
           <Group gap={4}>
-            {!editing && !contact.is_on_platform && contact.invite_id != null && (
+            {!editing && canEdit && (
               <ActionIcon size="sm" variant="subtle" onClick={openEdit} aria-label="Edit" style={iconColor}>
                 <IconPencil size={14} />
               </ActionIcon>
@@ -371,14 +413,29 @@ export function ContactDetailPage() {
 
         {editing ? (
           <Stack gap="xs">
-            <TextInput label="Name" size="sm" value={draft.name}
-              onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))} />
-            <Group grow>
-              <TextInput label="Email" size="sm" leftSection={<IconMail size={13} style={iconColor} />}
-                value={draft.email} onChange={(e) => setDraft((d) => ({ ...d, email: e.target.value }))} />
-              <TextInput label="Phone" size="sm" leftSection={<IconPhone size={13} style={iconColor} />}
-                value={draft.phone} onChange={(e) => setDraft((d) => ({ ...d, phone: e.target.value }))} />
-            </Group>
+            {canEditContactInfo && (
+              <>
+                <TextInput label="Name" size="sm" value={draft.name}
+                  onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))} />
+                <Group grow>
+                  <TextInput label="Email" size="sm" leftSection={<IconMail size={13} style={iconColor} />}
+                    value={draft.email} onChange={(e) => setDraft((d) => ({ ...d, email: e.target.value }))} />
+                  <TextInput label="Phone" size="sm" leftSection={<IconPhone size={13} style={iconColor} />}
+                    value={draft.phone} onChange={(e) => setDraft((d) => ({ ...d, phone: e.target.value }))} />
+                </Group>
+              </>
+            )}
+            {canEditTags && (
+              <TagsInput
+                label="Tags"
+                description="Pick a suggestion or type your own and hit enter"
+                placeholder="#tag"
+                size="sm"
+                value={draft.tags}
+                onChange={(tags) => setDraft((d) => ({ ...d, tags: [...new Set(tags.map(toCamelTag).filter(Boolean))] }))}
+                data={tagData}
+              />
+            )}
             <Group justify="flex-end" gap="xs" mt={4}>
               <button style={nativeBtn({})} onClick={() => setEditing(false)}>Cancel</button>
               <button style={nativeBtn({ primary: true, disabled: saving })} disabled={saving} onClick={() => void handleSave()}>
@@ -413,6 +470,24 @@ export function ContactDetailPage() {
                 <Text size="sm" c="dimmed">{contact.trade}</Text>
               )}
             </Group>
+            {!!contact.tags?.length && (
+              <Group gap={6} wrap="wrap">
+                {contact.tags.map((t) => (
+                  <Badge
+                    key={t}
+                    size="sm"
+                    variant="filled"
+                    style={{
+                      textTransform: "none",
+                      backgroundColor: "var(--gk-accent-secondary)",
+                      color: "var(--gk-accent-primary)",
+                    }}
+                  >
+                    #{toCamelTag(t)}
+                  </Badge>
+                ))}
+              </Group>
+            )}
             <Group gap="xl" mt={4}>
               <Text size="xs" c="dimmed">Added {fmtDate(contact.invited_at)}</Text>
               {lastContactIso && (

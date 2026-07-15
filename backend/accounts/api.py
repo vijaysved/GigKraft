@@ -149,6 +149,7 @@ class UserPatchIn(Schema):
     last_name: Optional[str] = None
     phone: Optional[str] = None
     role: Optional[str] = None
+    theme: Optional[str] = None
 
 
 @me_router.patch("/me", response={200: UserOut, 400: ErrorOut}, auth=jwt_auth)
@@ -160,6 +161,8 @@ def patch_me(request, payload: UserPatchIn):
         user.first_name = data["first_name"]
     if "last_name" in data:
         user.last_name = data["last_name"]
+    if "theme" in data:
+        user.theme = data["theme"] or ""
     if "phone" in data:
         phone = normalize_phone(data["phone"]) or None
         if phone and User.objects.filter(phone=phone).exclude(pk=user.pk).exists():

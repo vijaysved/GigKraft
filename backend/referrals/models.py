@@ -115,6 +115,7 @@ class ReferrerPro(models.Model):
         related_name="referrer_pro",
     )
     endorsement = models.CharField(max_length=200, blank=True, default="")
+    tags = models.JSONField(default=list, blank=True)
     show_on_page = models.BooleanField(default=True)
     display_order = models.PositiveSmallIntegerField(default=0)
     referral_count = models.PositiveIntegerField(default=0)

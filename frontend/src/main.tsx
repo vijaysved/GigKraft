@@ -21,13 +21,13 @@ createRoot(document.getElementById("root")!).render(
         clientId={GOOGLE_CLIENT_ID}
         onScriptLoadError={() => console.error("[GigKraft] Google script failed to load")}
       >
-        <ThemeProvider>
-          <AuthProvider>
+        <AuthProvider>
+          <ThemeProvider>
             <BrowserRouter>
               <App />
             </BrowserRouter>
-          </AuthProvider>
-        </ThemeProvider>
+          </ThemeProvider>
+        </AuthProvider>
       </GoogleOAuthProvider>
     </HelmetProvider>
   </StrictMode>,

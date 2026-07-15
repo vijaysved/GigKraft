@@ -3562,6 +3562,11 @@ export interface components {
             first_name: string;
             /** Last Name */
             last_name: string;
+            /**
+             * Theme
+             * @default
+             */
+            theme: string;
             /** Node Id */
             node_id?: string | null;
         };
@@ -3657,6 +3662,8 @@ export interface components {
             phone?: string | null;
             /** Role */
             role?: string | null;
+            /** Theme */
+            theme?: string | null;
         };
         /** AvatarOut */
         AvatarOut: {
@@ -5028,6 +5035,18 @@ export interface components {
              * Format: date-time
              */
             visited_at: string;
+            /** Prospect Name */
+            prospect_name?: string | null;
+            /** Prospect Id */
+            prospect_id?: string | null;
+            /** Prospect Email */
+            prospect_email?: string | null;
+            /** Prospect Phone */
+            prospect_phone?: string | null;
+            /** Channel */
+            channel?: string | null;
+            /** Sequence Step */
+            sequence_step?: number | null;
         };
         /** UserListOut */
         UserListOut: {
@@ -5582,6 +5601,8 @@ export interface components {
              * @default whatsapp
              */
             channel: string;
+            /** Link Click Token */
+            link_click_token?: string | null;
         };
         /** SendStepIn */
         SendStepIn: {
@@ -6120,6 +6141,11 @@ export interface components {
             avatar_url: string;
             /** Endorsement */
             endorsement: string;
+            /**
+             * Tags
+             * @default []
+             */
+            tags: string[];
             /** Show On Page */
             show_on_page: boolean;
             /** Display Order */
@@ -6179,6 +6205,8 @@ export interface components {
         UpdateProIn: {
             /** Endorsement */
             endorsement?: string | null;
+            /** Tags */
+            tags?: string[] | null;
             /** Show On Page */
             show_on_page?: boolean | null;
         };
@@ -6652,6 +6680,11 @@ export interface components {
             avatar_url: string;
             /** Endorsement */
             endorsement: string;
+            /**
+             * Tags
+             * @default []
+             */
+            tags: string[];
             /** Responds In */
             responds_in?: string | null;
             /** Is Licensed */

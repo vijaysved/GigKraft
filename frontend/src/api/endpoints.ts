@@ -115,7 +115,7 @@ export async function getMe(): Promise<UserOut> {
   return data;
 }
 
-export async function patchMe(body: { role?: string; first_name?: string; last_name?: string; phone?: string | null }): Promise<UserOut> {
+export async function patchMe(body: { role?: string; first_name?: string; last_name?: string; phone?: string | null; theme?: string }): Promise<UserOut> {
   const { data, error, response } = await client.PATCH("/api/me", { body });
   if (!data) {
     throw new ApiError(response.status, detailOf(error, "Failed to update profile."));
@@ -587,6 +587,7 @@ export interface ReferrerProRow {
   email: string | null;
   avatar_url: string | null;
   endorsement: string;
+  tags: string[];
   show_on_page: boolean;
   display_order: number;
   referral_count: number;
@@ -624,7 +625,7 @@ export async function getReferrerPros(): Promise<ReferrerProRow[]> {
 
 export async function updateReferrerPro(
   id: number,
-  patch: { show_on_page?: boolean; endorsement?: string },
+  patch: { show_on_page?: boolean; endorsement?: string; tags?: string[] },
 ): Promise<void> {
   const { response } = await client.PATCH(`/api/referrer/me/pros/${id}` as never, { body: patch } as never);
   if (!response.ok) throw new ApiError(response.status, "Failed to update pro.");

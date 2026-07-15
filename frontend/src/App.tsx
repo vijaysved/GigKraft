@@ -6,6 +6,7 @@ import { RequireAuth } from "./auth/RequireAuth";
 import { FeedbackWidget } from "./components/FeedbackWidget";
 import { RequireRole } from "./auth/RequireRole";
 import { useAuth } from "./auth/AuthContext";
+import { ROLE_HOME } from "./auth/roleHome";
 import { getAccessToken } from "./api/tokens";
 import { API_BASE_URL } from "./config";
 
@@ -98,15 +99,6 @@ import { ReferrerAccountPage } from "./features/referrer/ReferrerAccountPage";
 import { ReferrerInboxPage } from "./features/referrer/ReferrerInboxPage";
 import { ContactDetailPage } from "./features/referrer/ContactDetailPage";
 
-
-const ROLE_HOME: Record<string, string> = {
-  member: "/member/welcome",
-  pro: "/pro/dashboard",
-  homeowner: "/us/me/home",
-  referrer: "/us/me/home",
-  node_manager: "/admin/dashboard",
-  gk_admin: "/gk-admin/dashboard",
-};
 
 function CircleSlugRedirect() {
   const { slug } = useParams<{ slug: string }>();

@@ -10266,6 +10266,11 @@
             "title": "Last Name",
             "type": "string"
           },
+          "theme": {
+            "default": "",
+            "title": "Theme",
+            "type": "string"
+          },
           "node_id": {
             "anyOf": [
               {
@@ -10518,6 +10523,17 @@
               }
             ],
             "title": "Role"
+          },
+          "theme": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Theme"
           }
         },
         "title": "UserPatchIn",
@@ -14399,6 +14415,72 @@
             "format": "date-time",
             "title": "Visited At",
             "type": "string"
+          },
+          "prospect_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prospect Name"
+          },
+          "prospect_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prospect Id"
+          },
+          "prospect_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prospect Email"
+          },
+          "prospect_phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prospect Phone"
+          },
+          "channel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channel"
+          },
+          "sequence_step": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sequence Step"
           }
         },
         "required": [
@@ -16018,6 +16100,17 @@
             "default": "whatsapp",
             "title": "Channel",
             "type": "string"
+          },
+          "link_click_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Link Click Token"
           }
         },
         "title": "AdvanceStepIn",
@@ -17441,6 +17534,14 @@
             "title": "Endorsement",
             "type": "string"
           },
+          "tags": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          },
           "show_on_page": {
             "title": "Show On Page",
             "type": "boolean"
@@ -17628,6 +17729,20 @@
               }
             ],
             "title": "Endorsement"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tags"
           },
           "show_on_page": {
             "anyOf": [
@@ -18934,6 +19049,14 @@
           "endorsement": {
             "title": "Endorsement",
             "type": "string"
+          },
+          "tags": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
           },
           "responds_in": {
             "anyOf": [

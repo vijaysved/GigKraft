@@ -42,6 +42,7 @@ import { FollowModal } from "./components/FollowModal";
 import { ReferrerProCard } from "./components/ReferrerProCard";
 import { RequestReferralModal } from "./components/RequestReferralModal";
 import { formatPhone } from "../../utils/format";
+import { toCamelTag } from "../../utils/tags";
 
 const GK_LOGO_URL = "https://gigkraft.com/brand/gigKraftLogo.png";
 
@@ -175,6 +176,7 @@ export function ReferrerPublicPage() {
   const [copied, setCopied] = useState(false);
   const [selectedTrades, setSelectedTrades] = useState<Set<string>>(new Set());
   const [selectedZips, setSelectedZips] = useState<Set<string>>(new Set());
+  const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
   const [highlightedProId, setHighlightedProId] = useState<number | null>(null);
   const [bannerDismissed, setBannerDismissed] = useState(
     () => localStorage.getItem(BANNER_DISMISS_KEY) === "1"
@@ -190,11 +192,19 @@ export function ReferrerPublicPage() {
     return [...new Set(page.pros.map((p) => p.city).filter(Boolean))].sort();
   }, [page]);
 
+  const uniqueTags = useMemo(() => {
+    if (!page?.pros) return [] as string[];
+    return [...new Set(page.pros.flatMap((p) => p.tags ?? []))].sort();
+  }, [page]);
+
   function toggleTrade(t: string) {
     setSelectedTrades((prev) => { const n = new Set(prev); if (n.has(t)) { n.delete(t); } else { n.add(t); } return n; });
   }
   function toggleZip(z: string) {
     setSelectedZips((prev) => { const n = new Set(prev); if (n.has(z)) { n.delete(z); } else { n.add(z); } return n; });
+  }
+  function toggleTag(t: string) {
+    setSelectedTags((prev) => { const n = new Set(prev); if (n.has(t)) { n.delete(t); } else { n.add(t); } return n; });
   }
 
   const filteredPros = useMemo(() => {
@@ -208,14 +218,16 @@ export function ReferrerPublicPage() {
           p.city?.toLowerCase().includes(q) ||
           p.phone?.toLowerCase().includes(q) ||
           p.email?.toLowerCase().includes(q) ||
-          p.endorsement?.toLowerCase().includes(q);
+          p.endorsement?.toLowerCase().includes(q) ||
+          p.tags?.some((t) => t.toLowerCase().includes(q));
         if (!hit) return false;
       }
       if (selectedTrades.size > 0 && !selectedTrades.has(p.trade)) return false;
       if (selectedZips.size > 0 && !selectedZips.has(p.city)) return false;
+      if (selectedTags.size > 0 && !p.tags?.some((t) => selectedTags.has(t))) return false;
       return true;
     });
-  }, [search, page, selectedTrades, selectedZips]);
+  }, [search, page, selectedTrades, selectedZips, selectedTags]);
 
   async function load() {
     setLoading(true);
@@ -619,7 +631,7 @@ export function ReferrerPublicPage() {
             )}
           </Group>
 
-          {(uniqueTrades.length > 0 || uniqueZips.length > 0) && (
+          {(uniqueTrades.length > 0 || uniqueZips.length > 0 || uniqueTags.length > 0) && (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
               {uniqueTrades.map((t) => {
                 const active = selectedTrades.has(t);
@@ -630,9 +642,9 @@ export function ReferrerPublicPage() {
                     style={{
                       padding: "3px 11px",
                       borderRadius: 99,
-                      border: `1.5px solid ${active ? "var(--gk-accent-primary)" : "var(--gk-border)"}`,
+                      border: "1.5px solid var(--gk-accent-primary)",
                       background: active ? "var(--gk-accent-primary)" : "transparent",
-                      color: active ? "#fff" : "var(--gk-text-secondary, #666)",
+                      color: active ? "var(--gk-accent-secondary)" : "var(--gk-accent-primary)",
                       fontSize: 12,
                       fontWeight: 600,
                       cursor: "pointer",
@@ -653,9 +665,9 @@ export function ReferrerPublicPage() {
                     style={{
                       padding: "3px 11px",
                       borderRadius: 99,
-                      border: `1.5px solid ${active ? "var(--gk-accent-secondary)" : "var(--gk-border)"}`,
-                      background: active ? "var(--gk-accent-secondary)" : "transparent",
-                      color: active ? "#fff" : "var(--gk-text-secondary, #666)",
+                      border: "1.5px solid var(--gk-accent-primary)",
+                      background: active ? "var(--gk-accent-primary)" : "transparent",
+                      color: active ? "var(--gk-accent-secondary)" : "var(--gk-accent-primary)",
                       fontSize: 12,
                       fontWeight: 600,
                       cursor: "pointer",
@@ -664,6 +676,29 @@ export function ReferrerPublicPage() {
                     }}
                   >
                     {z}
+                  </button>
+                );
+              })}
+              {uniqueTags.map((tag) => {
+                const active = selectedTags.has(tag);
+                return (
+                  <button
+                    key={tag}
+                    onClick={() => toggleTag(tag)}
+                    style={{
+                      padding: "3px 11px",
+                      borderRadius: 99,
+                      border: "1.5px solid var(--gk-accent-secondary)",
+                      background: active ? "var(--gk-accent-secondary)" : "transparent",
+                      color: active ? "var(--gk-accent-primary)" : "var(--gk-accent-secondary)",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    #{toCamelTag(tag)}
                   </button>
                 );
               })}
@@ -690,6 +725,7 @@ export function ReferrerPublicPage() {
                   allPros={page.pros ?? []}
                   isFollower={isFollower}
                   isAuthenticated={isAuthenticated}
+                  isOwner={isOwner}
                   onNeedFollow={() => setFollowOpen(true)}
                   highlightedProId={highlightedProId ?? undefined}
                   claimToken={claimToken || undefined}

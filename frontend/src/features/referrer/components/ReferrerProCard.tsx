@@ -9,8 +9,12 @@ import {
   Text,
 } from "@mantine/core";
 import {
+  IconBrandWhatsapp,
+  IconCheck,
+  IconCopy,
   IconMail,
   IconMapPin,
+  IconMessage,
   IconPhone,
   IconShieldCheck,
 } from "@tabler/icons-react";
@@ -19,10 +23,12 @@ import { useNavigate } from "react-router-dom";
 
 import { claimProInvite } from "../../../api/endpoints";
 import { getAccessToken } from "../../../api/tokens";
+import { API_BASE_URL } from "../../../config";
 import { fallbackAvatar } from "../../../assets/fallbackAvatars";
 import type { ProCardOut } from "../types";
 import { RequestReferralModal } from "./RequestReferralModal";
 import { formatPhone } from "../../../utils/format";
+import { toCamelTag } from "../../../utils/tags";
 
 interface Props {
   pro: ProCardOut;
@@ -31,9 +37,49 @@ interface Props {
   allPros: ProCardOut[];
   isFollower: boolean;
   isAuthenticated: boolean;
+  isOwner: boolean;
   onNeedFollow: () => void;
   highlightedProId?: number;
   claimToken?: string;
+}
+
+/** Small round icon-only button used for the per-pro share row */
+function ShareIconBtn({
+  label,
+  onClick,
+  color,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  color: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: 26,
+        height: 26,
+        border: "1.5px solid var(--gk-border)",
+        borderRadius: "50%",
+        background: "transparent",
+        cursor: "pointer",
+        color,
+        fontFamily: "inherit",
+        flexShrink: 0,
+        position: "relative",
+        zIndex: 1,
+      }}
+    >
+      {children}
+    </button>
+  );
 }
 
 /** Partially masks a phone number, e.g. "(925) 555-1234" -> "(925) ***-1234" */
@@ -63,6 +109,7 @@ export function ReferrerProCard({
   allPros,
   isFollower,
   isAuthenticated,
+  isOwner,
   onNeedFollow,
   highlightedProId,
   claimToken,
@@ -70,6 +117,7 @@ export function ReferrerProCard({
   const navigate = useNavigate();
   const [requestOpen, setRequestOpen] = useState(false);
   const [claiming, setClaiming] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const isHighlighted = !!highlightedProId && pro.id === highlightedProId && pro.is_pending;
 
@@ -103,6 +151,34 @@ export function ReferrerProCard({
       return;
     }
     setRequestOpen(true);
+  }
+
+  function buildShareText(): string {
+    // Use the backend social-preview endpoint (not the frontend SPA URL) so WhatsApp/SMS
+    // link previews scrape real server-rendered OG tags and show the referrer's profile pic.
+    const shareUrl = `${API_BASE_URL}/us/${slug}/refer`;
+    const lines: string[] = [`👋 ${pro.name}${pro.trade ? ` — ${pro.trade}` : ""}`];
+    lines.push(`Recommended by ${referrerName} on GigKraft`);
+    if (pro.phone) lines.push(`📞 ${formatPhone(pro.phone)}`);
+    if (pro.email) lines.push(`✉️ ${pro.email}`);
+    if (pro.endorsement) lines.push(`"${pro.endorsement}" — ${referrerName}`);
+    lines.push("", `👀 Check out all of ${referrerName}'s trusted pros: ${shareUrl}`);
+    return lines.join("\n");
+  }
+
+  function openWhatsAppShare() {
+    window.open(`https://wa.me/?text=${encodeURIComponent(buildShareText())}`, "_blank", "noopener,noreferrer");
+  }
+
+  function openSmsShare() {
+    window.open(`sms:?body=${encodeURIComponent(buildShareText())}`, "_blank", "noopener,noreferrer");
+  }
+
+  function handleCopyShareText() {
+    void navigator.clipboard.writeText(buildShareText()).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
   }
 
   const cardStyle = {
@@ -161,7 +237,17 @@ export function ReferrerProCard({
                     {pro.name.split(" ")[0]}
                   </Text>
                   {pro.is_pending && (
-                    <Badge color="gray" variant="outline" size="xs" style={{ flexShrink: 0 }}>Pending</Badge>
+                    <Badge
+                      size="xs"
+                      variant="filled"
+                      style={{
+                        flexShrink: 0,
+                        backgroundColor: "var(--gk-accent-primary)",
+                        color: "var(--gk-accent-secondary)",
+                      }}
+                    >
+                      Pending
+                    </Badge>
                   )}
                 </Group>
                 {pro.trade && <Text size="xs" c="dimmed">{pro.trade}</Text>}
@@ -213,12 +299,39 @@ export function ReferrerProCard({
                 </Text>
               </Group>
               {pro.city && (
-                <Group gap={4}>
-                  <IconMapPin size={11} color="var(--gk-accent-primary)" />
-                  <Text size="xs">{pro.city}</Text>
-                </Group>
+                <Badge
+                  size="xs"
+                  variant="filled"
+                  leftSection={<IconMapPin size={10} />}
+                  style={{
+                    textTransform: "none",
+                    alignSelf: "flex-start",
+                    backgroundColor: "var(--gk-accent-primary)",
+                    color: "var(--gk-accent-secondary)",
+                  }}
+                >
+                  {pro.city}
+                </Badge>
               )}
             </Stack>
+
+            {isOwner && (
+              <Group gap={6} mt={4}>
+                <ShareIconBtn label="Share on WhatsApp" onClick={openWhatsAppShare} color="#25D366">
+                  <IconBrandWhatsapp size={14} />
+                </ShareIconBtn>
+                <ShareIconBtn label="Share via Text" onClick={openSmsShare} color="var(--gk-accent-primary)">
+                  <IconMessage size={14} />
+                </ShareIconBtn>
+                <ShareIconBtn
+                  label={copied ? "Copied!" : "Copy contact info"}
+                  onClick={handleCopyShareText}
+                  color={copied ? "var(--mantine-color-green-6)" : "var(--gk-accent-primary)"}
+                >
+                  {copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
+                </ShareIconBtn>
+              </Group>
+            )}
           </Stack>
         </Group>
 
@@ -228,14 +341,42 @@ export function ReferrerProCard({
           </Text>
         )}
 
-        {(pro.is_licensed || pro.is_insured) && (
+        {(pro.is_licensed || pro.is_insured || pro.tags.length > 0) && (
           <Group gap={4} mb={4} style={{ position: "relative", zIndex: 1 }}>
             {pro.is_licensed && (
-              <Badge size="xs" variant="outline" color="teal" leftSection={<IconShieldCheck size={10} />}>Licensed</Badge>
+              <Badge
+                size="xs"
+                variant="filled"
+                leftSection={<IconShieldCheck size={10} />}
+                style={{ backgroundColor: "var(--gk-accent-primary)", color: "var(--gk-accent-secondary)" }}
+              >
+                Licensed
+              </Badge>
             )}
             {pro.is_insured && (
-              <Badge size="xs" variant="outline" color="blue" leftSection={<IconShieldCheck size={10} />}>Insured</Badge>
+              <Badge
+                size="xs"
+                variant="filled"
+                leftSection={<IconShieldCheck size={10} />}
+                style={{ backgroundColor: "var(--gk-accent-primary)", color: "var(--gk-accent-secondary)" }}
+              >
+                Insured
+              </Badge>
             )}
+            {pro.tags.map((t) => (
+              <Badge
+                key={t}
+                size="xs"
+                variant="filled"
+                style={{
+                  textTransform: "none",
+                  backgroundColor: "var(--gk-accent-secondary)",
+                  color: "var(--gk-accent-primary)",
+                }}
+              >
+                #{toCamelTag(t)}
+              </Badge>
+            ))}
           </Group>
         )}
 
@@ -244,8 +385,12 @@ export function ReferrerProCard({
             <Divider my={4} style={{ borderColor: "var(--gk-accent-secondary)", opacity: 0.6 }} />
             <Badge
               size="xs"
-              color={pro.request_status === "sent" ? "teal" : "yellow"}
-              variant="light"
+              variant="filled"
+              style={
+                pro.request_status === "sent"
+                  ? { backgroundColor: "var(--gk-accent-secondary)", color: "var(--gk-accent-primary)" }
+                  : { backgroundColor: "var(--gk-accent-primary)", color: "var(--gk-accent-secondary)" }
+              }
             >
               {pro.request_status === "sent" ? "Referral sent ✓" : "Request pending"}
             </Badge>

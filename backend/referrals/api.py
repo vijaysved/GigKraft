@@ -3,6 +3,7 @@ import csv
 import hashlib
 import io
 import logging
+import re
 import secrets
 import uuid
 from datetime import timedelta
@@ -48,6 +49,15 @@ COOKIE_MAX_AGE = 60 * 60 * 24 * 30  # 30 days
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+def _to_camel_tag(raw: str) -> str:
+    """Normalize a free-typed tag into lowerCamelCase, e.g. "Fast Response" -> "fastResponse"."""
+    words = [w for w in re.split(r"[^a-zA-Z0-9]+", raw.strip().lstrip("#")) if w]
+    if not words:
+        return ""
+    first, *rest = words
+    return first.lower() + "".join(w[:1].upper() + w[1:].lower() for w in rest)
+
 
 def _get_referrer_profile(slug: str) -> ReferrerProfile:
     profile = ReferrerProfile.objects.select_related("user").filter(slug=slug).first()
@@ -112,6 +122,7 @@ def _build_pro_card(rp: ReferrerPro, follower: Optional[ReferrerFollower]) -> di
         "email": email,
         "avatar_url": avatar_url,
         "endorsement": rp.endorsement,
+        "tags": rp.tags,
         "responds_in": responds_in,
         "is_licensed": is_licensed,
         "is_insured": is_insured,
@@ -286,6 +297,7 @@ class ProCardOut(Schema):
     email: str
     avatar_url: str
     endorsement: str
+    tags: list[str] = []
     responds_in: Optional[str] = None
     is_licensed: bool
     is_insured: bool
@@ -389,6 +401,7 @@ class ReferrerProDashboardOut(Schema):
     email: str
     avatar_url: str
     endorsement: str
+    tags: list[str] = []
     show_on_page: bool
     display_order: int
     referral_count: int
@@ -408,6 +421,7 @@ class AddProIn(Schema):
 
 class UpdateProIn(Schema):
     endorsement: Optional[str] = None
+    tags: Optional[list[str]] = None
     show_on_page: Optional[bool] = None
 
 
@@ -959,6 +973,7 @@ def _serialize_referrer_pro(rp: ReferrerPro) -> dict:
         "email": email,
         "avatar_url": avatar_url,
         "endorsement": rp.endorsement,
+        "tags": rp.tags,
         "show_on_page": rp.show_on_page,
         "display_order": rp.display_order,
         "referral_count": rp.referral_count,
@@ -1080,6 +1095,15 @@ def update_pro(request, rp_id: int, payload: UpdateProIn):
     data = payload.dict(exclude_unset=True)
     if "endorsement" in data:
         rp.endorsement = data["endorsement"]
+    if "tags" in data:
+        seen = set()
+        tags = []
+        for t in data["tags"]:
+            t = _to_camel_tag(t)
+            if t and t.lower() not in seen:
+                seen.add(t.lower())
+                tags.append(t)
+        rp.tags = tags
     if "show_on_page" in data:
         rp.show_on_page = data["show_on_page"]
     rp.save()

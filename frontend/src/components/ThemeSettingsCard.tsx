@@ -80,6 +80,9 @@ export function ThemeSettingsCard() {
                   <Text size="xs" fw={isActive ? 700 : 400} ta="center">
                     {def.label}
                   </Text>
+                  <Text size="10px" c="dimmed" ta="center">
+                    {def.tagline}
+                  </Text>
                 </Stack>
               </UnstyledButton>
             );

@@ -20,14 +20,8 @@ import { Navigate, useNavigate } from "react-router-dom";
 
 import { API_BASE_URL } from "../../config";
 import { useAuth } from "../../auth/AuthContext";
+import { ROLE_HOME } from "../../auth/roleHome";
 import { WallpaperBackground } from "../../brand/WallpaperBackground";
-
-const ROLE_HOME: Record<string, string> = {
-  pro: "/pro/dashboard",
-  homeowner: "/home/discover",
-  node_manager: "/admin/dashboard",
-  gk_admin: "/gk-admin/dashboard",
-};
 
 const FREE_FEATURES = [
   "Browse published pro profiles",

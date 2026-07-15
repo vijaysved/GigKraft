@@ -21,6 +21,7 @@ import {
   updateReferrerPro,
 } from "../../../api/endpoints";
 import type { InviteScenario } from "../types";
+import { encodeContactId } from "../../../utils/contactId";
 import { EmailChannelIcon, nativeBtn, PhoneChannelIcons } from "./inviteShared";
 
 export interface UnifiedInvite {
@@ -45,6 +46,7 @@ export interface UnifiedInvite {
   is_on_platform?: boolean;
   show_on_page?: boolean;
   endorsement?: string;
+  tags?: string[];
 }
 
 function maskPhone(phone: string) {
@@ -188,7 +190,7 @@ interface RowProps {
 function InviteRow({ item, onOpen, onResend, onArchive, onRemove, onToggleShow, onEditEndorsement, onChanged, resending, archiving }: RowProps) {
   const status = statusMeta(item);
   const eligible = !status.isTerminal && item.invite_id != null && canResend(item);
-  const isCuratedPro = item.scenario === "pro" && item.is_on_platform;
+  const isPro = item.scenario === "pro";
 
   const lastIso = item.last_resent_at ?? item.invited_at;
   const days = daysSince(lastIso);
@@ -227,22 +229,16 @@ function InviteRow({ item, onOpen, onResend, onArchive, onRemove, onToggleShow, 
       <Table.Td style={{ maxWidth: 90 }}>
         <Badge size="xs" variant="light" color={status.color}>{status.label}</Badge>
       </Table.Td>
-      <Table.Td style={{ maxWidth: 130 }}>
-        <Text size="xs" c="dimmed" style={{ whiteSpace: "nowrap" }}>{fmtDateTime(item.invited_at)}</Text>
-      </Table.Td>
-      <Table.Td style={{ maxWidth: 130 }}>
-        <Stack gap={0}>
-          <Text size="xs" style={{ whiteSpace: "nowrap" }}>{fmtDateTime(lastIso)}</Text>
-          {days !== null && (
-            <Text size="xs" c={days >= 2 ? "orange" : "dimmed"} fw={days >= 2 ? 600 : undefined}>
-              {days}d ago
-            </Text>
-          )}
-        </Stack>
-      </Table.Td>
       <Table.Td>
         <Group gap={4} wrap="nowrap">
-          {isCuratedPro ? (
+          {item.invite_id != null && (
+            <Tooltip label={eligible ? "Resend" : status.isTerminal ? status.label : "Wait 24h"} withArrow>
+              <ActionIcon size="sm" variant="subtle" color="blue" disabled={!eligible} loading={resending} onClick={onResend}>
+                <IconRefresh size={13} />
+              </ActionIcon>
+            </Tooltip>
+          )}
+          {isPro ? (
             <>
               <Tooltip label={item.show_on_page ? "Shown on your page" : "Hidden from your page"} withArrow>
                 <Switch size="xs" checked={!!item.show_on_page} onChange={onToggleShow} />
@@ -259,30 +255,26 @@ function InviteRow({ item, onOpen, onResend, onArchive, onRemove, onToggleShow, 
               </Tooltip>
             </>
           ) : (
-            <>
-              {item.invite_id != null && (
-                <Tooltip label={eligible ? "Resend" : status.isTerminal ? status.label : "Wait 24h"} withArrow>
-                  <ActionIcon size="sm" variant="subtle" color="blue" disabled={!eligible} loading={resending} onClick={onResend}>
-                    <IconRefresh size={13} />
-                  </ActionIcon>
-                </Tooltip>
-              )}
-              {item.scenario === "pro" ? (
-                <Tooltip label="Remove from your page" withArrow>
-                  <ActionIcon size="sm" variant="subtle" color="red" onClick={onRemove}>
-                    <IconTrash size={13} />
-                  </ActionIcon>
-                </Tooltip>
-              ) : (
-                <Tooltip label="Archive" withArrow>
-                  <ActionIcon size="sm" variant="subtle" color="gray" loading={archiving} onClick={onArchive}>
-                    <IconArchive size={13} />
-                  </ActionIcon>
-                </Tooltip>
-              )}
-            </>
+            <Tooltip label="Archive" withArrow>
+              <ActionIcon size="sm" variant="subtle" color="gray" loading={archiving} onClick={onArchive}>
+                <IconArchive size={13} />
+              </ActionIcon>
+            </Tooltip>
           )}
         </Group>
+      </Table.Td>
+      <Table.Td style={{ maxWidth: 130 }}>
+        <Text size="xs" c="dimmed" style={{ whiteSpace: "nowrap" }}>{fmtDateTime(item.invited_at)}</Text>
+      </Table.Td>
+      <Table.Td style={{ maxWidth: 130 }}>
+        <Stack gap={0}>
+          <Text size="xs" style={{ whiteSpace: "nowrap" }}>{fmtDateTime(lastIso)}</Text>
+          {days !== null && (
+            <Text size="xs" c={days >= 2 ? "orange" : "dimmed"} fw={days >= 2 ? 600 : undefined}>
+              {days}d ago
+            </Text>
+          )}
+        </Stack>
       </Table.Td>
     </Table.Tr>
   );
@@ -326,7 +318,7 @@ export function InviteTimeline({ refreshKey, lockType, title }: { refreshKey: nu
             click_count: pc?.click_count ?? 0,
             email_count: pc?.email_count ?? 0, whatsapp_count: pc?.whatsapp_count ?? 0, sms_count: pc?.sms_count ?? 0,
             invited_at: p.added_at, last_resent_at: p.last_resent_at,
-            is_on_platform: p.is_on_platform, show_on_page: p.show_on_page, endorsement: p.endorsement,
+            is_on_platform: p.is_on_platform, show_on_page: p.show_on_page, endorsement: p.endorsement, tags: p.tags,
           };
         }),
         ...inviteData.friend_invites.map((i) => ({
@@ -353,7 +345,7 @@ export function InviteTimeline({ refreshKey, lockType, title }: { refreshKey: nu
   useEffect(() => { void load(); }, [refreshKey]);
 
   function openContact(item: UnifiedInvite) {
-    navigate(`/us/${slug}/contacts/${item.scenario}/${item.id}`, { state: { contact: item } });
+    navigate(`/us/${slug}/contacts/${item.scenario}/${encodeContactId(item.id)}`, { state: { contact: item } });
   }
 
   async function handleResend(item: UnifiedInvite) {
@@ -566,9 +558,9 @@ export function InviteTimeline({ refreshKey, lockType, title }: { refreshKey: nu
                 <SortableTh col="email" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} width={190}>Email</SortableTh>
                 <SortableTh col="trade" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} width={100}>Trade</SortableTh>
                 <SortableTh col="status" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} width={90}>Status</SortableTh>
+                <Table.Th style={{ width: 110 }}></Table.Th>
                 <SortableTh col="added" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} width={130}>Added</SortableTh>
                 <SortableTh col="last_contact" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} width={130}>Last Contact</SortableTh>
-                <Table.Th style={{ width: 90 }}></Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>

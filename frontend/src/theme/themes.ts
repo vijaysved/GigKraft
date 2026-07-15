@@ -1,12 +1,12 @@
 import { createTheme, rem, type MantineThemeOverride } from "@mantine/core";
 
 export type ThemeId =
-  | "gigkraft_brand"
-  | "blueprint"
-  | "warm_light"
-  | "cool_light"
-  | "gigkraft_dark"
-  | "lime_n_orange";
+  | "coral_tide"
+  | "blackout_yellow"
+  | "neon_trendsetter"
+  | "sunset_blaze"
+  | "pop_fizz"
+  | "midnight_glow";
 
 export interface ThemeBrandTokens {
   bgCanvas: string;
@@ -39,40 +39,40 @@ function mantineScale(steps: [string, string, string, string, string, string, st
   return steps;
 }
 
-// Electric Watermelon — electric cyan buttons
-const electricCyan = mantineScale([
-  "#e0fafe", "#b3f4fd", "#80edfb", "#4de6f9", "#26e1f8",
-  "#00E5FF", "#00BDD4", "#0094A9", "#006C7E", "#004453",
+// Coral Reef — coral action color (Coral Tide theme)
+const coralReef = mantineScale([
+  "#FFEEEC", "#FFD4D0", "#FFB7B0", "#FF9A90", "#FF8579",
+  "#FF6F61", "#E06255", "#BF5349", "#9E453C", "#803831",
 ]);
 
-// Acid Lime Drop — neon lime buttons
-const acidLime = mantineScale([
-  "#f5ffe0", "#e6ffb3", "#d7ff80", "#c7ff4d", "#bcff26",
-  "#7CFF00", "#65D400", "#4FAA00", "#3A7F00", "#265500",
+// Sunshine Yellow — action color (Blackout Yellow theme)
+const sunshineYellow = mantineScale([
+  "#FFFAE0", "#FFF2B3", "#FFEA80", "#FFE14D", "#FFDA26",
+  "#FFD400", "#E0BB00", "#BF9F00", "#9E8300", "#806A00",
 ]);
 
-// Hyper-Pop Punch — magenta-pink buttons
-const hyperMagenta = mantineScale([
-  "#ffe6f8", "#ffb3ec", "#ff80e0", "#ff4dd4", "#ff26cb",
-  "#FF00CC", "#D400AB", "#AA0089", "#7F0067", "#550045",
+// Hot Pink — action color (Neon Trendsetter theme)
+const hotPink = mantineScale([
+  "#FFE4F3", "#FFBCE1", "#FF8FCE", "#FF62BA", "#FF40AB",
+  "#FF1E9C", "#E01A89", "#BF1775", "#9E1361", "#800F4E",
 ]);
 
-// Plasma Tangerine — cobalt blue buttons
-const plasmaBlue = mantineScale([
-  "#eff6ff", "#dbeafe", "#bfdbfe", "#93c5fd", "#60a5fa",
-  "#3B82F6", "#2563EB", "#1D4ED8", "#1E40AF", "#1E3A8A",
+// Golden Amber — action color (Sunset Blaze theme)
+const goldenAmber = mantineScale([
+  "#FFF8E0", "#FFEEB3", "#FFE380", "#FFD84D", "#FFCF26",
+  "#FFC700", "#E0AF00", "#BF9500", "#9E7B00", "#806400",
 ]);
 
-// Cyber Grapefruit — grapefruit red buttons
-const cyberGrapefruit = mantineScale([
-  "#ffe8e8", "#ffc5c5", "#ff9d9d", "#ff7474", "#ff6060",
-  "#FF4E4E", "#E03C3C", "#C12A2A", "#A31A1A", "#840A0A",
+// Pool Cyan — action color (Pop Fizz theme)
+const poolCyan = mantineScale([
+  "#E0FBFF", "#B3F6FF", "#80F0FF", "#4DE9FF", "#26E5FF",
+  "#00E0FF", "#00C5E0", "#00A8BF", "#008B9E", "#007080",
 ]);
 
-// Lime n Orange — deep orange buttons
-const limeOrange = mantineScale([
-  "#FFF3E8", "#FFE0C0", "#FFCC9A", "#FFB370", "#FF9A46",
-  "#FF6B1A", "#E04F00", "#C03600", "#9A1F00", "#7A0A00",
+// Glow Cyan — action color (Midnight Glow theme, dark)
+const glowCyan = mantineScale([
+  "#EDFCFF", "#D1F7FF", "#B3F1FF", "#94EBFF", "#7DE7FF",
+  "#66E3FF", "#4FB2C9", "#3C8A9E", "#296373", "#19414F",
 ]);
 
 const sharedBase: MantineThemeOverride = {
@@ -122,198 +122,204 @@ const sharedBase: MantineThemeOverride = {
 };
 
 export const THEMES: Record<ThemeId, ThemeDefinition> = {
-  gigkraft_brand: {
-    id: "gigkraft_brand",
-    label: "Electric Watermelon",
-    tagline: "Bold energy, pure white canvas",
-    description: "Pure white canvas with a hyper-vibrant pink header and electric cyan gradient buttons.",
+  coral_tide: {
+    id: "coral_tide",
+    label: "Coral Tide",
+    tagline: "Coral Reef & Deep Teal",
+    description: "Crisp white canvas with a deep teal header and warm coral action buttons — an eye-catching duo.",
     colorScheme: "light",
-    swatchColors: ["#FF0055", "#00E5FF", "#00C8FF", "#FFFFFF", "#F0F0F0"],
+    swatchColors: ["#FF6F61", "#17A398", "#FFFFFF", "#0F7A70", "#FFEEEC"],
     brand: {
       bgCanvas: "#FFFFFF",
       bgSurface: "#FAFAFA",
-      bgSidebar: "#FF0055",
-      bgSidebarActive: "#00C8FF",
-      brandGradient: "linear-gradient(135deg, #00E5FF 0%, #00C8FF 100%)",
-      accentPrimary: "#00E5FF",
-      accentSecondary: "#FF0055",
-      accentTertiary: "#00C8FF",
+      bgSidebar: "#17A398",
+      bgSidebarActive: "#FF6F61",
+      brandGradient: "linear-gradient(135deg, #17A398 0%, #FF6F61 100%)",
+      accentPrimary: "#FF6F61",
+      accentSecondary: "#17A398",
+      accentTertiary: "#0F7A70",
       textOnSidebar: "#FFFFFF",
       textMuted: "#888888",
-      border: "#E5E5E5",
-      cardHero: "#FF0055",
+      border: "#E3EDEC",
+      cardHero: "#17A398",
       useWallpaper: false,
     },
     theme: createTheme({
       ...sharedBase,
-      primaryColor: "electricCyan",
+      primaryColor: "coralReef",
       primaryShade: 5,
-      colors: { electricCyan },
+      colors: { coralReef },
     }),
   },
 
-  blueprint: {
-    id: "blueprint",
-    label: "Acid Lime Drop",
-    tagline: "Digital cobalt meets neon lime",
-    description: "Stark white base with deep digital-cobalt header and high-vis neon acid lime action buttons.",
+  blackout_yellow: {
+    id: "blackout_yellow",
+    label: "Blackout Yellow",
+    tagline: "Jet Black, Pure White & Sunshine Yellow",
+    description: "Pure white canvas with a jet-black header and high-contrast sunshine yellow action buttons.",
     colorScheme: "light",
-    swatchColors: ["#0055FF", "#7CFF00", "#FFFFFF", "#003ECC", "#E8FFB3"],
+    swatchColors: ["#0A0A0A", "#FFD400", "#FFFFFF", "#1A1A1A", "#FFFAE0"],
     brand: {
       bgCanvas: "#FFFFFF",
-      bgSurface: "#FAFAFA",
-      bgSidebar: "#0055FF",
-      bgSidebarActive: "#7CFF00",
-      brandGradient: "linear-gradient(135deg, #0055FF 0%, #7CFF00 100%)",
-      accentPrimary: "#7CFF00",
-      accentSecondary: "#0055FF",
-      accentTertiary: "#003ECC",
+      bgSurface: "#FFFFFF",
+      bgSidebar: "#0A0A0A",
+      bgSidebarActive: "#FFD400",
+      brandGradient: "linear-gradient(135deg, #0A0A0A 0%, #FFD400 100%)",
+      accentPrimary: "#FFD400",
+      accentSecondary: "#0A0A0A",
+      accentTertiary: "#1A1A1A",
       textOnSidebar: "#FFFFFF",
       textMuted: "#666666",
-      border: "#E5E5E5",
-      cardHero: "#0055FF",
+      border: "#DDDDDD",
+      cardHero: "#0A0A0A",
       useWallpaper: false,
     },
     theme: createTheme({
       ...sharedBase,
-      primaryColor: "acidLime",
+      primaryColor: "sunshineYellow",
       primaryShade: 5,
-      colors: { acidLime },
+      colors: { sunshineYellow },
     }),
   },
 
-  warm_light: {
-    id: "warm_light",
-    label: "Hyper-Pop Punch",
-    tagline: "Structured purple, pop magenta",
-    description: "Bright white-indigo sheen with structured dark purple header and energetic magenta-pink accents.",
+  neon_trendsetter: {
+    id: "neon_trendsetter",
+    label: "Neon Trendsetter",
+    tagline: "Hot Pink, Orchid Magenta & Electric Violet",
+    description: "Bright white canvas with an electric violet header and hot pink action buttons, for trend setters.",
     colorScheme: "light",
-    swatchColors: ["#7900FF", "#FF00CC", "#F0EEFF", "#5A00BF", "#FFE6F8"],
+    swatchColors: ["#FF1E9C", "#C532E0", "#7B2FE0", "#FFFFFF", "#F5EBFF"],
     brand: {
-      bgCanvas: "#F0EEFF",
-      bgSurface: "#FFFFFF",
-      bgSidebar: "#7900FF",
-      bgSidebarActive: "#FF00CC",
-      brandGradient: "linear-gradient(135deg, #7900FF 0%, #FF00CC 100%)",
-      accentPrimary: "#FF00CC",
-      accentSecondary: "#7900FF",
-      accentTertiary: "#5A00BF",
+      bgCanvas: "#FFFFFF",
+      bgSurface: "#FAF8FF",
+      bgSidebar: "#7B2FE0",
+      bgSidebarActive: "#FF1E9C",
+      brandGradient: "linear-gradient(135deg, #7B2FE0 0%, #C532E0 50%, #FF1E9C 100%)",
+      accentPrimary: "#FF1E9C",
+      accentSecondary: "#7B2FE0",
+      accentTertiary: "#C532E0",
       textOnSidebar: "#FFFFFF",
-      textMuted: "#888888",
-      border: "#E0D8FF",
-      cardHero: "#7900FF",
+      textMuted: "#8A7A9E",
+      border: "#EDE0FA",
+      cardHero: "#7B2FE0",
       useWallpaper: false,
     },
     theme: createTheme({
       ...sharedBase,
-      primaryColor: "hyperMagenta",
+      primaryColor: "hotPink",
       primaryShade: 5,
-      colors: { hyperMagenta },
+      colors: { hotPink },
     }),
   },
 
-  cool_light: {
-    id: "cool_light",
-    label: "Plasma Tangerine",
-    tagline: "Burning tangerine, cobalt action",
-    description: "Crisp white background with burning tangerine header and solid vibrant cobalt buttons.",
+  sunset_blaze: {
+    id: "sunset_blaze",
+    label: "Sunset Blaze",
+    tagline: "Golden Amber, Marmalade & Burnt Sienna",
+    description: "Warm cream canvas with a burnt sienna header and golden amber action buttons — sunset vibes.",
     colorScheme: "light",
-    swatchColors: ["#FF5E00", "#3B82F6", "#FFFFFF", "#CC4B00", "#DBEAFE"],
+    swatchColors: ["#FFC700", "#FFA83C", "#E8790A", "#FFF9F0"],
+    brand: {
+      bgCanvas: "#FFF9F0",
+      bgSurface: "#FFFFFF",
+      bgSidebar: "#E8790A",
+      bgSidebarActive: "#FFC700",
+      brandGradient: "linear-gradient(135deg, #E8790A 0%, #FFA83C 50%, #FFC700 100%)",
+      accentPrimary: "#FFC700",
+      accentSecondary: "#E8790A",
+      accentTertiary: "#FFA83C",
+      textOnSidebar: "#FFF8F2",
+      textMuted: "#9A7A55",
+      border: "#F5DFC0",
+      cardHero: "#E8790A",
+      useWallpaper: false,
+    },
+    theme: createTheme({
+      ...sharedBase,
+      primaryColor: "goldenAmber",
+      primaryShade: 5,
+      colors: { goldenAmber },
+    }),
+  },
+
+  pop_fizz: {
+    id: "pop_fizz",
+    label: "Pop Fizz",
+    tagline: "Spring Green, Pool Cyan & Neon Magenta",
+    description: "Crisp white canvas with a neon magenta header and pool cyan action buttons that make it pop.",
+    colorScheme: "light",
+    swatchColors: ["#00E28D", "#00E0FF", "#F400EB", "#FFFFFF"],
     brand: {
       bgCanvas: "#FFFFFF",
       bgSurface: "#FAFAFA",
-      bgSidebar: "#FF5E00",
-      bgSidebarActive: "#3B82F6",
-      brandGradient: "linear-gradient(135deg, #FF5E00 0%, #3B82F6 100%)",
-      accentPrimary: "#3B82F6",
-      accentSecondary: "#FF5E00",
-      accentTertiary: "#2563EB",
+      bgSidebar: "#F400EB",
+      bgSidebarActive: "#00E0FF",
+      brandGradient: "linear-gradient(135deg, #00E28D 0%, #00E0FF 50%, #F400EB 100%)",
+      accentPrimary: "#00E0FF",
+      accentSecondary: "#F400EB",
+      accentTertiary: "#00E28D",
       textOnSidebar: "#FFFFFF",
       textMuted: "#888888",
-      border: "#E5E5E5",
-      cardHero: "#FF5E00",
+      border: "#DFF7FA",
+      cardHero: "#F400EB",
       useWallpaper: false,
     },
     theme: createTheme({
       ...sharedBase,
-      primaryColor: "plasmaBlue",
+      primaryColor: "poolCyan",
       primaryShade: 5,
-      colors: { plasmaBlue },
+      colors: { poolCyan },
     }),
   },
 
-  gigkraft_dark: {
-    id: "gigkraft_dark",
-    label: "Cyber Grapefruit",
-    tagline: "Digital violet, glowing grapefruit",
-    description: "Fresh tinted-coral canvas with digital violet header and glowing grapefruit action items.",
-    colorScheme: "light",
-    swatchColors: ["#7000FF", "#FF4E4E", "#FFF0EE", "#5500CC", "#FFD0CC"],
+  midnight_glow: {
+    id: "midnight_glow",
+    label: "Midnight Glow",
+    tagline: "Indigo Violet & Glow Cyan on Midnight Navy",
+    description: "Midnight navy canvas with an indigo violet header and glowing cyan action buttons.",
+    colorScheme: "dark",
+    swatchColors: ["#0B0D12", "#7B5CFF", "#66E3FF", "#FF6BD6"],
     brand: {
-      bgCanvas: "#FFF0EE",
-      bgSurface: "#FFFFFF",
-      bgSidebar: "#7000FF",
-      bgSidebarActive: "#FF4E4E",
-      brandGradient: "linear-gradient(135deg, #7000FF 0%, #FF4E4E 100%)",
-      accentPrimary: "#FF4E4E",
-      accentSecondary: "#7000FF",
-      accentTertiary: "#5500CC",
-      textOnSidebar: "#FFFFFF",
-      textMuted: "#888888",
-      border: "#F0D8D5",
-      cardHero: "#7000FF",
+      bgCanvas: "#0B0D12",
+      bgSurface: "#151822",
+      bgSidebar: "#7B5CFF",
+      bgSidebarActive: "#66E3FF",
+      brandGradient: "linear-gradient(135deg, #7B5CFF 0%, #66E3FF 100%)",
+      accentPrimary: "#66E3FF",
+      accentSecondary: "#7B5CFF",
+      accentTertiary: "#FF6BD6",
+      textOnSidebar: "#F5F7FF",
+      textMuted: "#8C93A6",
+      border: "#262B3A",
+      cardHero: "#7B5CFF",
       useWallpaper: false,
     },
     theme: createTheme({
       ...sharedBase,
-      primaryColor: "cyberGrapefruit",
+      primaryColor: "glowCyan",
       primaryShade: 5,
-      colors: { cyberGrapefruit },
-    }),
-  },
-
-  lime_n_orange: {
-    id: "lime_n_orange",
-    label: "Lime n Orange",
-    tagline: "Warm canvas, burning gradient",
-    description: "Warm cream canvas with a burning red-to-gold gradient header and deep orange action buttons.",
-    colorScheme: "light",
-    swatchColors: ["#C42200", "#FF6B1A", "#FFBA00", "#1A0600", "#FFFAF5"],
-    brand: {
-      bgCanvas: "#FFFAF5",
-      bgSurface: "#FFFFFF",
-      bgSidebar: "#1A0600",
-      bgSidebarActive: "linear-gradient(135deg, #C42200 0%, #FF6600 50%, #FFBA00 100%)",
-      brandGradient: "linear-gradient(135deg, #C42200 0%, #E84500 18%, #FF6600 42%, #FF9100 68%, #FFBA00 88%, #FFD200 100%)",
-      accentPrimary: "#FF6B1A",
-      accentSecondary: "#FFBA00",
-      accentTertiary: "#C42200",
-      textOnSidebar: "#FFF8F2",
-      textMuted: "#9A6B4B",
-      border: "#F0E0D0",
-      cardHero: "#C42200",
-      useWallpaper: false,
-    },
-    theme: createTheme({
-      ...sharedBase,
-      primaryColor: "limeOrange",
-      primaryShade: 5,
-      colors: { limeOrange },
+      colors: { glowCyan },
     }),
   },
 };
 
-export const DEFAULT_THEME_ID: ThemeId = "gigkraft_brand";
+export const DEFAULT_THEME_ID: ThemeId = "blackout_yellow";
 
 export const THEME_IDS = Object.keys(THEMES) as ThemeId[];
 
 const LEGACY_THEME_MAP: Record<string, ThemeId> = {
-  handyman: "gigkraft_brand",
-  gigkraft_light: "gigkraft_brand",
-  influencer: "gigkraft_dark",
-  podcast: "warm_light",
-  outreach: "cool_light",
-  dark: "gigkraft_dark",
+  handyman: "pop_fizz",
+  gigkraft_light: "pop_fizz",
+  gigkraft_brand: "pop_fizz",
+  influencer: "midnight_glow",
+  gigkraft_dark: "midnight_glow",
+  dark: "midnight_glow",
+  podcast: "neon_trendsetter",
+  warm_light: "neon_trendsetter",
+  blueprint: "neon_trendsetter",
+  outreach: "sunset_blaze",
+  cool_light: "sunset_blaze",
+  lime_n_orange: "sunset_blaze",
 };
 
 export function isThemeId(value: string | null): value is ThemeId {

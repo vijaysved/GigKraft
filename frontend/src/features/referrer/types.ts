@@ -7,6 +7,7 @@ export interface ProCardOut {
   email: string;
   avatar_url: string;
   endorsement: string;
+  tags: string[];
   responds_in: string | null;
   is_licensed: boolean;
   is_insured: boolean;
