@@ -1,13 +1,17 @@
 """Short-link redirect and social-preview view for a Community's public page."""
+import base64
 import html
 import os
+import re
 
 from django.db.models import F
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, HttpResponseNotFound
 from django.views.decorators.cache import cache_control
 from django.views.decorators.http import require_GET
 
 from communities.models import Community
+
+_DATA_URL_RE = re.compile(r"^data:(?P<mime>image/[\w.+-]+);base64,(?P<b64>.+)$", re.DOTALL)
 
 FRONTEND_URL = os.environ.get("FRONTEND_URL") or (
     "http://localhost:5173" if os.environ.get("DJANGO_DEBUG", "False") == "True" else "https://gigkraft.com"
@@ -46,6 +50,37 @@ def community_short_link(request, code: str) -> HttpResponseRedirect:
 
 
 @require_GET
+@cache_control(max_age=300, public=True)
+def community_cover_image(request, slug: str) -> HttpResponse:
+    """Serves a Community's cover image as a real, fetchable URL.
+
+    `Community.cover_image_url` is often a `data:image/...;base64,...` URI —
+    the Settings page compresses uploads client-side and stores the data URI
+    directly rather than uploading to real file storage. That's fine for the
+    SPA's own `<img>` tags, but social-media crawlers (WhatsApp, Facebook,
+    etc.) fetch `og:image` as an HTTP GET and cannot resolve `data:` URIs, so
+    the community's logo silently fails to show up in link previews. This
+    view decodes the stored data URI on each request and serves the raw
+    bytes, giving `community_social_preview` below a URL bots can actually
+    fetch — no dependency on persistent file storage.
+    """
+    community = Community.objects.filter(slug=slug).first()
+    if community is None:
+        return HttpResponseNotFound()
+
+    m = _DATA_URL_RE.match(community.cover_image_url or "")
+    if not m:
+        return HttpResponseNotFound()
+
+    try:
+        content = base64.b64decode(m.group("b64"))
+    except (ValueError, base64.binascii.Error):
+        return HttpResponseNotFound()
+
+    return HttpResponse(content, content_type=m.group("mime"))
+
+
+@require_GET
 @cache_control(max_age=3600, public=True)
 def community_social_preview(request, slug: str) -> HttpResponse:
     """Social-preview view for a Community's public page — same shape as
@@ -67,7 +102,10 @@ def community_social_preview(request, slug: str) -> HttpResponse:
     desc = html.escape(
         community.description or f"Trusted home service pros curated by {name} on GigKraft."
     )
-    image = html.escape(community.cover_image_url or GK_LOGO)
+    if community.cover_image_url.startswith("data:"):
+        image = request.build_absolute_uri(f"/community/{slug}/og-image")
+    else:
+        image = html.escape(community.cover_image_url or GK_LOGO)
     title = f"{name} · GigKraft Community"
     canon = f"https://gigkraft.com/community/{slug}"
 

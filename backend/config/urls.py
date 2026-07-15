@@ -5,7 +5,7 @@ from django.urls import path
 
 from billing.webhook import stripe_webhook
 from comms.resend_webhook import resend_webhook
-from communities.views import community_short_link, community_social_preview
+from communities.views import community_cover_image, community_short_link, community_social_preview
 from config.api import api
 from referrals.views import referrer_pro_short_link, referrer_short_link, referrer_social_preview
 from vendors.views import go_example, go_signup
@@ -26,6 +26,8 @@ urlpatterns = [
     path("g/<str:code>", community_short_link),
     # Social preview: serves OG meta tags (Community logo/name) to bots for the full page URL.
     path("community/<str:slug>", community_social_preview),
+    # Serves a Community's cover image as a real URL when it's stored as a data: URI.
+    path("community/<str:slug>/og-image", community_cover_image),
     # Short tracked-link redirects for prospect outreach (WhatsApp/SMS/email).
     path("go/example/<str:token>", go_example),
     path("go/<str:token>", go_signup),
