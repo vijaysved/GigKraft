@@ -137,6 +137,8 @@ class ReferrerPro(models.Model):
     show_on_page = models.BooleanField(default=True)
     display_order = models.PositiveSmallIntegerField(default=0)
     referral_count = models.PositiveIntegerField(default=0)
+    short_code = models.CharField(max_length=10, unique=True, db_index=True, blank=True, default="")
+    short_link_click_count = models.PositiveIntegerField(default=0)
     added_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -153,6 +155,17 @@ class ReferrerPro(models.Model):
                 name="unique_referrer_pro_invite",
             ),
         ]
+
+    def _generate_short_code(self) -> str:
+        code = _generate_short_code()
+        while ReferrerPro.objects.exclude(pk=self.pk).filter(short_code=code).exists():
+            code = _generate_short_code()
+        return code
+
+    def save(self, *args, **kwargs):
+        if not self.short_code:
+            self.short_code = self._generate_short_code()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"ReferrerPro<{self.referrer} → {self.display_name}>"

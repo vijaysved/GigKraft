@@ -15,6 +15,8 @@ export interface ProCardOut {
   is_pending: boolean;
   tap_to_call: boolean;
   request_status: string | null;
+  short_url: string;
+  click_count: number | null;
 }
 
 export interface FollowerState {

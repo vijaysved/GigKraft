@@ -19109,6 +19109,21 @@
               }
             ],
             "title": "Request Status"
+          },
+          "short_url": {
+            "title": "Short Url",
+            "type": "string"
+          },
+          "click_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Click Count"
           }
         },
         "required": [
@@ -19124,7 +19139,8 @@
           "is_insured",
           "is_on_platform",
           "is_pending",
-          "tap_to_call"
+          "tap_to_call",
+          "short_url"
         ],
         "title": "ProCardOut",
         "type": "object"

@@ -73,7 +73,7 @@ def _get_follower_from_cookie(request, referrer_user) -> Optional[ReferrerFollow
     return ReferrerFollower.objects.filter(referrer=referrer_user, cookie_token=token).first()
 
 
-def _build_pro_card(rp: ReferrerPro, follower: Optional[ReferrerFollower]) -> dict:
+def _build_pro_card(rp: ReferrerPro, follower: Optional[ReferrerFollower], is_owner: bool = False) -> dict:
     pro = rp.pro
     invite = rp.pro_invite
 
@@ -130,6 +130,8 @@ def _build_pro_card(rp: ReferrerPro, follower: Optional[ReferrerFollower]) -> di
         "is_pending": is_pending,
         "tap_to_call": tap_to_call,
         "request_status": request_status,
+        "short_url": f"https://gigkraft.com/p/{rp.short_code}",
+        "click_count": rp.short_link_click_count if is_owner else None,
     }
 
 
@@ -311,6 +313,8 @@ class ProCardOut(Schema):
     is_pending: bool
     tap_to_call: bool
     request_status: Optional[str] = None
+    short_url: str
+    click_count: Optional[int] = None
 
 
 class FollowerStateOut(Schema):
@@ -788,7 +792,7 @@ def referrer_public_page(request, slug: str):
         "avatar_url": avatar_url,
         "follower_count": profile.follower_count,
         "referral_count": profile.referral_count,
-        "pros": [_build_pro_card(rp, follower) for rp in pros_qs],
+        "pros": [_build_pro_card(rp, follower, is_owner) for rp in pros_qs],
         "follower_state": {"follower_id": follower.pk, "name": follower.name} if follower else None,
         "is_owner": is_owner,
         "phone": profile.user.phone if authed_user else None,

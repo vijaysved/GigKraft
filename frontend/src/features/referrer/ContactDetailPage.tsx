@@ -428,9 +428,10 @@ export function ContactDetailPage() {
             {canEditTags && (
               <TagsInput
                 label="Tags"
-                description="Pick a suggestion or type your own and hit enter"
+                description="Pick a suggestion, or type your own and hit enter or space"
                 placeholder="#tag"
                 size="sm"
+                splitChars={[",", " "]}
                 value={draft.tags}
                 onChange={(tags) => setDraft((d) => ({ ...d, tags: [...new Set(tags.map(toCamelTag).filter(Boolean))] }))}
                 data={tagData}

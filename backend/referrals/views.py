@@ -11,7 +11,7 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.views.decorators.cache import cache_control
 from django.views.decorators.http import require_GET
 
-from referrals.models import ReferrerProfile
+from referrals.models import ReferrerPro, ReferrerProfile
 from accounts.models import HomeownerProfile, ProProfile
 
 FRONTEND_URL = os.environ.get("FRONTEND_URL") or (
@@ -109,6 +109,27 @@ def referrer_short_link(request, code: str) -> HttpResponseRedirect:
         )
 
     target = f"{FRONTEND_URL}/us/{profile.slug}/refer"
+    if request.META.get("QUERY_STRING"):
+        target = f"{target}?{request.META['QUERY_STRING']}"
+    return HttpResponseRedirect(target)
+
+
+@require_GET
+def referrer_pro_short_link(request, code: str) -> HttpResponseRedirect:
+    """Short `/p/<code>` alias for one specific pro on a referrer's page — same
+    redirect/click-counting shape as `referrer_short_link`, but scoped to a single
+    `ReferrerPro` row so each pro's share links can be tracked independently."""
+    rp = ReferrerPro.objects.select_related("referrer__referrer_profile").filter(short_code=code).first()
+    if rp is None or not hasattr(rp.referrer, "referrer_profile"):
+        return HttpResponseRedirect(FRONTEND_URL)
+
+    if not _is_bot(request):
+        ReferrerPro.objects.filter(pk=rp.pk).update(
+            short_link_click_count=F("short_link_click_count") + 1
+        )
+
+    slug = rp.referrer.referrer_profile.slug
+    target = f"{FRONTEND_URL}/us/{slug}/refer"
     if request.META.get("QUERY_STRING"):
         target = f"{target}?{request.META['QUERY_STRING']}"
     return HttpResponseRedirect(target)

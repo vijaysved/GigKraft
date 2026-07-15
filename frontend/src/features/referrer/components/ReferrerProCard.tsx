@@ -39,7 +39,6 @@ interface Props {
   isFollower: boolean;
   isAuthenticated: boolean;
   isOwner: boolean;
-  shareUrl: string;
   onNeedFollow: () => void;
   highlightedProId?: number;
   claimToken?: string;
@@ -155,7 +154,6 @@ export function ReferrerProCard({
   isFollower,
   isAuthenticated,
   isOwner,
-  shareUrl,
   onNeedFollow,
   highlightedProId,
   claimToken,
@@ -209,7 +207,7 @@ export function ReferrerProCard({
     if (pro.phone) lines.push(`📞 ${formatPhone(pro.phone)}`);
     if (pro.email) lines.push(`✉️ ${pro.email}`);
     if (pro.endorsement) lines.push(`"${pro.endorsement}" — ${referrerName}`);
-    lines.push("", `👀 Check out all of ${referrerName}'s trusted pros: ${shareUrl}`);
+    lines.push("", `👀 Check out all of ${referrerName}'s trusted pros: ${pro.short_url}`);
     return lines.join("\n");
   }
 
@@ -427,6 +425,12 @@ export function ReferrerProCard({
                     <ShareNoteForm note={note} onNoteChange={setNote} onConfirm={confirmCopyShareText} confirmLabel="Copy" />
                   </Popover.Dropdown>
                 </Popover>
+
+                {pro.click_count != null && (
+                  <Text size="xs" c="dimmed" ml={2}>
+                    {pro.click_count} click{pro.click_count === 1 ? "" : "s"}
+                  </Text>
+                )}
               </Group>
             )}
           </Stack>

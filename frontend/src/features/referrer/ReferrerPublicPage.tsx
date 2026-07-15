@@ -724,7 +724,6 @@ export function ReferrerPublicPage() {
                   isFollower={isFollower}
                   isAuthenticated={isAuthenticated}
                   isOwner={isOwner}
-                  shareUrl={shareUrl}
                   onNeedFollow={() => setFollowOpen(true)}
                   highlightedProId={highlightedProId ?? undefined}
                   claimToken={claimToken || undefined}

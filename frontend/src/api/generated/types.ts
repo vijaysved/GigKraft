@@ -6706,6 +6706,10 @@ export interface components {
             tap_to_call: boolean;
             /** Request Status */
             request_status?: string | null;
+            /** Short Url */
+            short_url: string;
+            /** Click Count */
+            click_count?: number | null;
         };
         /** ReferrerPublicOut */
         ReferrerPublicOut: {

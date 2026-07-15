@@ -21,6 +21,10 @@
       "destination": "https://gigkraft-backend-production.up.railway.app/r/:code"
     },
     {
+      "source": "/p/:code",
+      "destination": "https://gigkraft-backend-production.up.railway.app/p/:code"
+    },
+    {
       "source": "/us/:slug/refer",
       "has": [
         {
