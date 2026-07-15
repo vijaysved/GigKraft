@@ -5,6 +5,7 @@ from django.urls import path
 
 from billing.webhook import stripe_webhook
 from comms.resend_webhook import resend_webhook
+from communities.views import community_short_link
 from config.api import api
 from referrals.views import referrer_pro_short_link, referrer_short_link, referrer_social_preview
 from vendors.views import go_example, go_signup
@@ -21,6 +22,8 @@ urlpatterns = [
     path("r/<str:code>", referrer_short_link),
     # Short per-pro link (same as above, but click-tracked separately per pro on the page).
     path("p/<str:code>", referrer_pro_short_link),
+    # Short Community page link ("group").
+    path("g/<str:code>", community_short_link),
     # Short tracked-link redirects for prospect outreach (WhatsApp/SMS/email).
     path("go/example/<str:token>", go_example),
     path("go/<str:token>", go_signup),

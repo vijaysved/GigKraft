@@ -17,6 +17,7 @@ Abuse controls enforced here:
 """
 from typing import Optional
 
+from django.db.models import Q
 from django.utils import timezone
 from ninja import Router, Schema
 from ninja.errors import HttpError
@@ -85,6 +86,7 @@ class LeadOut(Schema):
     created_at: str
     homeowner: PartyOut
     pro: Optional[PartyOut]
+    recipient: Optional[PartyOut]
     last_message: Optional[str]
     unread_hint: int
     quotes: list[QuoteOut]
@@ -162,6 +164,7 @@ def serialize_lead(lead: Lead, viewer: User, connected_pro_ids: set | None = Non
             ) or "",
         ),
         "pro": _party(lead.pro.user, lead.pro.avatar_url) if lead.pro else None,
+        "recipient": _party(lead.recipient) if lead.recipient else None,
         "last_message": (last.body or "[photo]") if last else None,
         "unread_hint": min(unread, 9),
         "quotes": [serialize_quote(q) for q in lead.quotes.all()],
@@ -204,15 +207,16 @@ def _lead_for_viewer(request, lead_id: int) -> Lead:
     user = request.auth
     lead = (
         Lead.objects.filter(pk=lead_id)
-        .select_related("homeowner", "pro", "pro__user")
+        .select_related("homeowner", "pro", "pro__user", "recipient")
         .first()
     )
     if lead is None:
         raise HttpError(404, "Lead not found.")
     is_homeowner = lead.homeowner_id == user.id
     is_pro = lead.pro is not None and lead.pro.user_id == user.id
+    is_recipient = lead.recipient_id == user.id
     is_admin = user.role in (User.Role.NODE_MANAGER, User.Role.GK_ADMIN)
-    if not (is_homeowner or is_pro or is_admin):
+    if not (is_homeowner or is_pro or is_recipient or is_admin):
         raise HttpError(403, "You are not a participant of this lead.")
     return lead
 
@@ -235,20 +239,20 @@ def list_leads(request, status: Optional[str] = None, thread_type: Optional[str]
         pro = require_pro(request)
         leads = Lead.objects.filter(pro=pro)
     elif user.role == User.Role.REFERRER:
-        leads = Lead.objects.filter(homeowner=user)
+        leads = Lead.objects.filter(Q(homeowner=user) | Q(recipient=user))
         connected_pro_ids = set(
             ReferrerPro.objects.filter(referrer=user, pro__isnull=False)
             .values_list("pro__user_id", flat=True)
         )
     else:
-        leads = Lead.objects.filter(homeowner=user)
+        leads = Lead.objects.filter(Q(homeowner=user) | Q(recipient=user))
     if status:
         statuses = [s for s in status.split(",") if s]
         leads = leads.filter(status__in=statuses)
     if thread_type:
         types = [t for t in thread_type.split(",") if t]
         leads = leads.filter(thread_type__in=types)
-    leads = leads.select_related("homeowner", "pro", "pro__user").prefetch_related("quotes", "messages")
+    leads = leads.select_related("homeowner", "pro", "pro__user", "recipient").prefetch_related("quotes", "messages")
     return [serialize_lead(lead, user, connected_pro_ids) for lead in leads[:100]]
 
 

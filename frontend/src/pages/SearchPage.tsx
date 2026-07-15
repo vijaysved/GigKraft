@@ -16,10 +16,9 @@ import {
   Textarea,
   TextInput,
   Title,
-  Tooltip,
 } from "@mantine/core";
-import { IconCheck, IconFilter, IconHeart, IconHeartFilled, IconMapPin, IconPencil, IconSearch, IconSend } from "@tabler/icons-react";
-import { useEffect, useRef, useState } from "react";
+import { IconCheck, IconFilter, IconMapPin, IconPencil, IconSearch, IconSend, IconShieldCheck } from "@tabler/icons-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
@@ -30,9 +29,13 @@ import {
   trackSitePageView,
   type ProOut,
 } from "../api/endpoints";
+import { ProviderCard } from "../components/ProviderCard";
+import { CollapsibleTags } from "../components/CollapsibleTags";
 import { LocationBadge } from "../components/LocationBadge";
 import { useFavorites } from "../hooks/useFavorites";
 import { useZipState } from "../hooks/useZipState";
+import { TAG_FILTER_COLOR } from "../theme/tagColor";
+import { toCamelTag } from "../utils/tags";
 
 declare function gtag(command: string, ...args: unknown[]): void;
 
@@ -45,18 +48,12 @@ const IS_DEV_MACHINE =
 
 interface CategoryDef {
   label: string;
-  gradient: string;
-  light: string;
-  textColor: string;
   subcategories: string[];
 }
 
 const CATEGORIES: Record<string, CategoryDef> = {
   "Remodeling & Build": {
     label: "Remodeling & Build",
-    gradient: "linear-gradient(135deg,#7900FF,#FF0055)",
-    light: "#F3E8FF",
-    textColor: "#7900FF",
     subcategories: [
       "Additions & Remodels",
       "Builders (New Homes)",
@@ -68,16 +65,10 @@ const CATEGORIES: Record<string, CategoryDef> = {
   },
   "Licensed Home Systems": {
     label: "Licensed Home Systems",
-    gradient: "linear-gradient(135deg,#0055FF,#00E5FF)",
-    light: "#E0F2FF",
-    textColor: "#0055FF",
     subcategories: ["Plumbing", "Electrical", "HVAC", "Pools, Spas & Hot Tubs"],
   },
   "Interior Finishes": {
     label: "Interior Finishes",
-    gradient: "linear-gradient(135deg,#FF6B1A,#FFB800)",
-    light: "#FFF4E0",
-    textColor: "#C84F00",
     subcategories: [
       "Drywall & Insulation",
       "Painting & Staining",
@@ -88,9 +79,6 @@ const CATEGORIES: Record<string, CategoryDef> = {
   },
   "Exterior & Hardscape": {
     label: "Exterior & Hardscape",
-    gradient: "linear-gradient(135deg,#16A34A,#00C8A0)",
-    light: "#DCFCE7",
-    textColor: "#16A34A",
     subcategories: [
       "Roofing, Siding & Gutters",
       "Windows & Doors",
@@ -101,24 +89,11 @@ const CATEGORIES: Record<string, CategoryDef> = {
   },
   "Maintenance & Handyman": {
     label: "Maintenance & Handyman",
-    gradient: "linear-gradient(135deg,#FF5E00,#FFBA00)",
-    light: "#FFF3E0",
-    textColor: "#E04500",
     subcategories: ["Handyman Services", "Lawn, Trees & Shrubs", "Cleaning Services"],
   },
 };
 
 const CATEGORY_KEYS = Object.keys(CATEGORIES);
-
-// Tier-based fallback gradients when no category is assigned
-const PRO_GRADIENT   = "linear-gradient(135deg,#FF0055,#00C8FF)";  // GigKraft brand
-const MEMBER_GRADIENT = "linear-gradient(135deg,#9CA3AF,#6B7280)"; // muted silver
-
-function proGradient(pro: ProOut): string {
-  const primary = pro.trade_categories?.[0]?.category;
-  if (primary && CATEGORIES[primary]) return CATEGORIES[primary].gradient;
-  return pro.role === "member" ? MEMBER_GRADIENT : PRO_GRADIENT;
-}
 
 // ── Pro card ──────────────────────────────────────────────────────────────────
 
@@ -128,166 +103,66 @@ function ProCard({
   isFavorited,
   onToggleFavorite,
   isAuthenticated,
+  onSkillClick,
 }: {
   pro: ProOut;
   onClick: () => void;
   isFavorited: boolean;
   onToggleFavorite: (id: number) => void;
   isAuthenticated: boolean;
+  onSkillClick: (skill: string) => void;
 }) {
-  const gradient = proGradient(pro);
-  const isPro = pro.role !== "member";
-  const initials = pro.name
-    .split(" ")
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-
   const primaryCat = pro.trade_categories?.[0];
   const tradeLine = primaryCat
     ? `${primaryCat.subcategories?.[0] ?? ""} · ${primaryCat.category}`.replace(/^· /, "")
     : pro.primary_trade || "General";
 
   return (
-    <Card
-      withBorder={false}
-      radius="lg"
-      padding={0}
-      shadow="sm"
-      style={{ cursor: "pointer", overflow: "visible", position: "relative" }}
+    <ProviderCard
       onClick={onClick}
+      avatarUrl={pro.avatar_url}
+      avatarSeed={pro.id}
+      name={pro.name}
+      tier={pro.role === "member" ? "referred" : "pro"}
+      trade={tradeLine}
+      respondsIn={pro.response_hours > 0 ? `~${pro.response_hours}h` : null}
+      favorite={{ isFavorited, onToggle: () => onToggleFavorite(pro.id), isAuthenticated }}
     >
-      {/* Gradient hero strip */}
-      <Box
-        style={{
-          height: 72,
-          background: gradient,
-          borderRadius: "var(--mantine-radius-lg) var(--mantine-radius-lg) 0 0",
-          position: "relative",
-        }}
-      >
-        {/* Tier badge — standard color regardless of card gradient */}
-        <Box
-          style={{
-            position: "absolute",
-            top: 10,
-            right: 44,
-            padding: "3px 10px",
-            borderRadius: 20,
-            background: isPro ? "#00C8FF" : "rgba(255,255,255,0.92)",
-            color: isPro ? "#003344" : "#555",
-            fontSize: 11,
-            fontWeight: 800,
-            letterSpacing: 0.3,
-            boxShadow: "0 1px 4px rgba(0,0,0,.15)",
-          }}
-        >
-          {isPro ? "⚡ Pro" : "Member"}
-        </Box>
-
-        {/* Favorite heart button */}
-        <Tooltip
-          label={isAuthenticated ? (isFavorited ? "Remove from favorites" : "Save to favorites") : "Sign in to save favorites"}
-          position="top"
-          withArrow
-        >
-          <Box
-            onClick={(e) => { e.stopPropagation(); onToggleFavorite(pro.id); }}
-            style={{
-              position: "absolute",
-              top: 8,
-              right: 10,
-              width: 28,
-              height: 28,
-              borderRadius: "50%",
-              background: "rgba(255,255,255,0.9)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-              boxShadow: "0 1px 4px rgba(0,0,0,.2)",
-              transition: "transform .12s",
-            }}
-          >
-            {isFavorited
-              ? <IconHeartFilled size={15} color="#FF0055" />
-              : <IconHeart size={15} color="#999" />}
-          </Box>
-        </Tooltip>
-      </Box>
-
-      {/* Avatar overlapping the strip */}
-      <Box
-        style={{
-          position: "absolute",
-          top: 42,
-          left: 16,
-          width: 56,
-          height: 56,
-          borderRadius: "50%",
-          border: "3px solid #fff",
-          overflow: "hidden",
-          boxShadow: "0 2px 8px rgba(0,0,0,.18)",
-          zIndex: 2,
-        }}
-      >
-        {pro.avatar_url ? (
-          <img src={pro.avatar_url} alt={pro.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-        ) : (
-          <Box
-            style={{
-              width: "100%",
-              height: "100%",
-              background: gradient,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 19,
-              fontWeight: 800,
-              color: "#fff",
-            }}
-          >
-            {initials}
-          </Box>
+      <Group gap={4} mb={4} wrap="wrap" style={{ position: "relative", zIndex: 1 }}>
+        {pro.stats.krafts_verified > 0 && (
+          <Badge size="xs" variant="filled" style={{ backgroundColor: "var(--gk-accent-secondary)", color: "var(--gk-accent-primary)" }}>
+            🔨 {pro.stats.krafts_verified} Kraft{pro.stats.krafts_verified !== 1 ? "s" : ""}
+          </Badge>
         )}
-      </Box>
+        {pro.stats.recs_approved > 0 && (
+          <Badge size="xs" variant="filled" style={{ backgroundColor: "var(--gk-accent-secondary)", color: "var(--gk-accent-primary)" }}>
+            ⭐ {pro.stats.recs_approved} rec{pro.stats.recs_approved !== 1 ? "s" : ""}
+          </Badge>
+        )}
+        {pro.licensed && (
+          <Badge
+            size="xs"
+            variant="filled"
+            leftSection={<IconShieldCheck size={10} />}
+            style={{ backgroundColor: "var(--gk-accent-primary)", color: "var(--gk-accent-secondary)" }}
+          >
+            Licensed
+          </Badge>
+        )}
+        {pro.insured && (
+          <Badge
+            size="xs"
+            variant="filled"
+            leftSection={<IconShieldCheck size={10} />}
+            style={{ backgroundColor: "var(--gk-accent-primary)", color: "var(--gk-accent-secondary)" }}
+          >
+            Insured
+          </Badge>
+        )}
+      </Group>
 
-      {/* Card body */}
-      <Box style={{ padding: "36px 16px 16px", background: "#fff", borderRadius: "0 0 var(--mantine-radius-lg) var(--mantine-radius-lg)" }}>
-        <Text fw={800} size="md" lineClamp={1}>{pro.name}</Text>
-        <Text size="xs" c="dimmed" mb="sm" lineClamp={1}>{tradeLine}</Text>
-
-        {/* Stats pills */}
-        <Group gap={6} mb="sm" wrap="wrap">
-          {pro.response_hours > 0 && (
-            <Badge variant="light" color="gray" size="sm" radius="xl">
-              ⚡ {pro.response_hours}h avg
-            </Badge>
-          )}
-          {pro.stats.krafts_verified > 0 && (
-            <Badge variant="light" color="green" size="sm" radius="xl">
-              🔨 {pro.stats.krafts_verified} Kraft{pro.stats.krafts_verified !== 1 ? "s" : ""}
-            </Badge>
-          )}
-          {pro.stats.recs_approved > 0 && (
-            <Badge variant="light" color="cyan" size="sm" radius="xl">
-              ⭐ {pro.stats.recs_approved} rec{pro.stats.recs_approved !== 1 ? "s" : ""}
-            </Badge>
-          )}
-        </Group>
-
-        {/* Credentials */}
-        <Group gap={6} wrap="wrap">
-          {pro.licensed && (
-            <Badge size="xs" color="teal" variant="light">Licensed</Badge>
-          )}
-          {pro.insured && (
-            <Badge size="xs" color="blue" variant="light">Insured</Badge>
-          )}
-        </Group>
-      </Box>
-    </Card>
+      <CollapsibleTags tags={pro.skill_tags} onTagClick={onSkillClick} />
+    </ProviderCard>
   );
 }
 
@@ -494,7 +369,7 @@ function ServiceAreaBar({
   return (
     <Box>
       <Group gap={6} mb={8} align="center">
-        <IconMapPin size={13} color="#888" />
+        <IconMapPin size={13} color="var(--gk-text-muted)" />
         <Text size="xs" fw={600} c="dimmed" tt="uppercase" style={{ letterSpacing: 0.5 }}>
           Service areas we cover
         </Text>
@@ -509,13 +384,13 @@ function ServiceAreaBar({
               style={{
                 padding: "4px 11px",
                 borderRadius: 12,
-                background: isActive ? "#1A1A1A" : "#F0F0F0",
-                color: isActive ? "#fff" : "#555",
+                background: isActive ? "var(--gk-accent-primary)" : "var(--gk-bg-surface)",
+                color: isActive ? "#000" : "var(--gk-text-muted)",
                 fontSize: 12,
                 fontWeight: 700,
                 fontFamily: "monospace",
                 cursor: "pointer",
-                border: isActive ? "none" : "1.5px solid #E0E0E0",
+                border: isActive ? "none" : "1.5px solid var(--gk-border)",
                 transition: "all .12s",
               }}
             >
@@ -530,7 +405,7 @@ function ServiceAreaBar({
               padding: "4px 10px",
               borderRadius: 12,
               background: "transparent",
-              color: "#888",
+              color: "var(--gk-text-muted)",
               fontSize: 12,
               fontWeight: 600,
               cursor: "pointer",
@@ -555,6 +430,7 @@ export function SearchPage() {
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [activeCategory, setActiveCategory] = useState(searchParams.get("category") ?? "");
   const [activeSubcategory, setActiveSubcategory] = useState(searchParams.get("subcategory") ?? "");
+  const [activeSkill, setActiveSkill] = useState(searchParams.get("skill") ?? "");
   const {
     zip,
     setZip,
@@ -644,6 +520,7 @@ export function SearchPage() {
       if (query) urlParams.q = query;
       if (activeCategory) urlParams.category = activeCategory;
       if (activeSubcategory) urlParams.subcategory = activeSubcategory;
+      if (activeSkill) urlParams.skill = activeSkill;
       if (zip) urlParams.zip = zip;
       setSearchParams(urlParams, { replace: true });
 
@@ -656,6 +533,7 @@ export function SearchPage() {
         zip: zip || undefined,
         category: activeCategory || undefined,
         subcategory: activeSubcategory || undefined,
+        skill: activeSkill || undefined,
         licensed: filterLicensed || undefined,
         insured: filterInsured || undefined,
         max_response_hours: filterResponseHours ?? undefined,
@@ -664,14 +542,12 @@ export function SearchPage() {
       };
 
       try {
+        // Search is always radial (25mi default, applied server-side). Widen once
+        // on zero results for genuinely sparse areas.
         let result = await searchProsPublic(baseArgs);
 
-        // Radius expansion: silently retry with wider radius on zero results (only when zip set)
         if (result.length === 0 && zip) {
-          result = await searchProsPublic({ ...baseArgs, radius: 15 }).catch(() => []);
-        }
-        if (result.length === 0 && zip) {
-          result = await searchProsPublic({ ...baseArgs, radius: 30 }).catch(() => []);
+          result = await searchProsPublic({ ...baseArgs, radius: 50 }).catch(() => []);
         }
 
         setPros(result);
@@ -693,7 +569,7 @@ export function SearchPage() {
     }, 350);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [
-    query, activeCategory, activeSubcategory, zip, activeTab,
+    query, activeCategory, activeSubcategory, activeSkill, zip, activeTab,
     filterLicensed, filterInsured, filterResponseHours, filterMinKrafts, filterMinRecs,
     setSearchParams, searchParams,
   ]);
@@ -709,6 +585,13 @@ export function SearchPage() {
   }
 
   const subcategories = activeCategory ? (CATEGORIES[activeCategory]?.subcategories ?? []) : [];
+
+  // Skill/tag filter pills — built from whatever's in the current result set, same
+  // approach as CommunityPublicPage's uniqueTags.
+  const uniqueSkills = useMemo(
+    () => Array.from(new Set(pros.flatMap((p) => p.skill_tags))).sort(),
+    [pros]
+  );
 
   const activeFilterCount = [
     filterLicensed, filterInsured,
@@ -818,8 +701,7 @@ export function SearchPage() {
                   maxLength={5}
                 />
                 <Button
-                  variant={activeFilterCount > 0 ? "filled" : "light"}
-                  color={activeFilterCount > 0 ? "dark" : "gray"}
+                  variant={activeFilterCount > 0 ? "filled" : "default"}
                   leftSection={<IconFilter size={15} />}
                   onClick={() => setShowFilters((v) => !v)}
                   size="sm"
@@ -833,8 +715,8 @@ export function SearchPage() {
               {showFilters && (
                 <Box
                   style={{
-                    background: "#F9F9F9",
-                    border: "1px solid #E8E8E8",
+                    background: "var(--gk-bg-canvas)",
+                    border: "1px solid var(--gk-border)",
                     borderRadius: 12,
                     padding: "16px 20px",
                   }}
@@ -928,73 +810,124 @@ export function SearchPage() {
                 </Box>
               )}
 
-              {/* Category chips */}
-              <Group gap="xs" wrap="wrap">
-                <Box
+              {/* Category pills — same treatment as CommunityPublicPage's trade/tag pills */}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                <button
                   onClick={() => { setActiveCategory(""); setActiveSubcategory(""); }}
                   style={{
-                    padding: "7px 16px",
-                    borderRadius: 24,
-                    fontSize: 13,
-                    fontWeight: 700,
+                    padding: "3px 11px",
+                    borderRadius: 99,
+                    border: "1.5px solid var(--gk-accent-primary)",
+                    background: !activeCategory ? "var(--gk-accent-primary)" : "transparent",
+                    color: !activeCategory ? "#000" : "var(--gk-accent-primary)",
+                    fontSize: 12,
+                    fontWeight: 600,
                     cursor: "pointer",
-                    background: !activeCategory ? "#1A1A1A" : "#F0F0F0",
-                    color: !activeCategory ? "#fff" : "#555",
-                    transition: "all .15s",
+                    fontFamily: "inherit",
+                    transition: "all 0.15s",
                   }}
                 >
                   All
-                </Box>
+                </button>
                 {CATEGORY_KEYS.map((key) => {
                   const cat = CATEGORIES[key];
                   const isActive = activeCategory === key;
                   return (
-                    <Box
+                    <button
                       key={key}
                       onClick={() => handleCategoryClick(key)}
                       style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 7,
-                        padding: "7px 16px",
-                        borderRadius: 24,
-                        fontSize: 13,
-                        fontWeight: 700,
+                        padding: "3px 11px",
+                        borderRadius: 99,
+                        border: "1.5px solid var(--gk-accent-primary)",
+                        background: isActive ? "var(--gk-accent-primary)" : "transparent",
+                        color: isActive ? "#000" : "var(--gk-accent-primary)",
+                        fontSize: 12,
+                        fontWeight: 600,
                         cursor: "pointer",
-                        background: isActive ? cat.gradient : cat.light,
-                        color: isActive ? "#fff" : cat.textColor,
-                        border: isActive ? "none" : `1.5px solid ${cat.textColor}30`,
-                        transition: "all .15s",
+                        fontFamily: "inherit",
+                        transition: "all 0.15s",
                       }}
                     >
-                      {!isActive && (
-                        <Box
-                          style={{
-                            width: 9,
-                            height: 9,
-                            borderRadius: "50%",
-                            background: cat.gradient,
-                            flexShrink: 0,
-                          }}
-                        />
-                      )}
-                      {isActive && <IconCheck size={13} />}
                       {cat.label}
-                    </Box>
+                    </button>
                   );
                 })}
-              </Group>
+              </div>
 
-              {/* Subcategory chips */}
+              {/* Subcategory pills */}
               {subcategories.length > 0 && (
-                <Group gap="xs" wrap="wrap">
-                  <Chip.Group value={activeSubcategory} onChange={(v) => setActiveSubcategory(v as string)}>
-                    <Chip value="" size="sm">All</Chip>
-                    {subcategories.map((sub) => (
-                      <Chip key={sub} value={sub} size="sm">{sub}</Chip>
-                    ))}
-                  </Chip.Group>
-                </Group>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  <button
+                    onClick={() => setActiveSubcategory("")}
+                    style={{
+                      padding: "3px 11px",
+                      borderRadius: 99,
+                      border: "1.5px solid var(--gk-accent-secondary)",
+                      background: !activeSubcategory ? "var(--gk-accent-secondary)" : "transparent",
+                      color: !activeSubcategory ? "var(--gk-accent-primary)" : "var(--gk-accent-secondary)",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    All
+                  </button>
+                  {subcategories.map((sub) => {
+                    const isActive = activeSubcategory === sub;
+                    return (
+                      <button
+                        key={sub}
+                        onClick={() => setActiveSubcategory(isActive ? "" : sub)}
+                        style={{
+                          padding: "3px 11px",
+                          borderRadius: 99,
+                          border: "1.5px solid var(--gk-accent-secondary)",
+                          background: isActive ? "var(--gk-accent-secondary)" : "transparent",
+                          color: isActive ? "var(--gk-accent-primary)" : "var(--gk-accent-secondary)",
+                          fontSize: 12,
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          fontFamily: "inherit",
+                          transition: "all 0.15s",
+                        }}
+                      >
+                        {sub}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Skill/tag pills — #tags are always filters, always blue */}
+              {uniqueSkills.length > 0 && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {uniqueSkills.map((skill) => {
+                    const isActive = activeSkill === skill;
+                    return (
+                      <button
+                        key={skill}
+                        onClick={() => setActiveSkill(isActive ? "" : skill)}
+                        style={{
+                          padding: "3px 11px",
+                          borderRadius: 99,
+                          border: `1.5px solid ${TAG_FILTER_COLOR}`,
+                          background: isActive ? TAG_FILTER_COLOR : "transparent",
+                          color: isActive ? "#fff" : TAG_FILTER_COLOR,
+                          fontSize: 12,
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          fontFamily: "inherit",
+                          transition: "all 0.15s",
+                        }}
+                      >
+                        #{toCamelTag(skill)}
+                      </button>
+                    );
+                  })}
+                </div>
               )}
 
               {/* Results */}
@@ -1061,6 +994,7 @@ export function SearchPage() {
                         isFavorited={favIds.has(pro.id)}
                         onToggleFavorite={toggleFavorite}
                         isAuthenticated={isAuthenticated}
+                        onSkillClick={(skill) => setActiveSkill((prev) => (prev === skill ? "" : skill))}
                       />
                     ))}
                   </SimpleGrid>

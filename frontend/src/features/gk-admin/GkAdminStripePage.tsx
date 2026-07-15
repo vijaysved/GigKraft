@@ -49,6 +49,10 @@ interface StripeConfig {
   test_price_annual: string;
   live_price_monthly: string;
   live_price_annual: string;
+  test_price_community_monthly: string;
+  test_price_community_annual: string;
+  live_price_community_monthly: string;
+  live_price_community_annual: string;
   test_key_set: boolean;
   live_key_set: boolean;
   webhook_secret_set: boolean;
@@ -332,6 +336,10 @@ function SetupTab() {
         test_price_annual: data.test_price_annual,
         live_price_monthly: data.live_price_monthly,
         live_price_annual: data.live_price_annual,
+        test_price_community_monthly: data.test_price_community_monthly,
+        test_price_community_annual: data.test_price_community_annual,
+        live_price_community_monthly: data.live_price_community_monthly,
+        live_price_community_annual: data.live_price_community_annual,
       });
     } catch {
       setLoadError("Could not load Stripe configuration from the server.");
@@ -354,6 +362,10 @@ function SetupTab() {
         test_price_annual: updated.test_price_annual,
         live_price_monthly: updated.live_price_monthly,
         live_price_annual: updated.live_price_annual,
+        test_price_community_monthly: updated.test_price_community_monthly,
+        test_price_community_annual: updated.test_price_community_annual,
+        live_price_community_monthly: updated.live_price_community_monthly,
+        live_price_community_annual: updated.live_price_community_annual,
       });
       setSavedAt(formatTime(new Date().toISOString()));
       setConnectionResult(null);
@@ -461,6 +473,22 @@ function SetupTab() {
                 styles={{ input: { fontFamily: "var(--mantine-font-family-monospace)", fontSize: 13 } }}
               />
             </Group>
+            <Group grow>
+              <TextInput
+                label="Community monthly price ID"
+                placeholder="price_test_..."
+                value={form.test_price_community_monthly}
+                onChange={(e) => { const v = e.currentTarget.value; setForm((f) => f ? { ...f, test_price_community_monthly: v } : f); }}
+                styles={{ input: { fontFamily: "var(--mantine-font-family-monospace)", fontSize: 13 } }}
+              />
+              <TextInput
+                label="Community annual price ID"
+                placeholder="price_test_..."
+                value={form.test_price_community_annual}
+                onChange={(e) => { const v = e.currentTarget.value; setForm((f) => f ? { ...f, test_price_community_annual: v } : f); }}
+                styles={{ input: { fontFamily: "var(--mantine-font-family-monospace)", fontSize: 13 } }}
+              />
+            </Group>
           </Stack>
           <Divider />
           <Stack gap="xs">
@@ -478,6 +506,22 @@ function SetupTab() {
                 placeholder="price_live_..."
                 value={form.live_price_annual}
                 onChange={(e) => { const v = e.currentTarget.value; setForm((f) => f ? { ...f, live_price_annual: v } : f); }}
+                styles={{ input: { fontFamily: "var(--mantine-font-family-monospace)", fontSize: 13 } }}
+              />
+            </Group>
+            <Group grow>
+              <TextInput
+                label="Community monthly price ID"
+                placeholder="price_live_..."
+                value={form.live_price_community_monthly}
+                onChange={(e) => { const v = e.currentTarget.value; setForm((f) => f ? { ...f, live_price_community_monthly: v } : f); }}
+                styles={{ input: { fontFamily: "var(--mantine-font-family-monospace)", fontSize: 13 } }}
+              />
+              <TextInput
+                label="Community annual price ID"
+                placeholder="price_live_..."
+                value={form.live_price_community_annual}
+                onChange={(e) => { const v = e.currentTarget.value; setForm((f) => f ? { ...f, live_price_community_annual: v } : f); }}
                 styles={{ input: { fontFamily: "var(--mantine-font-family-monospace)", fontSize: 13 } }}
               />
             </Group>

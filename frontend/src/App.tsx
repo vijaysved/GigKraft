@@ -8,6 +8,7 @@ import { RequireRole } from "./auth/RequireRole";
 import { useAuth } from "./auth/AuthContext";
 import { ROLE_HOME } from "./auth/roleHome";
 import { getAccessToken } from "./api/tokens";
+import { PublicBrandThemeProvider } from "./theme/PublicBrandThemeContext";
 import { API_BASE_URL } from "./config";
 
 // Layouts
@@ -99,6 +100,13 @@ import { ReferrerAccountPage } from "./features/referrer/ReferrerAccountPage";
 import { ReferrerInboxPage } from "./features/referrer/ReferrerInboxPage";
 import { ContactDetailPage } from "./features/referrer/ContactDetailPage";
 
+// Community pages
+import { CommunityPublicPage } from "./features/communities/CommunityPublicPage";
+import { CommunityDashboardPage } from "./features/communities/CommunityDashboardPage";
+import { CommunityCheckoutPage } from "./features/communities/CommunityCheckoutPage";
+import { CommunityBillingSuccessPage } from "./features/communities/CommunityBillingSuccessPage";
+import { JoinCommunityPage } from "./features/communities/components/JoinCommunityPage";
+
 
 function CircleSlugRedirect() {
   const { slug } = useParams<{ slug: string }>();
@@ -142,7 +150,7 @@ function RootPage() {
 
 export default function App() {
   return (
-    <>
+    <PublicBrandThemeProvider>
     <FeedbackWidget />
     <Routes>
       {/* Marketing site (public) — authenticated users redirected to their role home */}
@@ -173,6 +181,12 @@ export default function App() {
 
       {/* Referrer public page — no auth shell */}
       <Route path="/us/:slug/refer" element={<ReferrerPublicPage />} />
+
+      {/* Community public pages — no auth shell */}
+      <Route path="/community/:slug" element={<CommunityPublicPage />} />
+      <Route path="/community/:slug/join/:token" element={<JoinCommunityPage />} />
+      {/* Manage console — reachable by any Moderator regardless of their own platform role */}
+      <Route path="/community/:slug/manage" element={<RequireAuth><CommunityDashboardPage /></RequireAuth>} />
 
       {/* Member pages — authenticated, any role (page handles non-member redirects) */}
       <Route path="/member/welcome" element={<RequireAuth><MemberWelcomePage /></RequireAuth>} />
@@ -309,6 +323,9 @@ export default function App() {
       <Route path="/us/me/home" element={<RequireAuth><MeRedirect dest="home" /></RequireAuth>} />
       <Route path="/us/me/inbox" element={<RequireAuth><MeRedirect dest="inbox" /></RequireAuth>} />
       <Route path="/us/me/account" element={<RequireAuth><MeRedirect dest="account" /></RequireAuth>} />
+      <Route path="/us/me/community" element={<RequireAuth><MeRedirect dest="community" /></RequireAuth>} />
+      <Route path="/us/me/community/checkout" element={<RequireAuth><MeRedirect dest="community/checkout" /></RequireAuth>} />
+      <Route path="/us/me/community/billing/success" element={<RequireAuth><MeRedirect dest="community/billing/success" /></RequireAuth>} />
 
       {/* Referrer authenticated dashboard — slug-based URL */}
       <Route
@@ -327,12 +344,15 @@ export default function App() {
         <Route path="inbox" element={<ReferrerInboxPage />} />
         <Route path="inbox/:leadId" element={<ReferrerInboxPage />} />
         <Route path="account" element={<ReferrerAccountPage />} />
+        <Route path="community" element={<CommunityDashboardPage />} />
+        <Route path="community/checkout" element={<CommunityCheckoutPage />} />
+        <Route path="community/billing/success" element={<CommunityBillingSuccessPage />} />
       </Route>
 
       {/* Legacy redirect */}
       <Route path="/dashboard" element={<Navigate to="/admin/dashboard" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
-    </>
+    </PublicBrandThemeProvider>
   );
 }

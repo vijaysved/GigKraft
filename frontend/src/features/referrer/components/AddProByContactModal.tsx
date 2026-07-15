@@ -459,7 +459,7 @@ export function AddProByContactModal({ opened, onClose, onAdded }: Props) {
           slug={slug}
           senderName={senderName}
           onSent={handleWizardSent}
-          initialRecipient={{ name: name.trim(), trade: trade.trim(), contact: phone.trim() || email.trim() }}
+          initialRecipient={{ name: name.trim(), trade: trade.trim(), contact: phone.trim() || email.trim(), zip: zip.trim() }}
         />
       )}
     </>

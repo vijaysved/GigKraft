@@ -19,6 +19,7 @@ venv/
 htmlcov/
 db.sqlite3
 media/
+mediafiles/
 staticfiles/
 
 # --- Node / frontend ---

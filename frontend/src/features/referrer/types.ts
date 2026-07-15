@@ -1,5 +1,6 @@
 export interface ProCardOut {
   id: number;
+  linked_pro_id: number | null;
   name: string;
   trade: string;
   city: string;

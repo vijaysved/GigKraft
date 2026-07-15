@@ -1,16 +1,27 @@
 import { Badge, Card, Group, SimpleGrid, Stack, Text, Title, UnstyledButton } from "@mantine/core";
 import { IconCheck } from "@tabler/icons-react";
-import { THEMES, THEME_IDS } from "../theme/themes";
+import { THEMES, THEME_IDS, type ThemeId } from "../theme/themes";
 import { useTheme } from "../theme/ThemeProvider";
 
-export function ThemeSettingsCard() {
-  const { themeId, setThemeId } = useTheme();
+interface ThemeSettingsCardProps {
+  /** Override which theme reads as active — defaults to the viewer's own app-wide theme.
+   * Pass this + onSelect together to let the card control an independent theme value
+   * (e.g. a Community's own branding) instead of the logged-in user's personal preference. */
+  activeId?: ThemeId;
+  onSelect?: (id: ThemeId) => void;
+  title?: string;
+}
+
+export function ThemeSettingsCard({ activeId, onSelect, title = "Appearance" }: ThemeSettingsCardProps = {}) {
+  const ctx = useTheme();
+  const themeId = activeId ?? ctx.themeId;
+  const setThemeId = onSelect ?? ctx.setThemeId;
 
   return (
     <Card withBorder radius="md" padding="lg">
       <Stack>
         <Group justify="space-between">
-          <Title order={5}>Appearance</Title>
+          <Title order={5}>{title}</Title>
           <Badge size="sm" variant="light">{THEMES[themeId].label}</Badge>
         </Group>
         <SimpleGrid cols={{ base: 2, sm: 3 }}>

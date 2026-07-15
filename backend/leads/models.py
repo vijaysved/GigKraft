@@ -33,6 +33,14 @@ class Lead(models.Model):
         on_delete=models.SET_NULL,
         related_name="leads",
     )
+    recipient = models.ForeignKey(
+        "accounts.User",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="received_leads",
+        help_text="Non-pro recipient (e.g. a Community owner) for threads that aren't pro-directed.",
+    )
     job_title = models.CharField(max_length=120)
     detail = models.TextField(blank=True, default="")
     distance_mi = models.DecimalField(

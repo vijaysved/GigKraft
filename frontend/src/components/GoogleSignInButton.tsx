@@ -21,12 +21,21 @@ export function GoogleSignInButton({ label = "continue_with", onSuccess, onError
 
   useEffect(() => {
     if (!containerRef.current) return;
+    // Debounced: a modal's open transition resizes this container across many
+    // animation frames, and each width change forces GSI to fully redraw the
+    // button — without debouncing, that reads as the button "flashing"/reloading
+    // repeatedly while the modal animates open. Settle on the final width instead.
+    let timeout: ReturnType<typeof setTimeout>;
     const observer = new ResizeObserver((entries) => {
       const w = entries[0]?.contentRect.width;
-      if (w) setButtonWidth(Math.round(w));
+      if (!w) return;
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        setButtonWidth((prev) => (Math.abs(prev - w) > 1 ? Math.round(w) : prev));
+      }, 150);
     });
     observer.observe(containerRef.current);
-    return () => observer.disconnect();
+    return () => { clearTimeout(timeout); observer.disconnect(); };
   }, []);
 
   return (

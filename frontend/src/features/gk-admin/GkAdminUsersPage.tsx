@@ -4,6 +4,7 @@ import {
   Badge,
   Button,
   Card,
+  Checkbox,
   Group,
   Loader,
   Modal,
@@ -17,7 +18,7 @@ import {
   Tooltip,
 } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
-import { IconExternalLink, IconSearch, IconShieldFilled, IconTrash, IconUserOff } from "@tabler/icons-react";
+import { IconExternalLink, IconSearch, IconShieldFilled, IconTrash, IconUserCog, IconUserOff } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuth } from "../../auth/AuthContext";
@@ -28,6 +29,7 @@ import {
   getGkUserZipcodes,
   getGkUsers,
   setGkUserAdmin,
+  setGkUserRoles,
   setGkUserVisitor,
   type GkUserRow,
 } from "../../api/endpoints";
@@ -35,13 +37,85 @@ import { formatPhone } from "../../utils/format";
 
 const ROLE_COLORS: Record<string, string> = {
   visitor: "gray",
+  member: "cyan",
   pro: "blue",
   homeowner: "green",
+  referrer: "teal",
+  community_lead: "grape",
   node_manager: "orange",
   gk_admin: "violet",
 };
 
+// Roles a person can hold in any combination — mirrors CAPABILITY_ROLES in
+// backend/common/gk_admin_api.py. gk_admin/node_manager/visitor stay as
+// separate exclusive actions since those reset or grant platform-level access.
+const CAPABILITY_ROLES = [
+  { value: "member", label: "Member" },
+  { value: "pro", label: "Pro" },
+  { value: "homeowner", label: "Homeowner" },
+  { value: "referrer", label: "Referrer" },
+  { value: "community_lead", label: "Community Owner" },
+];
+
 const PAGE_SIZE = 25;
+
+function RolesEditModal({
+  user,
+  onClose,
+  onSave,
+}: {
+  user: GkUserRow | null;
+  onClose: () => void;
+  onSave: (userId: number, roles: string[]) => Promise<void>;
+}) {
+  const [selected, setSelected] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      const current = [user.role, ...user.extra_roles];
+      setSelected(CAPABILITY_ROLES.map((r) => r.value).filter((v) => current.includes(v)));
+    }
+  }, [user]);
+
+  function toggle(value: string) {
+    setSelected((prev) => (prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]));
+  }
+
+  async function handleSave() {
+    if (!user) return;
+    setSaving(true);
+    try {
+      await onSave(user.id, selected);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal opened={user !== null} onClose={onClose} title="Edit roles" centered size="sm">
+      <Stack gap="md">
+        <Text size="sm" c="dimmed">
+          {user?.email ?? user?.phone} can hold any combination of these — e.g. Pro + Referrer + Community Owner at once.
+        </Text>
+        <Stack gap="xs">
+          {CAPABILITY_ROLES.map((r) => (
+            <Checkbox
+              key={r.value}
+              label={r.label}
+              checked={selected.includes(r.value)}
+              onChange={() => toggle(r.value)}
+            />
+          ))}
+        </Stack>
+        <Group justify="flex-end">
+          <Button variant="default" size="xs" onClick={onClose}>Cancel</Button>
+          <Button size="xs" loading={saving} onClick={() => void handleSave()}>Save</Button>
+        </Group>
+      </Stack>
+    </Modal>
+  );
+}
 
 const PROMOTE_TO_ADMIN_EMAILS = new Set(["karrys@gmail.com", "oddlynicellc@gmail.com", "vijaysarkarvedula@gmail.com"]);
 
@@ -58,6 +132,7 @@ export function GkAdminUsersPage() {
   const [allZips, setAllZips] = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const [pendingDelete, setPendingDelete] = useState<GkUserRow | null>(null);
+  const [rolesEditUser, setRolesEditUser] = useState<GkUserRow | null>(null);
 
   useEffect(() => {
     getGkUserZipcodes()
@@ -136,6 +211,16 @@ export function GkAdminUsersPage() {
     }
   }
 
+  async function handleSaveRoles(userId: number, roles: string[]) {
+    try {
+      const updated = await setGkUserRoles(userId, roles);
+      setUsers((prev) => prev?.map((x) => (x.id === updated.id ? updated : x)) ?? null);
+      setRolesEditUser(null);
+    } catch {
+      setError("Failed to update roles.");
+    }
+  }
+
   return (
     <Stack>
       <Group justify="space-between">
@@ -166,6 +251,8 @@ export function GkAdminUsersPage() {
             { value: "visitor", label: "Visitor" },
             { value: "pro", label: "Pro" },
             { value: "homeowner", label: "Homeowner" },
+            { value: "referrer", label: "Referrer" },
+            { value: "community_lead", label: "Community Owner" },
             { value: "node_manager", label: "Node Manager" },
             { value: "gk_admin", label: "GK Admin" },
           ]}
@@ -257,13 +344,16 @@ export function GkAdminUsersPage() {
                       <Text size="sm">{u.email ?? (u.phone ? formatPhone(u.phone) : "—")}</Text>
                     </Table.Td>
                     <Table.Td>
-                      <Badge
-                        color={ROLE_COLORS[u.role] ?? "gray"}
-                        size="xs"
-                        variant="light"
-                      >
-                        {u.role}
-                      </Badge>
+                      <Group gap={4} wrap="wrap">
+                        <Badge color={ROLE_COLORS[u.role] ?? "gray"} size="xs" variant="filled">
+                          {u.role}
+                        </Badge>
+                        {u.extra_roles.map((r) => (
+                          <Badge key={r} color={ROLE_COLORS[r] ?? "gray"} size="xs" variant="light">
+                            {r}
+                          </Badge>
+                        ))}
+                      </Group>
                     </Table.Td>
                     <Table.Td>
                       {u.primary_zip ? (
@@ -321,6 +411,18 @@ export function GkAdminUsersPage() {
                               onClick={() => void handleSetAdmin(u)}
                             >
                               <IconShieldFilled size={13} />
+                            </ActionIcon>
+                          </Tooltip>
+                        )}
+                        {u.role !== "gk_admin" && u.role !== "node_manager" && (
+                          <Tooltip label="Edit roles" withArrow>
+                            <ActionIcon
+                              size="sm"
+                              variant="light"
+                              color="indigo"
+                              onClick={() => setRolesEditUser(u)}
+                            >
+                              <IconUserCog size={13} />
                             </ActionIcon>
                           </Tooltip>
                         )}
@@ -395,6 +497,12 @@ export function GkAdminUsersPage() {
           </Group>
         </Stack>
       </Modal>
+
+      <RolesEditModal
+        user={rolesEditUser}
+        onClose={() => setRolesEditUser(null)}
+        onSave={handleSaveRoles}
+      />
     </Stack>
   );
 }

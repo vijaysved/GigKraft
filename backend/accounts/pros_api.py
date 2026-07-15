@@ -1,15 +1,12 @@
 """Pro profile endpoints: onboarding (1.2-1.5), service area, discovery
 (2.1/2.2/1.13), public handle lookup, and performance stats (1.11)."""
 import hashlib
-import math
 import re
 from builtins import range as builtin_range
 from datetime import timedelta
 from decimal import Decimal
 from typing import Optional
 
-import requests as _http
-from django.core.cache import cache
 from django.db.models import Avg, Count, Q
 from django.db.utils import OperationalError
 from django.utils import timezone
@@ -18,6 +15,7 @@ from ninja.errors import HttpError
 
 from accounts.auth import jwt_auth
 from accounts.models import KraftClick, KraftImpression, ProProfile, ProProfileView
+from common.geo import DEFAULT_SEARCH_RADIUS_MILES, pros_within_radius
 from common.permissions import require_pro
 from krafts.models import Kraft
 from leads.models import Lead, Quote
@@ -237,9 +235,10 @@ def list_pros(
     node: Optional[str] = None,
     trade: Optional[str] = None,
     zip: Optional[str] = None,
+    radius: Optional[int] = None,
     q: Optional[str] = None,
 ):
-    """Discovery / B2B search (1.13). Filters by node, trade and ZIP."""
+    """Discovery / B2B search (1.13). Filters by node, trade and ZIP (radial match)."""
     pros = ProProfile.objects.filter(is_suspended=False).select_related(
         "user", "user__node"
     )
@@ -249,12 +248,6 @@ def list_pros(
         pros = pros.filter(user__node_id=request.auth.node_id)
     if trade:
         pros = pros.filter(primary_trade__iexact=trade)
-    if zip:
-        pros = pros.filter(
-            Q(base_zip=zip)
-            | Q(service_center_zip=zip)
-            | Q(service_zips__icontains=zip)
-        )
     if q:
         pros = pros.filter(
             Q(user__first_name__icontains=q)
@@ -262,8 +255,17 @@ def list_pros(
             | Q(business_name__icontains=q)
             | Q(primary_trade__icontains=q)
             | Q(skill_tags__icontains=q)
+            | Q(user__email__icontains=q)
+            | Q(user__phone__icontains=q)
+            | Q(base_zip__icontains=q)
+            | Q(service_center_zip__icontains=q)
+            | Q(service_zips__icontains=q)
         )
-    return [serialize_pro(p) for p in pros[:50]]
+    if zip:
+        result = pros_within_radius(pros, zip, radius or DEFAULT_SEARCH_RADIUS_MILES)[:50]
+    else:
+        result = list(pros[:50])
+    return [serialize_pro(p) for p in result]
 
 
 @router.get("/{pro_id}", response={200: ProOut, 404: ErrorOut})
@@ -414,51 +416,6 @@ def my_performance(request, range: str = "30d"):
 
 # --- Analytics tracking (fire-and-forget, no auth required) ---
 
-# ── ZIP centroid helpers for radius expansion ──────────────────────────────────
-
-def _zip_centroid(zip_code: str):
-    """Return (lat, lng) for a US ZIP code via zippopotam.us, cached 7 days. Returns None on failure."""
-    if not re.match(r"^\d{5}$", zip_code):
-        return None
-    key = f"zip_centroid:{zip_code}"
-    cached = cache.get(key)
-    if cached:
-        return cached
-    try:
-        resp = _http.get(f"https://api.zippopotam.us/us/{zip_code}", timeout=3)
-        if resp.status_code == 200:
-            place = resp.json()["places"][0]
-            result = (float(place["latitude"]), float(place["longitude"]))
-            cache.set(key, result, 60 * 60 * 24 * 15)
-            return result
-    except Exception:
-        pass
-    return None
-
-
-def _haversine_miles(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    R = 3959.0
-    φ1, φ2 = math.radians(lat1), math.radians(lat2)
-    dφ = math.radians(lat2 - lat1)
-    dλ = math.radians(lon2 - lon1)
-    a = math.sin(dφ / 2) ** 2 + math.cos(φ1) * math.cos(φ2) * math.sin(dλ / 2) ** 2
-    return R * 2 * math.asin(math.sqrt(a))
-
-
-def _pro_within_radius(pro, lat1: float, lon1: float, radius: int) -> bool:
-    """Return True if any of the pro's service ZIPs or radial coverage overlaps the search point."""
-    candidate_zips = [z for z in [pro.base_zip, pro.service_center_zip] + (pro.service_zips or []) if z]
-    for z in candidate_zips:
-        c = _zip_centroid(z)
-        if c and _haversine_miles(lat1, lon1, c[0], c[1]) <= radius:
-            return True
-    # RADIAL-mode pros: include if the search point is within their declared radius
-    if getattr(pro, "service_mode", None) == "RADIAL" and pro.service_center_zip:
-        c = _zip_centroid(pro.service_center_zip)
-        if c and _haversine_miles(lat1, lon1, c[0], c[1]) <= (pro.service_radius_miles or 0):
-            return True
-    return False
-
 
 # ── Public: pro directory search (no auth) ───────────────────────────────────
 
@@ -471,6 +428,7 @@ def search_pros_public(
     radius: Optional[int] = None,
     category: Optional[str] = None,
     subcategory: Optional[str] = None,
+    skill: Optional[str] = None,
     licensed: Optional[bool] = None,
     insured: Optional[bool] = None,
     max_response_hours: Optional[int] = None,
@@ -501,11 +459,6 @@ def search_pros_public(
 
     if trade:
         pros = pros.filter(primary_trade__iexact=trade)
-    if zip and not radius:
-        # Exact ZIP match (use JSON array membership for service_zips to avoid partial matches)
-        pros = pros.filter(
-            Q(base_zip=zip) | Q(service_center_zip=zip) | Q(service_zips__contains=[zip])
-        )
     if q:
         pros = pros.filter(
             Q(user__first_name__icontains=q)
@@ -513,11 +466,18 @@ def search_pros_public(
             | Q(business_name__icontains=q)
             | Q(primary_trade__icontains=q)
             | Q(skill_tags__icontains=q)
+            | Q(user__email__icontains=q)
+            | Q(user__phone__icontains=q)
+            | Q(base_zip__icontains=q)
+            | Q(service_center_zip__icontains=q)
+            | Q(service_zips__icontains=q)
         )
     if category:
         pros = pros.filter(trade_categories__icontains=category)
         if subcategory:
             pros = pros.filter(trade_categories__icontains=subcategory)
+    if skill:
+        pros = pros.filter(skill_tags__icontains=skill)
     if licensed is True:
         pros = pros.filter(licensed=True)
     if insured is True:
@@ -529,16 +489,9 @@ def search_pros_public(
     if min_recs is not None:
         pros = pros.filter(_recs_count__gte=min_recs)
 
-    # Radius-based geo expansion: pull a larger candidate set and filter in Python
-    if zip and radius:
-        search_centroid = _zip_centroid(zip)
-        if search_centroid:
-            lat1, lon1 = search_centroid
-            candidates = list(pros[:200])
-            result = [p for p in candidates if _pro_within_radius(p, lat1, lon1, radius)]
-        else:
-            # Centroid lookup failed — fall back to returning all (no zip filter)
-            result = list(pros[:50])
+    # ZIP search is always radial (default 25mi) — no more exact-match-then-expand.
+    if zip:
+        result = pros_within_radius(pros, zip, radius or DEFAULT_SEARCH_RADIUS_MILES)
     else:
         result = list(pros[:50])
 
@@ -580,18 +533,16 @@ def post_rfq(request, payload: QuoteRequestIn):
         from ninja.errors import HttpError as _HttpError
         raise _HttpError(400, "Description must be at least 20 characters.")
 
-    # Match pros by category + zip
+    # Match pros by category + zip (radial)
     matched = ProProfile.objects.filter(
         is_suspended=False,
         trade_categories__icontains=payload.category,
     )
     if payload.zip_code:
-        matched = matched.filter(
-            Q(base_zip=payload.zip_code)
-            | Q(service_center_zip=payload.zip_code)
-            | Q(service_zips__icontains=payload.zip_code)
-        )
-    matched_ids = list(matched.values_list("id", flat=True)[:20])
+        matched_pros = pros_within_radius(matched, payload.zip_code, DEFAULT_SEARCH_RADIUS_MILES)[:20]
+        matched_ids = [p.id for p in matched_pros]
+    else:
+        matched_ids = list(matched.values_list("id", flat=True)[:20])
 
     qr = QuoteRequest.objects.create(
         description=payload.description.strip(),

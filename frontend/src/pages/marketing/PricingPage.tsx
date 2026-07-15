@@ -59,7 +59,7 @@ const badgeBase: React.CSSProperties = {
   zIndex: 1,
 };
 
-const LIME = "#84CC16";
+const PRO_TIER_BG = "#7B2FE0";
 
 export function PricingPage() {
   const [annual, setAnnual] = useState(false);
@@ -178,21 +178,21 @@ export function PricingPage() {
             </Stack>
           </Card>
 
-          {/* Pro — lime green background */}
+          {/* Pro — violet background */}
           <Card
             withBorder
             shadow="lg"
             radius="xl"
             p={32}
-            style={{ flex: "0 0 360px", maxWidth: "100%", background: LIME, position: "relative", overflow: "visible", border: "none" }}
+            style={{ flex: "0 0 360px", maxWidth: "100%", background: PRO_TIER_BG, position: "relative", overflow: "visible", border: "none" }}
           >
-            <Box style={{ ...badgeBase, background: "#fff", color: "#3a6e00" }}>
+            <Box style={{ ...badgeBase, background: "#fff", color: PRO_TIER_BG }}>
               For every pro
             </Box>
             <Stack gap="md">
               <Box>
-                <Title order={3} style={{ color: "#0B1700" }}>Pro</Title>
-                <Text size="sm" fw={600} mt={4} style={{ color: "rgba(0,0,0,0.6)" }}>Publish Krafts, earn endorsements, get found.</Text>
+                <Title order={3} style={{ color: "#fff" }}>Pro</Title>
+                <Text size="sm" fw={600} mt={4} style={{ color: "rgba(255,255,255,0.7)" }}>Publish Krafts, earn endorsements, get found.</Text>
               </Box>
               <Group align="flex-end" gap={4}>
                 <Title style={{ fontSize: 48, lineHeight: 1, color: "#fff" }}>{price}</Title>
@@ -209,7 +209,7 @@ export function PricingPage() {
                   radius="md"
                   fullWidth
                   rightSection={<IconExternalLink size={15} />}
-                  style={{ background: "rgba(0,0,0,0.15)", color: "#0B1700", border: "2px solid rgba(255,255,255,0.6)", fontWeight: 700 }}
+                  style={{ background: "rgba(0,0,0,0.15)", color: "#fff", border: "2px solid rgba(255,255,255,0.6)", fontWeight: 700 }}
                 >
                   Checkout pro profile
                 </Button>
@@ -221,7 +221,7 @@ export function PricingPage() {
                 disabled={status === "loading"}
                 loading={status === "loading"}
                 onClick={handleBuyPlan}
-                style={{ background: "#fff", color: "#3a6e00", border: "none", fontWeight: 700 }}
+                style={{ background: "#fff", color: PRO_TIER_BG, border: "none", fontWeight: 700 }}
               >
                 {status === "authenticated" && user?.role === "pro" ? "Go to checkout" : "Buy Plan"}
               </Button>
@@ -232,7 +232,7 @@ export function PricingPage() {
                     <Text fw={700} size="sm" style={{ color: f.active ? "#fff" : "rgba(255,255,255,0.5)" }}>
                       {f.active ? "✓" : "○"}
                     </Text>
-                    <Text size="sm" fw={f.active ? 600 : 500} style={{ color: f.active ? "#0B1700" : "rgba(0,0,0,0.45)" }}>{f.text}</Text>
+                    <Text size="sm" fw={f.active ? 600 : 500} style={{ color: f.active ? "#fff" : "rgba(255,255,255,0.45)" }}>{f.text}</Text>
                   </Group>
                 ))}
               </Stack>

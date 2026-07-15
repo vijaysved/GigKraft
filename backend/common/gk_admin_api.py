@@ -14,6 +14,7 @@ from ninja.errors import HttpError
 from accounts.auth import jwt_auth
 from accounts.models import ProProfile, User
 from billing.models import BillingInvoice, Subscription, StripeSettings
+from common.geo import DEFAULT_SEARCH_RADIUS_MILES, pros_within_radius
 from common.models import SitePageView, SiteSettings
 from common.permissions import require_gk_admin
 from krafts.models import Kraft
@@ -123,6 +124,7 @@ class UserRow(Schema):
     email: str | None
     phone: str | None
     role: str
+    extra_roles: List[str]
     first_name: str
     last_name: str
     node_id: str | None
@@ -393,9 +395,14 @@ def list_users(
             | Q(last_name__icontains=search)
         )
     if zip:
+        # Pro coverage is radial (matches the public search page); homeowner
+        # ZIPs are a literal home address, so those stay an exact match.
+        radial_pro_ids = [
+            p.user_id
+            for p in pros_within_radius(ProProfile.objects.all(), zip, DEFAULT_SEARCH_RADIUS_MILES)
+        ]
         qs = qs.filter(
-            Q(pro_profile__base_zip=zip)
-            | Q(pro_profile__service_zips__contains=zip)
+            Q(pk__in=radial_pro_ids)
             | Q(homeowner_profile__default_zip=zip)
             | Q(homeowner_profile__addresses__zip=zip)
         ).distinct()
@@ -480,6 +487,91 @@ def set_user_visitor(request, user_id: int):
     return 200, user
 
 
+# Roles a person can hold in any combination (Pro + Referrer + Community Owner, etc).
+# gk_admin/node_manager/visitor stay as separate exclusive actions above — those
+# reset or grant platform-level access, not a stackable capability.
+CAPABILITY_ROLES = [
+    User.Role.MEMBER,
+    User.Role.PRO,
+    User.Role.HOMEOWNER,
+    User.Role.REFERRER,
+    User.Role.COMMUNITY_LEAD,
+]
+
+# When a user holds several capability roles at once, `User.role` (single field)
+# is set to whichever of these is "richest" — the rest land in extra_roles.
+# Every permission guard in common/permissions.py checks role OR extra_roles,
+# so this ordering only affects which shell a user lands in after login.
+_PRIMARY_PRIORITY = [
+    User.Role.COMMUNITY_LEAD,
+    User.Role.REFERRER,
+    User.Role.PRO,
+    User.Role.HOMEOWNER,
+    User.Role.MEMBER,
+]
+
+
+def _ensure_profiles_for_roles(user, roles: set) -> None:
+    if User.Role.PRO in roles:
+        ProProfile.objects.get_or_create(user=user)
+    if User.Role.HOMEOWNER in roles:
+        from accounts.models import HomeownerProfile
+        HomeownerProfile.objects.get_or_create(user=user)
+    if User.Role.REFERRER in roles or User.Role.COMMUNITY_LEAD in roles:
+        from referrals.models import ReferrerProfile
+        profile, created = ReferrerProfile.objects.get_or_create(user=user)
+        if created and not profile.slug:
+            profile.save()  # triggers _generate_slug
+    if User.Role.COMMUNITY_LEAD in roles:
+        # Granting the role alone isn't enough to unlock the feature — the
+        # Community page/dashboard gate on an actual Community + active
+        # CommunitySubscription row, which normally only exist post-checkout.
+        # Comp one in (no Stripe IDs) so an admin-granted Community Owner can
+        # use it immediately instead of still seeing the "start a community" upsell.
+        from billing.models import CommunitySubscription
+        from communities.models import Community
+
+        community, _created = Community.objects.get_or_create(
+            lead=user, defaults={"name": f"{user.first_name}'s Community".strip() or "My Community"}
+        )
+        CommunitySubscription.objects.get_or_create(
+            community=community, defaults={"status": CommunitySubscription.Status.ACTIVE}
+        )
+
+
+class SetUserRolesIn(Schema):
+    roles: List[str]
+
+
+@router.patch("/users/{user_id}/roles", response={200: UserRow, 400: dict, 404: dict})
+def set_user_roles(request, user_id: int, payload: SetUserRolesIn):
+    """Set the full set of capability roles a user holds at once (e.g. Pro +
+    Referrer + Community Owner). One becomes the primary `role`; the rest are
+    stored in `extra_roles` — see CAPABILITY_ROLES / _PRIMARY_PRIORITY above."""
+    require_gk_admin(request)
+    user = User.objects.select_related("node", "pro_profile", "homeowner_profile").filter(pk=user_id).first()
+    if user is None:
+        return 404, {"detail": "User not found."}
+
+    invalid = [r for r in payload.roles if r not in CAPABILITY_ROLES]
+    if invalid:
+        return 400, {"detail": f"Invalid role(s): {', '.join(invalid)}"}
+
+    roles = set(payload.roles)
+    if not roles:
+        user.role = User.Role.VISITOR
+        user.extra_roles = []
+        user.save(update_fields=["role", "extra_roles"])
+        return 200, user
+
+    primary = next(r for r in _PRIMARY_PRIORITY if r in roles)
+    user.role = primary
+    user.extra_roles = sorted(roles - {primary})
+    user.save(update_fields=["role", "extra_roles"])
+    _ensure_profiles_for_roles(user, roles)
+    return 200, user
+
+
 @router.get("/nodes", response=List[NodeSummary])
 def list_nodes(request):
     require_gk_admin(request)
@@ -518,6 +610,10 @@ class StripeConfigOut(Schema):
     test_price_annual: str
     live_price_monthly: str
     live_price_annual: str
+    test_price_community_monthly: str
+    test_price_community_annual: str
+    live_price_community_monthly: str
+    live_price_community_annual: str
     # Which env vars are present on the server (values are never returned)
     test_key_set: bool
     live_key_set: bool
@@ -531,6 +627,10 @@ class StripeConfigIn(Schema):
     test_price_annual: str
     live_price_monthly: str
     live_price_annual: str
+    test_price_community_monthly: str = ""
+    test_price_community_annual: str = ""
+    live_price_community_monthly: str = ""
+    live_price_community_annual: str = ""
 
 
 class StripeConnectionOut(Schema):
@@ -552,6 +652,10 @@ def _cfg_out(cfg) -> StripeConfigOut:
         test_price_annual=cfg.test_price_annual,
         live_price_monthly=cfg.live_price_monthly,
         live_price_annual=cfg.live_price_annual,
+        test_price_community_monthly=cfg.test_price_community_monthly,
+        test_price_community_annual=cfg.test_price_community_annual,
+        live_price_community_monthly=cfg.live_price_community_monthly,
+        live_price_community_annual=cfg.live_price_community_annual,
         test_key_set=bool(os.environ.get("STRIPE_TEST_SECRET_KEY")),
         live_key_set=bool(os.environ.get("STRIPE_SECRET_KEY")),
         webhook_secret_set=bool(os.environ.get("STRIPE_WEBHOOK_SECRET")),
@@ -576,6 +680,10 @@ def update_stripe_config(request, payload: StripeConfigIn):
     cfg.test_price_annual = payload.test_price_annual.strip()
     cfg.live_price_monthly = payload.live_price_monthly.strip()
     cfg.live_price_annual = payload.live_price_annual.strip()
+    cfg.test_price_community_monthly = payload.test_price_community_monthly.strip()
+    cfg.test_price_community_annual = payload.test_price_community_annual.strip()
+    cfg.live_price_community_monthly = payload.live_price_community_monthly.strip()
+    cfg.live_price_community_annual = payload.live_price_community_annual.strip()
     cfg.updated_by = request.auth
     cfg.save()
     return 200, _cfg_out(cfg)

@@ -113,7 +113,10 @@ const sharedBase: MantineThemeOverride = {
           "--button-color": "var(--gk-accent-primary)",
         },
       }),
-      styles: { root: { fontWeight: 700, height: rem(46) } },
+      // No hardcoded height here — a flat height for every size would silently
+      // override Mantine's per-size --button-height variable, making size="xs"/"sm"
+      // etc. render identically to the default. Let the library's own sizing stand.
+      styles: { root: { fontWeight: 700 } },
     },
     Card: { defaultProps: { radius: "lg", withBorder: true, shadow: "sm", padding: "md" } },
     Badge: { defaultProps: { radius: "md", variant: "light" } },
@@ -332,20 +335,34 @@ export function resolveThemeId(value: string | null): ThemeId {
   return DEFAULT_THEME_ID;
 }
 
+/** The brand CSS custom properties for a theme, as a plain style object.
+ * Set these on a wrapping element to scope a theme's look to a subtree
+ * (e.g. a public page whose owner picked their own theme) without touching
+ * `document.documentElement` — that's reserved for the viewer's own app-wide
+ * preference (see `applyBrandTokens` / `ThemeProvider`). */
+export function brandCssVars(themeId: string | null | undefined): Record<string, string> {
+  const { brand } = THEMES[resolveThemeId(themeId ?? null)];
+  return {
+    "--gk-bg-canvas": brand.bgCanvas,
+    "--gk-bg-surface": brand.bgSurface,
+    "--gk-bg-sidebar": brand.bgSidebar,
+    "--gk-bg-sidebar-active": brand.bgSidebarActive,
+    "--gk-brand-gradient": brand.brandGradient,
+    "--gk-accent-primary": brand.accentPrimary,
+    "--gk-accent-secondary": brand.accentSecondary,
+    "--gk-accent-tertiary": brand.accentTertiary,
+    "--gk-text-sidebar": brand.textOnSidebar,
+    "--gk-text-muted": brand.textMuted,
+    "--gk-border": brand.border,
+    "--gk-card-hero": brand.cardHero,
+  };
+}
+
 export function applyBrandTokens(themeId: ThemeId): void {
-  const { brand } = THEMES[themeId];
   const root = document.documentElement;
   root.dataset.gkTheme = themeId;
-  root.style.setProperty("--gk-bg-canvas", brand.bgCanvas);
-  root.style.setProperty("--gk-bg-surface", brand.bgSurface);
-  root.style.setProperty("--gk-bg-sidebar", brand.bgSidebar);
-  root.style.setProperty("--gk-bg-sidebar-active", brand.bgSidebarActive);
-  root.style.setProperty("--gk-brand-gradient", brand.brandGradient);
-  root.style.setProperty("--gk-accent-primary", brand.accentPrimary);
-  root.style.setProperty("--gk-accent-secondary", brand.accentSecondary);
-  root.style.setProperty("--gk-accent-tertiary", brand.accentTertiary);
-  root.style.setProperty("--gk-text-sidebar", brand.textOnSidebar);
-  root.style.setProperty("--gk-text-muted", brand.textMuted);
-  root.style.setProperty("--gk-border", brand.border);
-  root.style.setProperty("--gk-card-hero", brand.cardHero);
+  const vars = brandCssVars(themeId);
+  for (const [key, value] of Object.entries(vars)) {
+    root.style.setProperty(key, value);
+  }
 }

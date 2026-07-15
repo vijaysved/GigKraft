@@ -244,7 +244,7 @@ function ThreadRow({
   active: boolean;
   onClick: () => void;
 }) {
-  const other = lead.pro;
+  const other = lead.pro ?? lead.recipient;
   const isSingleLocked = lead.thread_type === "lead" && lead.status === "active";
 
   return (
@@ -306,7 +306,7 @@ function ChatPane({
   const bottomRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const other = lead.pro;
+  const other = lead.pro ?? lead.recipient;
   const isArchived = lead.status === "archived";
   const isWon = lead.status === "won";
   const isRequest = lead.thread_type === "request";

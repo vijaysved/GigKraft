@@ -149,10 +149,10 @@ export function ContactDetailPage() {
   const navigate = useNavigate();
   const numId = decodeContactId(id ?? "") ?? NaN;
 
+  const navState = location.state as { contact?: UnifiedInvite; returnTo?: string } | null;
+
   // Contact — from navigation state (fast) or fetched (fallback on refresh/direct URL)
-  const [contact, setContact] = useState<UnifiedInvite | null>(
-    (location.state as { contact?: UnifiedInvite } | null)?.contact ?? null,
-  );
+  const [contact, setContact] = useState<UnifiedInvite | null>(navState?.contact ?? null);
   const [loadingContact, setLoadingContact] = useState(!contact);
 
   // Timeline events
@@ -243,7 +243,7 @@ export function ContactDetailPage() {
   }, [contact?.scenario]);
 
   function goBack() {
-    navigate(`/us/${slug}/home?tab=invite`);
+    navigate(navState?.returnTo ?? `/us/${slug}/home?tab=invite`);
   }
 
   async function refreshTimeline() {
@@ -346,7 +346,7 @@ export function ContactDetailPage() {
 
   if (!contact) {
     return (
-      <Stack p="md">
+      <Stack>
         <Group gap="xs" align="center">
           <ActionIcon size="lg" variant="subtle" onClick={goBack} aria-label="Back" style={iconColor}>
             <IconArrowLeft size={18} />
@@ -378,7 +378,7 @@ export function ContactDetailPage() {
   const tagData = [...new Set([...tagSuggestions, ...tradeTagSuggestions, ...GENERIC_TAG_SUGGESTIONS])];
 
   return (
-    <Stack gap="lg" p="md" style={{ maxWidth: 680 }}>
+    <Stack gap="lg" style={{ maxWidth: 680 }}>
 
       {/* ── Header ───────────────────────────────────────────────────────── */}
       <Group gap="xs" align="center">

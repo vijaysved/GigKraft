@@ -104,7 +104,7 @@ def _build_pro_card(rp: ReferrerPro, follower: Optional[ReferrerFollower], is_ow
     else:
         name = invite.name if invite else ""
         trade = invite.trade if invite else ""
-        city = ""
+        city = invite.zip if invite else ""
         phone = invite.phone if invite else ""
         email = invite.email if invite else ""
         avatar_url = ""
@@ -127,6 +127,7 @@ def _build_pro_card(rp: ReferrerPro, follower: Optional[ReferrerFollower], is_ow
 
     return {
         "id": rp.pk,
+        "linked_pro_id": pro.pk if pro else None,
         "name": name,
         "trade": trade,
         "city": city,
@@ -310,6 +311,7 @@ class CheckSlugOut(Schema):
 
 class ProCardOut(Schema):
     id: int
+    linked_pro_id: Optional[int] = None
     name: str
     trade: str
     city: str
@@ -429,6 +431,7 @@ class ReferrerProDashboardOut(Schema):
     endorsement: str
     tags: list[str] = []
     show_on_page: bool
+    show_on_community: bool
     display_order: int
     referral_count: int
     is_on_platform: bool
@@ -460,6 +463,7 @@ class InviteProIn(Schema):
     trade: str = ""
     phone: Optional[str] = None
     email: Optional[str] = None
+    zip: Optional[str] = None
     note: Optional[str] = None
     channel: str = ""
     message: Optional[str] = None
@@ -746,6 +750,12 @@ def search_pros(request, q: str, trade: Optional[str] = None):
         | DQ(primary_trade__icontains=q)
         | DQ(user__first_name__icontains=q)
         | DQ(user__last_name__icontains=q)
+        | DQ(user__email__icontains=q)
+        | DQ(user__phone__icontains=q)
+        | DQ(skill_tags__icontains=q)
+        | DQ(base_zip__icontains=q)
+        | DQ(service_center_zip__icontains=q)
+        | DQ(service_zips__icontains=q)
     )
     if trade:
         qs = qs.filter(primary_trade__icontains=trade)
@@ -1008,6 +1018,7 @@ def _serialize_referrer_pro(rp: ReferrerPro) -> dict:
         "endorsement": rp.endorsement,
         "tags": rp.tags,
         "show_on_page": rp.show_on_page,
+        "show_on_community": rp.show_on_community,
         "display_order": rp.display_order,
         "referral_count": rp.referral_count,
         "is_on_platform": is_on_platform,
@@ -1160,6 +1171,7 @@ def invite_pro(request, payload: InviteProIn):
         trade=payload.trade,
         phone=payload.phone or "",
         email=payload.email or "",
+        zip=(payload.zip or "").strip() or profile.default_zip,
         note=payload.note or "",
         channel=payload.channel,
         message_body=payload.message or "",

@@ -47,7 +47,7 @@ export function ContactPage() {
             <Grid.Col key={d.title} span={{ base: 12, sm: 6, md: 3 }}>
               <Card withBorder shadow="xs" radius="lg" p="md" h="100%">
                 <Stack gap={8}>
-                  <ThemeIcon size={44} radius={12} color="orange" variant="light">{d.icon}</ThemeIcon>
+                  <ThemeIcon size={44} radius={12} color="pink" variant="light">{d.icon}</ThemeIcon>
                   <Title order={4} mt={4}>{d.title}</Title>
                   <Text size="sm" c="dimmed" lh={1.5}>{d.desc}</Text>
                   <Text size="sm" fw={600} ff="monospace" c="var(--gk-accent-primary)" mt={4}>{d.email}</Text>
@@ -125,7 +125,7 @@ export function ContactPage() {
                     { icon: <IconCircleFilled size={10} style={{ color: "#6EF0A0" }} />, label: "System status: operational" },
                   ].map((c) => (
                     <Group key={c.label} gap="sm">
-                      <ThemeIcon size={30} radius={8} color="orange" variant="light">{c.icon}</ThemeIcon>
+                      <ThemeIcon size={30} radius={8} color="pink" variant="light">{c.icon}</ThemeIcon>
                       <Text size="sm" fw={600}>{c.label}</Text>
                     </Group>
                   ))}

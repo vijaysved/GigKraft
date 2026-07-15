@@ -16,8 +16,9 @@ import { useLocation } from "react-router-dom";
 
 import { submitFeedback } from "../api/feedback";
 import { useAuth } from "../auth/AuthContext";
+import { usePublicBrandThemeId } from "../theme/PublicBrandThemeContext";
 import { useTheme } from "../theme/ThemeProvider";
-import { THEMES } from "../theme/themes";
+import { resolveThemeId, THEMES } from "../theme/themes";
 
 // Marketing routes — feedback button moves to bottom-left to avoid CTA clash.
 const MARKETING_PATHS = new Set([
@@ -50,6 +51,7 @@ export function FeedbackWidget() {
   const { user } = useAuth();
   const location = useLocation();
   const { themeId } = useTheme();
+  const publicBrandThemeId = usePublicBrandThemeId();
 
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
@@ -58,9 +60,10 @@ export function FeedbackWidget() {
   const [error, setError] = useState("");
 
   const showLeft = useLeftPosition(location.pathname);
-  const btnGradient = showLeft
-    ? MARKETING_GRADIENT
-    : THEMES[themeId].brand.brandGradient;
+  // On a public page with its own brand theme (e.g. a community), match that
+  // theme instead of the viewer's personal one.
+  const { brand } = THEMES[publicBrandThemeId ? resolveThemeId(publicBrandThemeId) : themeId];
+  const btnGradient = showLeft ? MARKETING_GRADIENT : brand.brandGradient;
 
   function handleOpen() {
     setOpen(true);
@@ -121,7 +124,7 @@ export function FeedbackWidget() {
         onClose={() => setOpen(false)}
         title={
           <Group gap="xs">
-            <IconMessage2 size={18} />
+            <IconMessage2 size={18} color={brand.accentPrimary} />
             <Text fw={600}>Share feedback</Text>
             {!user && (
               <Badge size="xs" color="gray" variant="light">
@@ -132,6 +135,10 @@ export function FeedbackWidget() {
         }
         size="sm"
         centered
+        styles={{
+          content: { background: brand.bgSurface },
+          header: { background: brand.bgSurface, borderBottom: `1px solid ${brand.border}` },
+        }}
       >
         {submitted ? (
           <Stack gap="md" py="sm" align="center">

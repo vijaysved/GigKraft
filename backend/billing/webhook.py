@@ -9,10 +9,102 @@ import os
 
 import stripe
 from django.http import HttpResponse, JsonResponse
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 logger = logging.getLogger(__name__)
+
+
+def _handle_community_checkout_completed(session: dict) -> None:
+    """checkout.session.completed for a Community Directory subscription (Workflow 1)."""
+    from billing.models import BillingInvoice, COMMUNITY_PLAN_PRICES, CommunitySubscription
+    from accounts.models import User
+    from common import notify
+    from communities.models import Community
+
+    metadata = session.get("metadata", {})
+    user_id = metadata.get("user_id", "")
+    plan = metadata.get("plan", "monthly")
+    stripe_subscription_id = session.get("subscription", "")
+    stripe_customer_id = session.get("customer", "")
+
+    if not (user_id and stripe_subscription_id):
+        logger.warning(
+            "Webhook checkout.session.completed (community): missing user_id or subscription_id session=%s",
+            session.get("id"),
+        )
+        return
+
+    if CommunitySubscription.objects.filter(stripe_subscription_id=stripe_subscription_id).exists():
+        logger.info("Webhook: duplicate community checkout.session.completed sub=%s — skipped", stripe_subscription_id)
+        return
+
+    try:
+        paying_user = User.objects.get(pk=int(user_id))
+    except Exception:
+        logger.exception("Webhook: could not resolve user_id=%s for community checkout", user_id)
+        return
+
+    # The Community row may already exist (re-subscribing after a voluntary downgrade);
+    # otherwise create a placeholder — the Lead names it in the follow-up naming step.
+    community, _created = Community.objects.get_or_create(
+        lead=paying_user,
+        defaults={"name": f"{paying_user.first_name}'s Community".strip() or "My Community"},
+    )
+    if community.status == Community.Status.ARCHIVED:
+        community.status = Community.Status.ACTIVE
+        community.save(update_fields=["status", "updated_at"])
+
+    renews_at = None
+    card_last4 = ""
+    try:
+        stripe_sub = stripe.Subscription.retrieve(
+            stripe_subscription_id, expand=["default_payment_method"]
+        )
+        ts = stripe_sub.get("current_period_end")
+        if ts:
+            renews_at = datetime.date.fromtimestamp(int(ts))
+        pm = stripe_sub.get("default_payment_method")
+        if isinstance(pm, dict):
+            card_last4 = pm.get("card", {}).get("last4", "")
+    except Exception:
+        logger.exception("Could not retrieve Stripe subscription %s", stripe_subscription_id)
+
+    sub, _sub_created = CommunitySubscription.objects.update_or_create(
+        community=community,
+        defaults={
+            "plan": plan,
+            "status": CommunitySubscription.Status.ACTIVE,
+            "stripe_subscription_id": stripe_subscription_id,
+            "stripe_customer_id": stripe_customer_id,
+            "renews_at": renews_at,
+            "card_last4": card_last4,
+            "past_due_since": None,
+        },
+    )
+
+    today = datetime.date.today()
+    period_label = today.strftime("%B %Y")
+    if not BillingInvoice.objects.filter(community_subscription=sub, period_label=period_label).exists():
+        amount = COMMUNITY_PLAN_PRICES.get(plan, COMMUNITY_PLAN_PRICES["monthly"])
+        BillingInvoice.objects.create(
+            community_subscription=sub,
+            amount=amount,
+            status=BillingInvoice.Status.PAID,
+            period_label=period_label,
+            issued_at=today,
+        )
+
+    if paying_user.role == User.Role.REFERRER:
+        paying_user.role = User.Role.COMMUNITY_LEAD
+        paying_user.save(update_fields=["role"])
+
+    notify.notify_user(paying_user, "Your Community is live! Add your first members and pros.")
+    logger.info(
+        "Webhook: activated community subscription user=%s community=%s sub=%s plan=%s",
+        user_id, community.pk, stripe_subscription_id, plan,
+    )
 
 
 def _handle_checkout_completed(session: dict) -> None:
@@ -22,6 +114,10 @@ def _handle_checkout_completed(session: dict) -> None:
     from accounts.services import ensure_role_profile
 
     metadata = session.get("metadata", {})
+    if metadata.get("product") == "community":
+        _handle_community_checkout_completed(session)
+        return
+
     # Support both custom checkout (metadata) and Stripe Pricing Table (client_reference_id)
     user_id = metadata.get("user_id", "") or str(session.get("client_reference_id") or "")
     pro_id = metadata.get("pro_id", "")
@@ -154,17 +250,23 @@ def _handle_checkout_completed(session: dict) -> None:
 
 
 def _handle_subscription_deleted(stripe_sub_id: str) -> None:
-    from billing.models import Subscription
+    from billing.models import CommunitySubscription, Subscription
 
     updated = Subscription.objects.filter(stripe_subscription_id=stripe_sub_id).update(
         status=Subscription.Status.CANCELLED
     )
-    logger.info("Webhook: subscription deleted sub=%s rows_updated=%d", stripe_sub_id, updated)
+    community_updated = CommunitySubscription.objects.filter(stripe_subscription_id=stripe_sub_id).update(
+        status=CommunitySubscription.Status.CANCELLED
+    )
+    logger.info(
+        "Webhook: subscription deleted sub=%s rows_updated=%d community_rows_updated=%d",
+        stripe_sub_id, updated, community_updated,
+    )
 
 
 def _handle_payment_failed(stripe_sub_id: str) -> None:
     from billing.emails import send_payment_failed_email
-    from billing.models import Subscription
+    from billing.models import CommunitySubscription, Subscription
 
     subs = list(
         Subscription.objects.filter(stripe_subscription_id=stripe_sub_id)
@@ -179,7 +281,26 @@ def _handle_payment_failed(stripe_sub_id: str) -> None:
         except Exception:
             logger.exception("payment_failed email error sub_pk=%d", sub.pk)
 
-    logger.info("Webhook: payment failed sub=%s rows_updated=%d", stripe_sub_id, len(subs))
+    community_subs = list(
+        CommunitySubscription.objects.filter(stripe_subscription_id=stripe_sub_id)
+        .select_related("community__lead")
+    )
+    for csub in community_subs:
+        was_active = csub.status != CommunitySubscription.Status.PAST_DUE
+        csub.status = CommunitySubscription.Status.PAST_DUE
+        if was_active:
+            csub.past_due_since = timezone.now()
+        csub.save(update_fields=["status", "past_due_since", "updated_at"])
+        try:
+            user = csub.community.lead
+            send_payment_failed_email(to=user.email or "", first_name=user.first_name or "")
+        except Exception:
+            logger.exception("community payment_failed email error sub_pk=%d", csub.pk)
+
+    logger.info(
+        "Webhook: payment failed sub=%s rows_updated=%d community_rows_updated=%d",
+        stripe_sub_id, len(subs), len(community_subs),
+    )
 
 
 @csrf_exempt

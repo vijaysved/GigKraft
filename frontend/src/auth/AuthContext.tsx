@@ -13,6 +13,7 @@ import {
   getMe,
   googleAuth,
   login as apiLogin,
+  otpVerify,
   refreshAccessToken,
   type UserOut,
 } from "../api/endpoints";
@@ -25,7 +26,8 @@ interface AuthContextValue {
   status: AuthStatus;
   user: UserOut | null;
   loginWithPassword: (email: string, password: string) => Promise<void>;
-  loginWithGoogle: (idToken: string, role?: string) => Promise<{ created: boolean }>;
+  loginWithGoogle: (idToken: string, role?: string) => Promise<{ created: boolean; user: UserOut }>;
+  loginWithPhoneOtp: (phone: string, code: string, role?: string) => Promise<{ user: UserOut }>;
   logout: () => void;
   updateUser: (patch: Partial<UserOut>) => void;
 }
@@ -122,7 +124,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setTokens(pair.access, pair.refresh);
     setUser(pair.user);
     setStatus("authenticated");
-    return { created: pair.created ?? false };
+    return { created: pair.created ?? false, user: pair.user };
+  }, []);
+
+  const loginWithPhoneOtp = useCallback(async (phone: string, code: string, role = "homeowner") => {
+    const pair = await otpVerify(phone, code, role);
+    setTokens(pair.access, pair.refresh);
+    setUser(pair.user);
+    setStatus("authenticated");
+    return { user: pair.user };
   }, []);
 
   const logout = useCallback(() => {
@@ -138,8 +148,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ status, user, loginWithPassword, loginWithGoogle, logout, updateUser }),
-    [status, user, loginWithPassword, loginWithGoogle, logout, updateUser],
+    () => ({ status, user, loginWithPassword, loginWithGoogle, loginWithPhoneOtp, logout, updateUser }),
+    [status, user, loginWithPassword, loginWithGoogle, loginWithPhoneOtp, logout, updateUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

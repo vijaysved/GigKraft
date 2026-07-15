@@ -92,6 +92,28 @@ export async function googleAuth(idToken: string, role = "homeowner"): Promise<T
   return data;
 }
 
+export type OTPRequestOut = components["schemas"]["OTPRequestOut"];
+
+export async function otpRequest(phone: string): Promise<OTPRequestOut> {
+  const { data, error, response } = await client.POST("/api/auth/otp/request", {
+    body: { phone },
+  });
+  if (!data) {
+    throw new ApiError(response.status, detailOf(error, "Could not send verification code."));
+  }
+  return data;
+}
+
+export async function otpVerify(phone: string, code: string, role = "homeowner"): Promise<TokenPairOut> {
+  const { data, error, response } = await client.POST("/api/auth/otp/verify", {
+    body: { phone, code, role },
+  });
+  if (!data) {
+    throw new ApiError(response.status, detailOf(error, "Invalid or expired code."));
+  }
+  return data;
+}
+
 export async function refreshAccessToken(
   refresh: string,
 ): Promise<AccessTokenOut> {
@@ -412,6 +434,7 @@ export interface GkUserRow {
   email: string | null;
   phone: string | null;
   role: string;
+  extra_roles: string[];
   first_name: string;
   last_name: string;
   node_id: string | null;
@@ -488,6 +511,15 @@ export async function setGkUserAdmin(userId: number): Promise<GkUserRow> {
 export async function setGkUserVisitor(userId: number): Promise<GkUserRow> {
   const { data, error, response } = await client.PATCH(`/api/gk-admin/users/${userId}/set-visitor` as never);
   if (!data) throw new ApiError(response.status, detailOf(error, "Failed to set visitor."));
+  return data as GkUserRow;
+}
+
+/** Capability roles a person can hold in any combination (Pro, Referrer, Community Owner, etc). */
+export async function setGkUserRoles(userId: number, roles: string[]): Promise<GkUserRow> {
+  const { data, error, response } = await client.PATCH(`/api/gk-admin/users/${userId}/roles` as never, {
+    body: { roles },
+  } as never);
+  if (!data) throw new ApiError(response.status, detailOf(error, "Failed to update roles."));
   return data as GkUserRow;
 }
 
@@ -591,6 +623,7 @@ export interface ReferrerProRow {
   endorsement: string;
   tags: string[];
   show_on_page: boolean;
+  show_on_community: boolean;
   display_order: number;
   referral_count: number;
   is_on_platform: boolean;
@@ -1204,6 +1237,7 @@ export interface InboxLead {
   created_at: string;
   homeowner: InboxParty;
   pro: InboxParty | null;
+  recipient: InboxParty | null;
   last_message: string | null;
   unread_hint: number;
   quotes: InboxQuote[];
@@ -1359,6 +1393,7 @@ export async function searchProsPublic(params: {
   radius?: number;
   category?: string;
   subcategory?: string;
+  skill?: string;
   licensed?: boolean;
   insured?: boolean;
   max_response_hours?: number;
@@ -1372,6 +1407,7 @@ export async function searchProsPublic(params: {
   if (params.radius != null) q.radius = String(params.radius);
   if (params.category) q.category = params.category;
   if (params.subcategory) q.subcategory = params.subcategory;
+  if (params.skill) q.skill = params.skill;
   if (params.licensed) q.licensed = "true";
   if (params.insured) q.insured = "true";
   if (params.max_response_hours != null) q.max_response_hours = String(params.max_response_hours);
@@ -1601,6 +1637,7 @@ export async function createProInvite(payload: {
   phone?: string;
   email?: string;
   trade?: string;
+  zip?: string;
   note?: string;
   channel?: string;
   message?: string;

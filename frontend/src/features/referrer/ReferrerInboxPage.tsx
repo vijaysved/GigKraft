@@ -77,7 +77,7 @@ function ThreadRow({
   onClick: () => void;
   currentUserId: number;
 }) {
-  const other = lead.homeowner.id === currentUserId ? lead.pro : lead.homeowner;
+  const other = lead.homeowner.id === currentUserId ? (lead.pro ?? lead.recipient) : lead.homeowner;
 
   return (
     <Box
@@ -141,7 +141,7 @@ function ChatPane({
   const bottomRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const other = lead.homeowner.id === currentUserId ? lead.pro : lead.homeowner;
+  const other = lead.homeowner.id === currentUserId ? (lead.pro ?? lead.recipient) : lead.homeowner;
   const isArchived = lead.status === "archived";
   const isWon = lead.status === "won";
   const canChat = !isArchived && !isWon;

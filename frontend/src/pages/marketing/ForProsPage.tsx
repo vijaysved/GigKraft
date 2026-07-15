@@ -121,7 +121,7 @@ export function ForProsPage() {
                 >
                   <Text size="xs" fw={700} c="var(--gk-accent-primary)">{h.num}</Text>
                   <Group gap="xs" mt={6} mb={8} align="center">
-                    <ThemeIcon size={28} radius="sm" color="orange" variant="light">{h.icon}</ThemeIcon>
+                    <ThemeIcon size={28} radius="sm" color="pink" variant="light">{h.icon}</ThemeIcon>
                     <Title order={4}>{h.title}</Title>
                   </Group>
                   <Text size="sm" c="dimmed" lh={1.5}>{h.body}</Text>
@@ -144,7 +144,7 @@ export function ForProsPage() {
           {OWNERSHIP.map((o) => (
             <Grid.Col key={o.title} span={{ base: 12, md: 4 }}>
               <Card withBorder shadow="xs" radius="lg" p="md" h="100%">
-                <ThemeIcon size={44} radius={12} mb="sm" color="orange" variant="light">{o.icon}</ThemeIcon>
+                <ThemeIcon size={44} radius={12} mb="sm" color="pink" variant="light">{o.icon}</ThemeIcon>
                 <Title order={3} mb={8}>{o.title}</Title>
                 <Text size="sm" c="dimmed" lh={1.55}>{o.body}</Text>
               </Card>

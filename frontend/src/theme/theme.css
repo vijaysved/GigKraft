@@ -94,6 +94,25 @@ button.mantine-Button-root[data-variant="filled"]:hover:not([data-disabled]) {
   font-weight: 700;
 }
 
+/* ── Slick themed scrollbar (e.g. community filters sidebar) ── */
+.gk-slick-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--gk-accent-secondary) transparent;
+}
+.gk-slick-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+.gk-slick-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.gk-slick-scroll::-webkit-scrollbar-thumb {
+  background-color: var(--gk-accent-secondary);
+  border-radius: 99px;
+}
+.gk-slick-scroll::-webkit-scrollbar-thumb:hover {
+  filter: brightness(1.1);
+}
+
 /* ProseMirror editor — tight paragraph spacing */
 .ProseMirror { padding: 10px 12px; min-height: 140px; outline: none; }
 .ProseMirror p { margin: 0; line-height: 1.55; }

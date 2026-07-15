@@ -56,7 +56,7 @@ export function ProfileComparisonSection() {
     trackSitePageView(window.location.href);
   }, []);
 
-  const LIME = "#84CC16";
+  const PRO_TIER_BG = "#7B2FE0";
 
   return (
     <Box style={{ borderTop: "1px solid var(--gk-border)", background: "var(--gk-bg-canvas)" }} py={64}>
@@ -134,22 +134,22 @@ export function ProfileComparisonSection() {
               maxWidth: "100%",
               borderRadius: 16,
               padding: 28,
-              background: LIME,
+              background: PRO_TIER_BG,
             }}
           >
             <Stack gap="md">
               <Box>
-                <Text size="xs" fw={700} tt="uppercase" style={{ letterSpacing: 1, color: "rgba(0,0,0,0.55)" }} mb={4}>
+                <Text size="xs" fw={700} tt="uppercase" style={{ letterSpacing: 1, color: "rgba(255,255,255,0.65)" }} mb={4}>
                   Paid · Pro
                 </Text>
-                <Title order={4} style={{ color: "#0B1700" }}>What visitors see on a Pro profile</Title>
+                <Title order={4} style={{ color: "#fff" }}>What visitors see on a Pro profile</Title>
               </Box>
 
               <Stack gap={6}>
                 {PRO_FEATURES.map((f) => (
                   <Group key={f} gap="xs" align="flex-start">
                     <IconCircleCheck size={15} color="#fff" style={{ flexShrink: 0, marginTop: 2 }} />
-                    <Text size="sm" fw={600} style={{ color: "#0B1700" }}>{f}</Text>
+                    <Text size="sm" fw={600} style={{ color: "#fff" }}>{f}</Text>
                   </Group>
                 ))}
               </Stack>
@@ -164,7 +164,7 @@ export function ProfileComparisonSection() {
                   radius="md"
                   fullWidth
                   rightSection={<IconExternalLink size={14} />}
-                  style={{ background: "rgba(0,0,0,0.15)", color: "#0B1700", border: "2px solid rgba(255,255,255,0.6)", fontWeight: 700 }}
+                  style={{ background: "rgba(0,0,0,0.15)", color: "#fff", border: "2px solid rgba(255,255,255,0.6)", fontWeight: 700 }}
                 >
                   View Pro profile
                 </Button>

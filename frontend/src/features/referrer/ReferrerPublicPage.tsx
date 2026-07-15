@@ -43,6 +43,8 @@ import { ReferrerProCard } from "./components/ReferrerProCard";
 import { RequestReferralModal } from "./components/RequestReferralModal";
 import { formatPhone } from "../../utils/format";
 import { toCamelTag } from "../../utils/tags";
+import { useFavorites } from "../../hooks/useFavorites";
+import { TAG_FILTER_COLOR } from "../../theme/tagColor";
 
 const GK_LOGO_URL = "https://gigkraft.com/brand/gigKraftLogo.png";
 
@@ -159,6 +161,7 @@ export function ReferrerPublicPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const isAuthenticated = status === "authenticated";
+  const { favIds, toggle: toggleFavorite } = useFavorites();
 
   const claimToken = searchParams.get("claim") ?? "";
   const invToken = searchParams.get("inv") ?? "";
@@ -686,9 +689,9 @@ export function ReferrerPublicPage() {
                     style={{
                       padding: "3px 11px",
                       borderRadius: 99,
-                      border: "1.5px solid var(--gk-accent-secondary)",
-                      background: active ? "var(--gk-accent-secondary)" : "transparent",
-                      color: active ? "var(--gk-accent-primary)" : "var(--gk-accent-secondary)",
+                      border: `1.5px solid ${TAG_FILTER_COLOR}`,
+                      background: active ? TAG_FILTER_COLOR : "transparent",
+                      color: active ? "#fff" : TAG_FILTER_COLOR,
                       fontSize: 12,
                       fontWeight: 600,
                       cursor: "pointer",
@@ -727,6 +730,12 @@ export function ReferrerPublicPage() {
                   onNeedFollow={() => setFollowOpen(true)}
                   highlightedProId={highlightedProId ?? undefined}
                   claimToken={claimToken || undefined}
+                  onTagClick={toggleTag}
+                  favorite={pro.linked_pro_id != null ? {
+                    isFavorited: favIds.has(pro.linked_pro_id),
+                    onToggle: () => toggleFavorite(pro.linked_pro_id!),
+                    isAuthenticated,
+                  } : undefined}
                 />
               ))}
             </SimpleGrid>

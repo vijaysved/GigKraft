@@ -18,6 +18,7 @@ import {
   IconInbox,
   IconLogout,
   IconUser,
+  IconUsersGroup,
 } from "@tabler/icons-react";
 import { NavLink as RouterNavLink, Outlet, useNavigate, useParams } from "react-router-dom";
 import { useEffect } from "react";
@@ -41,6 +42,7 @@ export function ReferrerShell() {
   const NAV_ITEMS = [
     { label: "Home", icon: IconHome, to: `/us/${slug}/home` },
     { label: "Inbox", icon: IconInbox, to: `/us/${slug}/inbox` },
+    { label: "Community", icon: IconUsersGroup, to: `/us/${slug}/community` },
     { label: "Account", icon: IconUser, to: `/us/${slug}/account` },
   ];
 

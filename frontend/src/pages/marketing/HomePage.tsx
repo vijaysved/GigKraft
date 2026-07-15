@@ -110,7 +110,7 @@ export function HomePage() {
                 <HeroSlider />
                 <Group justify="space-between" pt="sm" px={6}>
                   <Group gap="xs">
-                    <ThemeIcon size={30} radius="xl" color="orange" variant="light"><IconUserCircle size={16} /></ThemeIcon>
+                    <ThemeIcon size={30} radius="xl" color="pink" variant="light"><IconUserCircle size={16} /></ThemeIcon>
                     <Box>
                       <Text size="sm" fw={700} lh={1.1}>Marcus T.</Text>
                       <Text size="xs" c="dimmed" fw={600}>Licensed plumber · 1.4 mi away</Text>
@@ -152,7 +152,7 @@ export function HomePage() {
               <Grid.Col key={p.title} span={{ base: 12, sm: 6, md: 3 }}>
                 <Card withBorder shadow="xs" radius="lg" h="100%" p="md">
                   <Stack gap="sm">
-                    <ThemeIcon size={44} radius={12} color="orange" variant="light">{p.icon}</ThemeIcon>
+                    <ThemeIcon size={44} radius={12} color="pink" variant="light">{p.icon}</ThemeIcon>
                     <Text fw={700} size="md">{p.title}</Text>
                     <Text size="sm" c="dimmed" lh={1.55}>{p.body}</Text>
                   </Stack>
@@ -181,7 +181,7 @@ export function HomePage() {
                 <Card withBorder shadow="xs" radius="lg" p="md">
                   <Text size="xs" fw={700} c="var(--gk-accent-primary)" style={{ letterSpacing: 1 }}>STEP {s.num}</Text>
                   <Group gap="xs" mt={6} mb={8} align="center">
-                    <ThemeIcon size={28} radius="sm" color="orange" variant="light">{s.icon}</ThemeIcon>
+                    <ThemeIcon size={28} radius="sm" color="pink" variant="light">{s.icon}</ThemeIcon>
                     <Title order={3}>{s.title}</Title>
                   </Group>
                   <Text size="sm" c="dimmed" lh={1.55}>{s.body}</Text>
@@ -221,7 +221,7 @@ export function HomePage() {
               <Card withBorder shadow="md" radius="lg" p="md" style={{ flex: 1 }}>
                 <Text size="xs" fw={700} tt="uppercase" c="var(--gk-accent-primary)" mb={10}>The gigKraft.com way</Text>
                 <Group gap="sm" mb={8}>
-                  <Box style={{ width: 28, height: 28, borderRadius: 8, background: "#84CC16", border: "1px solid var(--gk-border)", display: "grid", placeItems: "center", fontWeight: 800, color: "#0A2540" }}>✓</Box>
+                  <Box style={{ width: 28, height: 28, borderRadius: 8, background: "var(--gk-accent-secondary)", border: "1px solid var(--gk-border)", display: "grid", placeItems: "center", fontWeight: 800, color: "#fff" }}>✓</Box>
                   <Text fw={700} size="md">Would hire again for water-heater work</Text>
                 </Group>
                 <Text size="sm" c="dimmed" fw={600}>Verified Kraft · endorsed by homeowner · 1.4 mi · zip 85032 · 11 days ago</Text>

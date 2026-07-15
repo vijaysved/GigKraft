@@ -8,6 +8,7 @@ import {
 } from "@tabler/icons-react";
 import { useSearchParams } from "react-router-dom";
 
+import { CommunityUpsellBanner } from "../communities/components/CommunityUpsellBanner";
 import { ActivityTab } from "./tabs/ActivityTab";
 import { FollowersTab } from "./tabs/FollowersTab";
 import { InviteTab } from "./tabs/InviteTab";
@@ -19,6 +20,8 @@ export function ReferrerDashboard() {
   const defaultTab = searchParams.get("tab") ?? "search";
 
   return (
+    <>
+    <CommunityUpsellBanner />
     <Tabs defaultValue={defaultTab} keepMounted={false}>
       <Tabs.List mb="md">
         <Tabs.Tab value="search" leftSection={<IconSearch size={15} />}>Search</Tabs.Tab>
@@ -34,5 +37,6 @@ export function ReferrerDashboard() {
       <Tabs.Panel value="followers"><FollowersTab /></Tabs.Panel>
       <Tabs.Panel value="activity"><ActivityTab /></Tabs.Panel>
     </Tabs>
+    </>
   );
 }

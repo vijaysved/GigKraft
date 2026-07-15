@@ -6,6 +6,7 @@ from django.conf import settings
 from django.core.cache import cache
 from ninja import Router, Schema
 
+from common.geo import DEFAULT_SEARCH_RADIUS_MILES, pros_within_radius
 from common.models import SitePageView, SiteSettings
 
 router = Router(tags=["system"])
@@ -112,6 +113,11 @@ class LocationInfoOut(Schema):
     pros_count: int
 
 
+def _radial_pros_count(zip: str) -> int:
+    from accounts.models import ProProfile
+    return len(pros_within_radius(ProProfile.objects.filter(is_suspended=False), zip, DEFAULT_SEARCH_RADIUS_MILES))
+
+
 @public_router.get("/public/location/{zip}", response={200: LocationInfoOut, 404: dict}, auth=None)
 def get_location_info(request, zip: str):
     """Return city/state and live pro count for a ZIP — used for clean-URL OG tags."""
@@ -120,28 +126,18 @@ def get_location_info(request, zip: str):
     cache_key = f"location_info:{zip}"
     cached = cache.get(cache_key)
     if cached:
-        # Refresh pro count on every call (don't cache it long)
-        from accounts.models import ProProfile
-        cached["pros_count"] = ProProfile.objects.filter(
-            is_suspended=False,
-        ).filter(
-            __import__("django.db.models", fromlist=["Q"]).Q(base_zip=zip)
-            | __import__("django.db.models", fromlist=["Q"]).Q(service_center_zip=zip)
-        ).count()
+        # Refresh pro count on every call (don't cache it long) — same radial match as search page
+        cached["pros_count"] = _radial_pros_count(zip)
         return 200, cached
 
-    # Resolve city/state from zippopotam.us (same service used in pros_api radius helpers)
+    # Resolve city/state from zippopotam.us (same service used in common.geo)
     try:
         resp = _http.get(f"https://api.zippopotam.us/us/{zip}", timeout=3)
         if resp.status_code == 200:
             place = resp.json()["places"][0]
             city = place.get("place name", "")
             state = place.get("state abbreviation", "")
-            from accounts.models import ProProfile
-            from django.db.models import Q
-            pros_count = ProProfile.objects.filter(is_suspended=False).filter(
-                Q(base_zip=zip) | Q(service_center_zip=zip)
-            ).count()
+            pros_count = _radial_pros_count(zip)
             result = {"zip": zip, "city": city, "state": state, "pros_count": pros_count}
             cache.set(cache_key, result, 60 * 60 * 6)  # cache city/state 6 h
             return 200, result

@@ -31,10 +31,10 @@ export function MarketingNav() {
       component="header"
       style={{
         position: "sticky", top: 0, zIndex: 100,
-        background: "rgba(255, 250, 245, 0.97)",
+        background: "rgba(250, 248, 255, 0.97)",
         backdropFilter: "blur(10px)",
-        borderBottom: "1px solid var(--mk-nav-border, rgba(255,100,0,.18))",
-        boxShadow: "0 1px 8px rgba(200,60,0,.06)",
+        borderBottom: "1px solid var(--mk-nav-border, rgba(255,30,156,.18))",
+        boxShadow: "0 1px 8px rgba(123,47,224,.08)",
       }}
     >
       <Container size="xl">
@@ -45,7 +45,7 @@ export function MarketingNav() {
               fw={900}
               size="sm"
               style={{
-                background: "var(--mk-gradient, linear-gradient(135deg,#C42200,#FF6600,#7AE600))",
+                background: "var(--mk-gradient, linear-gradient(135deg,#7B2FE0,#C532E0,#FF1E9C))",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
                 backgroundClip: "text",
@@ -99,7 +99,7 @@ export function MarketingNav() {
                 size="xs"
                 radius="md"
                 onClick={() => navigate(ROLE_HOME[user.role] ?? "/admin/dashboard")}
-                style={{ flexShrink: 0, background: "var(--mk-gradient, linear-gradient(135deg,#C42200,#FF6600,#7AE600))", border: "none" }}
+                style={{ flexShrink: 0, background: "var(--mk-gradient, linear-gradient(135deg,#7B2FE0,#C532E0,#FF1E9C))", border: "none" }}
               >
                 Dashboard
               </Button>
@@ -109,7 +109,7 @@ export function MarketingNav() {
               size="xs"
               radius="md"
               onClick={() => navigate("/register")}
-              style={{ flexShrink: 0, background: "var(--mk-gradient, linear-gradient(135deg,#C42200,#FF6600,#7AE600))", border: "none" }}
+              style={{ flexShrink: 0, background: "var(--mk-gradient, linear-gradient(135deg,#7B2FE0,#C532E0,#FF1E9C))", border: "none" }}
             >
               Join free
             </Button>

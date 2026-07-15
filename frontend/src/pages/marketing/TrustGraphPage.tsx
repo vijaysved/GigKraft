@@ -74,7 +74,7 @@ export function TrustGraphPage() {
             {ANSWERS.map((a) => (
               <Grid.Col key={a.title} span={{ base: 12, md: 4 }}>
                 <Card withBorder shadow="xs" radius="lg" p="md" h="100%">
-                  <ThemeIcon size={44} radius={12} mb="sm" color="orange" variant="light">{a.icon}</ThemeIcon>
+                  <ThemeIcon size={44} radius={12} mb="sm" color="pink" variant="light">{a.icon}</ThemeIcon>
                   <Title order={4} mb={8}>{a.title}</Title>
                   <Text size="sm" c="dimmed" lh={1.55}>{a.body}</Text>
                 </Card>

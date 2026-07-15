@@ -13,14 +13,14 @@ import {
   TextInput,
 } from "@mantine/core";
 import { IconCopy, IconSend, IconTrash } from "@tabler/icons-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { RichTextEditor } from "@mantine/tiptap";
 import { useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 
-import { createCircleShare, createFriendInvite, createProInvite } from "../../../api/endpoints";
+import { createCircleShare, createFriendInvite, createProInvite, getReferrerMe } from "../../../api/endpoints";
 import { toCamelTag } from "../../../utils/tags";
 import type { InviteScenario } from "../types";
 import {
@@ -41,19 +41,22 @@ interface Recipient {
   contact: string;
   channel: string;
   tags: string[];
+  /** Pro's ZIP — defaults to the referrer's own ZIP, editable. Only used for scenario "pro". */
+  zip: string;
 }
 
-const EMPTY_RECIPIENT: Recipient = { name: "", trade: "", contact: "", channel: "whatsapp", tags: [] };
+const EMPTY_RECIPIENT: Recipient = { name: "", trade: "", contact: "", channel: "whatsapp", tags: [], zip: "" };
 
 const GENERIC_TAG_SUGGESTIONS = ["reliable", "licensed", "insured", "fastResponse", "affordable", "recommended"];
 
-const SCENARIO_META: Record<InviteScenario, { title: string; intro: string; multiRecipient: boolean; needsTrade: boolean; needsTags: boolean }> = {
+const SCENARIO_META: Record<InviteScenario, { title: string; intro: string; multiRecipient: boolean; needsTrade: boolean; needsTags: boolean; needsZip: boolean }> = {
   pro: {
     title: "Invite a Pro",
     intro: "Add someone to your trusted circle — they'll get a link to claim their free profile.",
     multiRecipient: false,
     needsTrade: false,
     needsTags: true,
+    needsZip: true,
   },
   friend: {
     title: "Invite a Friend",
@@ -61,6 +64,7 @@ const SCENARIO_META: Record<InviteScenario, { title: string; intro: string; mult
     multiRecipient: false,
     needsTrade: false,
     needsTags: false,
+    needsZip: false,
   },
   circle: {
     title: "Share My Circle",
@@ -68,6 +72,7 @@ const SCENARIO_META: Record<InviteScenario, { title: string; intro: string; mult
     multiRecipient: true,
     needsTrade: false,
     needsTags: false,
+    needsZip: false,
   },
 };
 
@@ -121,9 +126,13 @@ interface Props {
   onSent: () => void;
   /** Pre-fills the first recipient — used when arriving from a contact lookup that found no match. */
   initialRecipient?: Partial<Recipient>;
+  /** Fired after each successful "pro" invite is created — lets a caller (e.g. a
+   * Community's Pro List) link the resulting ReferrerPro row to itself without
+   * this modal needing to know anything about communities. */
+  onProCreated?: (result: { referrerProId: number; inviteId: number }) => void | Promise<void>;
 }
 
-export function InviteWizardModal({ opened, onClose, scenario, slug, senderName, onSent, initialRecipient }: Props) {
+export function InviteWizardModal({ opened, onClose, scenario, slug, senderName, onSent, initialRecipient, onProCreated }: Props) {
   const meta = SCENARIO_META[scenario];
   const [step, setStep] = useState(0);
   const [recipients, setRecipients] = useState<Recipient[]>([{ ...EMPTY_RECIPIENT, ...initialRecipient }]);
@@ -138,6 +147,20 @@ export function InviteWizardModal({ opened, onClose, scenario, slug, senderName,
   } | null>(null);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [contactErrors, setContactErrors] = useState<Record<number, string | null>>({});
+
+  // Pro invites default their ZIP to the referrer's own ZIP — only fill recipients that
+  // don't already have one set (e.g. via initialRecipient from AddProByContactModal).
+  useEffect(() => {
+    if (!opened || scenario !== "pro") return;
+    getReferrerMe()
+      .then((data) => {
+        const defaultZip = data.profile.default_zip;
+        if (!defaultZip) return;
+        setRecipients((rs) => rs.map((r) => (r.zip ? r : { ...r, zip: defaultZip })));
+      })
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [opened, scenario]);
 
   function copyMessage(i: number, text: string) {
     void navigator.clipboard.writeText(text).then(() => {
@@ -182,7 +205,7 @@ export function InviteWizardModal({ opened, onClose, scenario, slug, senderName,
     onClose();
   }
 
-  function updateRecipient(i: number, field: "name" | "trade" | "channel", val: string) {
+  function updateRecipient(i: number, field: "name" | "trade" | "channel" | "zip", val: string) {
     setRecipients((rs) => rs.map((r, idx) => (idx === i ? { ...r, [field]: val } : r)));
   }
 
@@ -243,10 +266,12 @@ export function InviteWizardModal({ opened, onClose, scenario, slug, senderName,
         if (scenario === "pro") {
           const res = await createProInvite({
             name: r.name, phone: phone || undefined, email: email || undefined,
+            zip: r.zip.trim() || undefined,
             channel: r.channel, message: plainMessage,
             tags: r.tags.length ? r.tags : undefined,
           });
           token = res.token; referrerSlug = res.referrer_slug;
+          if (onProCreated) await onProCreated({ referrerProId: res.referrer_pro_id, inviteId: res.invite_id });
         } else if (scenario === "friend") {
           const res = await createFriendInvite({
             name: r.name, phone: phone || undefined, email: email || undefined, channel: r.channel, message: plainMessage,
@@ -406,6 +431,17 @@ export function InviteWizardModal({ opened, onClose, scenario, slug, senderName,
                     </ActionIcon>
                   )}
                 </Group>
+                {meta.needsZip && (
+                  <TextInput
+                    placeholder="ZIP code"
+                    description="Defaults to your ZIP — edit if this pro is somewhere else"
+                    value={r.zip}
+                    onChange={(e) => updateRecipient(i, "zip", e.target.value.replace(/\D/g, "").slice(0, 5))}
+                    size="sm"
+                    mt="xs"
+                    style={{ maxWidth: 160 }}
+                  />
+                )}
                 {meta.needsTags && (
                   <TagsInput
                     placeholder="#tag"

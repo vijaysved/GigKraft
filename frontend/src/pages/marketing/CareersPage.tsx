@@ -33,7 +33,7 @@ export function CareersPage() {
           {VALUES.map((v) => (
             <Grid.Col key={v.title} span={{ base: 12, sm: 6, md: 3 }}>
               <Card withBorder shadow="xs" radius="lg" p="md" h="100%">
-                <ThemeIcon size={44} radius={12} mb="sm" color="orange" variant="light">{v.icon}</ThemeIcon>
+                <ThemeIcon size={44} radius={12} mb="sm" color="pink" variant="light">{v.icon}</ThemeIcon>
                 <Title order={4} mb={6}>{v.title}</Title>
                 <Text size="sm" c="dimmed" lh={1.55}>{v.body}</Text>
               </Card>

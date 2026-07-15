@@ -89,6 +89,7 @@ class ProInvite(models.Model):
     trade = models.CharField(max_length=60, blank=True, default="")
     phone = models.CharField(max_length=30, blank=True, default="")
     email = models.EmailField(blank=True, default="")
+    zip = models.CharField(max_length=10, blank=True, default="")
     note = models.TextField(blank=True, default="")
     channel = models.CharField(max_length=10, blank=True, default="")
     message_body = models.TextField(blank=True, default="")
@@ -132,6 +133,12 @@ class ReferrerPro(models.Model):
         null=True, blank=True, on_delete=models.SET_NULL,
         related_name="referrer_pro",
     )
+    community = models.ForeignKey(
+        "communities.Community",
+        null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="pros",
+    )
+    show_on_community = models.BooleanField(default=True)
     endorsement = models.CharField(max_length=200, blank=True, default="")
     tags = models.JSONField(default=list, blank=True)
     show_on_page = models.BooleanField(default=True)
@@ -408,6 +415,7 @@ class InviteEvent(models.Model):
         PRO = "pro", "Pro"
         FRIEND = "friend", "Friend"
         CIRCLE = "circle", "Circle"
+        COMMUNITY_MEMBER = "community_member", "Community Member"
 
     class EventType(models.TextChoices):
         SENT = "sent", "Sent"
@@ -416,7 +424,7 @@ class InviteEvent(models.Model):
         CLICKED = "clicked", "Link Clicked"
         JOINED = "joined", "Joined / Claimed / Followed"
 
-    scenario = models.CharField(max_length=10, choices=Scenario.choices)
+    scenario = models.CharField(max_length=20, choices=Scenario.choices)
     invite_id = models.PositiveIntegerField()
     event_type = models.CharField(max_length=10, choices=EventType.choices)
     channel = models.CharField(max_length=10, blank=True, default="")

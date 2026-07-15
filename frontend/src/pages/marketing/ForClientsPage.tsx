@@ -59,7 +59,7 @@ export function ForClientsPage() {
           <Grid.Col span={{ base: 12, md: 6 }}>
             <Card withBorder shadow="lg" radius="xl" p="lg">
               <Group gap="sm" mb="md">
-                <ThemeIcon size={42} radius="xl" color="orange" variant="light"><IconShieldCheck size={20} /></ThemeIcon>
+                <ThemeIcon size={42} radius="xl" color="pink" variant="light"><IconShieldCheck size={20} /></ThemeIcon>
                 <Box>
                   <Text fw={700} size="md">Marcus T.</Text>
                   <Text size="xs" c="dimmed" fw={600}>Licensed plumber · zip 85032</Text>
@@ -78,7 +78,7 @@ export function ForClientsPage() {
                       opacity: r.empty ? 0.5 : 1,
                     }}
                   >
-                    <Box style={{ width: 26, height: 26, borderRadius: 7, background: r.empty ? "transparent" : "#84CC16", border: "1px solid var(--gk-border)", display: "grid", placeItems: "center", fontWeight: 800, fontSize: 13, color: "#0A2540" }}>
+                    <Box style={{ width: 26, height: 26, borderRadius: 7, background: r.empty ? "transparent" : "var(--gk-accent-secondary)", border: "1px solid var(--gk-border)", display: "grid", placeItems: "center", fontWeight: 800, fontSize: 13, color: "#fff" }}>
                       {r.empty ? "—" : "✓"}
                     </Box>
                     <Text fw={700} size="sm">{r.label}</Text>
@@ -106,7 +106,7 @@ export function ForClientsPage() {
                 <Card withBorder shadow="xs" radius="lg" p="md" h="100%">
                   <Text size="xs" fw={700} c="var(--gk-accent-primary)" style={{ letterSpacing: 1 }}>STEP {s.num}</Text>
                   <Group gap="xs" mt={6} mb={8} align="center">
-                    <ThemeIcon size={28} radius="sm" color="orange" variant="light">{s.icon}</ThemeIcon>
+                    <ThemeIcon size={28} radius="sm" color="pink" variant="light">{s.icon}</ThemeIcon>
                     <Title order={3}>{s.title}</Title>
                   </Group>
                   <Text size="sm" c="dimmed" lh={1.55}>{s.body}</Text>

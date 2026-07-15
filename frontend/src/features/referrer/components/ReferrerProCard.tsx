@@ -1,8 +1,6 @@
 import {
   Anchor,
-  Avatar,
   Badge,
-  Card,
   Divider,
   Group,
   Popover,
@@ -25,11 +23,11 @@ import { useNavigate } from "react-router-dom";
 
 import { claimProInvite } from "../../../api/endpoints";
 import { getAccessToken } from "../../../api/tokens";
-import { fallbackAvatar } from "../../../assets/fallbackAvatars";
+import { CollapsibleTags } from "../../../components/CollapsibleTags";
+import { ProviderCard, type ProviderCardFavorite } from "../../../components/ProviderCard";
 import type { ProCardOut } from "../types";
 import { RequestReferralModal } from "./RequestReferralModal";
-import { formatPhone } from "../../../utils/format";
-import { toCamelTag } from "../../../utils/tags";
+import { formatPhone, maskEmail, maskPhone } from "../../../utils/format";
 
 interface Props {
   pro: ProCardOut;
@@ -42,6 +40,8 @@ interface Props {
   onNeedFollow: () => void;
   highlightedProId?: number;
   claimToken?: string;
+  onTagClick: (tag: string) => void;
+  favorite?: ProviderCardFavorite;
 }
 
 /** Small round icon-only button used for the per-pro share row */
@@ -126,26 +126,6 @@ function ShareNoteForm({
   );
 }
 
-/** Partially masks a phone number, e.g. "(925) 555-1234" -> "(925) ***-1234" */
-function maskPhone(phone: string): string {
-  const digits = phone.replace(/\D/g, "");
-  if (digits.length < 10) return phone.length > 2 ? `${phone.slice(0, 2)}***` : "***";
-  const area = digits.slice(-10, -7);
-  const last4 = digits.slice(-4);
-  return `(${area}) ***-${last4}`;
-}
-
-/** Partially masks an email, e.g. "john.doe@gmail.com" -> "j***e@g**.com" */
-function maskEmail(email: string): string {
-  const [local, domain] = email.split("@");
-  if (!domain) return email;
-  const maskedLocal = local.length <= 2 ? `${local[0]}**` : `${local[0]}***${local[local.length - 1]}`;
-  const domainParts = domain.split(".");
-  const tld = domainParts.pop() ?? "";
-  const maskedDomain = `${domainParts.join(".")[0] ?? ""}**`;
-  return `${maskedLocal}@${maskedDomain}.${tld}`;
-}
-
 export function ReferrerProCard({
   pro,
   slug,
@@ -157,11 +137,12 @@ export function ReferrerProCard({
   onNeedFollow,
   highlightedProId,
   claimToken,
+  onTagClick,
+  favorite,
 }: Props) {
   const navigate = useNavigate();
   const [requestOpen, setRequestOpen] = useState(false);
   const [claiming, setClaiming] = useState(false);
-  const hasRealAvatar = !!pro.avatar_url;
   const [copied, setCopied] = useState(false);
   const [notePopover, setNotePopover] = useState<"whatsapp" | "sms" | "copy" | null>(null);
   const [note, setNote] = useState("");
@@ -234,207 +215,144 @@ export function ReferrerProCard({
     closeNotePopover();
   }
 
-  const cardStyle = {
-    borderColor: isHighlighted ? "var(--gk-accent-primary)" : "var(--gk-accent-primary)",
-    boxShadow: isHighlighted
-      ? "0 0 0 2px var(--gk-accent-primary), 0 4px 16px color-mix(in srgb, var(--gk-accent-primary) 30%, transparent)"
-      : "0 2px 12px color-mix(in srgb, var(--gk-accent-secondary) 20%, transparent)",
-    position: "relative" as const,
-    overflow: "hidden" as const,
-  };
-
   return (
     <>
-      <Card ref={cardRef} withBorder radius="md" p="sm" style={cardStyle}>
-        {/* Watermark */}
-        <Text
-          style={{
-            position: "absolute",
-            top: "42%",
-            left: "50%",
-            transform: "translate(-50%, -50%) rotate(-22deg)",
-            fontSize: 22,
-            fontWeight: 900,
-            color: "var(--gk-accent-primary)",
-            opacity: 0.06,
-            userSelect: "none",
-            pointerEvents: "none",
-            whiteSpace: "nowrap",
-            letterSpacing: 3,
-            zIndex: 0,
-          }}
-        >
-          gigKraft.com
-        </Text>
-
-        <Group gap="sm" align="flex-start" wrap="nowrap" mb={5} style={{ position: "relative", zIndex: 1 }}>
-          <Avatar
-            src={pro.avatar_url || fallbackAvatar(pro.id)}
-            radius="sm"
-            size={80}
-            color="teal"
+      <ProviderCard
+        cardRef={cardRef}
+        highlighted={isHighlighted}
+        avatarUrl={pro.avatar_url}
+        avatarSeed={pro.id}
+        name={pro.name}
+        tier={pro.is_on_platform ? "pro" : "referred"}
+        isPending={pro.is_pending}
+        trade={pro.trade || null}
+        respondsIn={pro.responds_in}
+        favorite={pro.linked_pro_id != null ? favorite : undefined}
+        topRightAction={
+          <button
+            onClick={handleRequestClick}
             style={{
+              padding: "3px 11px",
+              background: "var(--gk-brand-gradient)",
+              color: "#fff",
+              border: "none",
+              borderRadius: 99,
+              fontSize: 11,
+              fontWeight: 700,
+              cursor: "pointer",
+              fontFamily: "inherit",
+              letterSpacing: "0.04em",
               flexShrink: 0,
-              border: "2px solid var(--gk-accent-primary)",
-              filter: !isAuthenticated ? "blur(4px)" : !hasRealAvatar ? "blur(2px) grayscale(40%)" : undefined,
-              opacity: isAuthenticated && !hasRealAvatar ? 0.55 : undefined,
+              alignSelf: "flex-start",
+              transition: "opacity 0.15s",
+              boxShadow: "0 2px 8px -2px var(--gk-accent-primary)",
             }}
+            onMouseOver={(e) => (e.currentTarget.style.opacity = "0.85")}
+            onMouseOut={(e) => (e.currentTarget.style.opacity = "1")}
           >
-            {pro.name[0]?.toUpperCase()}
-          </Avatar>
-
-          <Stack gap={1} style={{ flex: 1, minWidth: 0 }}>
-            <Group gap={4} justify="space-between" wrap="nowrap">
-              <Stack gap={0} style={{ minWidth: 0 }}>
-                <Group gap={4} wrap="nowrap">
-                  <Text fw={700} size="sm" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {pro.name.split(" ")[0]}
-                  </Text>
-                  {pro.is_pending && (
-                    <Badge
-                      size="xs"
-                      variant="filled"
-                      style={{
-                        flexShrink: 0,
-                        backgroundColor: "var(--gk-accent-primary)",
-                        color: "var(--gk-accent-secondary)",
-                      }}
-                    >
-                      Pending
-                    </Badge>
-                  )}
-                </Group>
-                {pro.trade && <Text size="xs" c="dimmed">{pro.trade}</Text>}
-                {pro.responds_in && (
-                  <Text size="xs" c="teal">Responds in {pro.responds_in}</Text>
-                )}
-              </Stack>
-              <button
-                onClick={handleRequestClick}
-                style={{
-                  padding: "3px 11px",
-                  background: "var(--gk-brand-gradient)",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: 99,
-                  fontSize: 11,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                  letterSpacing: "0.04em",
-                  flexShrink: 0,
-                  alignSelf: "flex-start",
-                  transition: "opacity 0.15s",
-                  boxShadow: "0 2px 8px -2px var(--gk-accent-primary)",
-                }}
-                onMouseOver={(e) => (e.currentTarget.style.opacity = "0.85")}
-                onMouseOut={(e) => (e.currentTarget.style.opacity = "1")}
-              >
-                Refer me
-              </button>
-            </Group>
-
-            {/* Contact — plain text always visible, tap-to-call only after referral sent */}
-            <Stack gap={1} mt={2}>
-              <Group gap={4}>
-                <IconPhone size={11} color="var(--gk-accent-primary)" />
-                {!isAuthenticated && pro.phone ? (
-                  <Text size="xs">{maskPhone(pro.phone)}</Text>
-                ) : pro.tap_to_call && pro.phone ? (
-                  <Anchor href={`tel:${pro.phone}`} size="xs">{formatPhone(pro.phone)}</Anchor>
-                ) : (
-                  <Text size="xs" c={pro.phone ? undefined : "dimmed"}>{pro.phone ? formatPhone(pro.phone) : "—"}</Text>
-                )}
-              </Group>
-              <Group gap={4}>
-                <IconMail size={11} color="var(--gk-accent-primary)" />
-                <Text size="xs" c={pro.email ? undefined : "dimmed"}>
-                  {!isAuthenticated && pro.email ? maskEmail(pro.email) : pro.email || "—"}
-                </Text>
-              </Group>
-              {pro.city && (
-                <Badge
-                  size="xs"
-                  variant="filled"
-                  leftSection={<IconMapPin size={10} />}
-                  style={{
-                    textTransform: "none",
-                    alignSelf: "flex-start",
-                    backgroundColor: "var(--gk-accent-primary)",
-                    color: "var(--gk-accent-secondary)",
-                  }}
-                >
-                  {pro.city}
-                </Badge>
-              )}
-            </Stack>
-
-            {isOwner && (
-              <Group gap={6} mt={4}>
-                <Popover
-                  opened={notePopover === "whatsapp"}
-                  onChange={(v) => setNotePopover(v ? "whatsapp" : null)}
-                  withArrow position="bottom" width={240} shadow="md"
-                >
-                  <Popover.Target>
-                    <span>
-                      <ShareIconBtn label="Share on WhatsApp" onClick={() => setNotePopover("whatsapp")} color="#25D366">
-                        <IconBrandWhatsapp size={14} />
-                      </ShareIconBtn>
-                    </span>
-                  </Popover.Target>
-                  <Popover.Dropdown>
-                    <ShareNoteForm note={note} onNoteChange={setNote} onConfirm={confirmWhatsAppShare} confirmLabel="Open WhatsApp" />
-                  </Popover.Dropdown>
-                </Popover>
-
-                <Popover
-                  opened={notePopover === "sms"}
-                  onChange={(v) => setNotePopover(v ? "sms" : null)}
-                  withArrow position="bottom" width={240} shadow="md"
-                >
-                  <Popover.Target>
-                    <span>
-                      <ShareIconBtn label="Share via Text" onClick={() => setNotePopover("sms")} color="var(--gk-accent-primary)">
-                        <IconMessage size={14} />
-                      </ShareIconBtn>
-                    </span>
-                  </Popover.Target>
-                  <Popover.Dropdown>
-                    <ShareNoteForm note={note} onNoteChange={setNote} onConfirm={confirmSmsShare} confirmLabel="Open Text" />
-                  </Popover.Dropdown>
-                </Popover>
-
-                <Popover
-                  opened={notePopover === "copy"}
-                  onChange={(v) => setNotePopover(v ? "copy" : null)}
-                  withArrow position="bottom" width={240} shadow="md"
-                >
-                  <Popover.Target>
-                    <span>
-                      <ShareIconBtn
-                        label={copied ? "Copied!" : "Copy contact info"}
-                        onClick={() => setNotePopover("copy")}
-                        color={copied ? "var(--mantine-color-green-6)" : "var(--gk-accent-primary)"}
-                      >
-                        {copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
-                      </ShareIconBtn>
-                    </span>
-                  </Popover.Target>
-                  <Popover.Dropdown>
-                    <ShareNoteForm note={note} onNoteChange={setNote} onConfirm={confirmCopyShareText} confirmLabel="Copy" />
-                  </Popover.Dropdown>
-                </Popover>
-
-                {pro.click_count != null && (
-                  <Text size="xs" c="dimmed" ml={2}>
-                    {pro.click_count} click{pro.click_count === 1 ? "" : "s"}
-                  </Text>
-                )}
-              </Group>
+            Refer me
+          </button>
+        }
+      >
+        {/* Contact — plain text always visible, tap-to-call only after referral sent */}
+        <Stack gap={1} mb={4} style={{ position: "relative", zIndex: 1 }}>
+          <Group gap={4}>
+            <IconPhone size={11} color="var(--gk-accent-primary)" />
+            {!isAuthenticated && pro.phone ? (
+              <Text size="xs">{maskPhone(pro.phone)}</Text>
+            ) : pro.tap_to_call && pro.phone ? (
+              <Anchor href={`tel:${pro.phone}`} size="xs">{formatPhone(pro.phone)}</Anchor>
+            ) : (
+              <Text size="xs" c={pro.phone ? undefined : "dimmed"}>{pro.phone ? formatPhone(pro.phone) : "—"}</Text>
             )}
-          </Stack>
-        </Group>
+          </Group>
+          <Group gap={4}>
+            <IconMail size={11} color="var(--gk-accent-primary)" />
+            <Text size="xs" c={pro.email ? undefined : "dimmed"}>
+              {!isAuthenticated && pro.email ? maskEmail(pro.email) : pro.email || "—"}
+            </Text>
+          </Group>
+          {pro.city && (
+            <Badge
+              size="xs"
+              variant="filled"
+              leftSection={<IconMapPin size={10} />}
+              style={{
+                textTransform: "none",
+                alignSelf: "flex-start",
+                backgroundColor: "var(--gk-accent-primary)",
+                color: "var(--gk-accent-secondary)",
+              }}
+            >
+              {pro.city}
+            </Badge>
+          )}
+        </Stack>
+
+        {isOwner && (
+          <Group gap={6} mb={4} style={{ position: "relative", zIndex: 1 }}>
+            <Popover
+              opened={notePopover === "whatsapp"}
+              onChange={(v) => setNotePopover(v ? "whatsapp" : null)}
+              withArrow position="bottom" width={240} shadow="md"
+            >
+              <Popover.Target>
+                <span>
+                  <ShareIconBtn label="Share on WhatsApp" onClick={() => setNotePopover("whatsapp")} color="#25D366">
+                    <IconBrandWhatsapp size={14} />
+                  </ShareIconBtn>
+                </span>
+              </Popover.Target>
+              <Popover.Dropdown>
+                <ShareNoteForm note={note} onNoteChange={setNote} onConfirm={confirmWhatsAppShare} confirmLabel="Open WhatsApp" />
+              </Popover.Dropdown>
+            </Popover>
+
+            <Popover
+              opened={notePopover === "sms"}
+              onChange={(v) => setNotePopover(v ? "sms" : null)}
+              withArrow position="bottom" width={240} shadow="md"
+            >
+              <Popover.Target>
+                <span>
+                  <ShareIconBtn label="Share via Text" onClick={() => setNotePopover("sms")} color="var(--gk-accent-primary)">
+                    <IconMessage size={14} />
+                  </ShareIconBtn>
+                </span>
+              </Popover.Target>
+              <Popover.Dropdown>
+                <ShareNoteForm note={note} onNoteChange={setNote} onConfirm={confirmSmsShare} confirmLabel="Open Text" />
+              </Popover.Dropdown>
+            </Popover>
+
+            <Popover
+              opened={notePopover === "copy"}
+              onChange={(v) => setNotePopover(v ? "copy" : null)}
+              withArrow position="bottom" width={240} shadow="md"
+            >
+              <Popover.Target>
+                <span>
+                  <ShareIconBtn
+                    label={copied ? "Copied!" : "Copy contact info"}
+                    onClick={() => setNotePopover("copy")}
+                    color={copied ? "var(--mantine-color-green-6)" : "var(--gk-accent-primary)"}
+                  >
+                    {copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
+                  </ShareIconBtn>
+                </span>
+              </Popover.Target>
+              <Popover.Dropdown>
+                <ShareNoteForm note={note} onNoteChange={setNote} onConfirm={confirmCopyShareText} confirmLabel="Copy" />
+              </Popover.Dropdown>
+            </Popover>
+
+            {pro.click_count != null && (
+              <Text size="xs" c="dimmed" ml={2}>
+                {pro.click_count} click{pro.click_count === 1 ? "" : "s"}
+              </Text>
+            )}
+          </Group>
+        )}
 
         {pro.endorsement && (
           <Text size="xs" fs="italic" c="dimmed" lineClamp={2} mb={4} style={{ position: "relative", zIndex: 1 }}>
@@ -442,7 +360,7 @@ export function ReferrerProCard({
           </Text>
         )}
 
-        {(pro.is_licensed || pro.is_insured || pro.tags.length > 0) && (
+        {(pro.is_licensed || pro.is_insured) && (
           <Group gap={4} mb={4} style={{ position: "relative", zIndex: 1 }}>
             {pro.is_licensed && (
               <Badge
@@ -464,22 +382,10 @@ export function ReferrerProCard({
                 Insured
               </Badge>
             )}
-            {pro.tags.map((t) => (
-              <Badge
-                key={t}
-                size="xs"
-                variant="filled"
-                style={{
-                  textTransform: "none",
-                  backgroundColor: "var(--gk-accent-secondary)",
-                  color: "var(--gk-accent-primary)",
-                }}
-              >
-                #{toCamelTag(t)}
-              </Badge>
-            ))}
           </Group>
         )}
+
+        <CollapsibleTags tags={pro.tags} onTagClick={onTagClick} />
 
         {pro.request_status && (
           <>
@@ -527,22 +433,7 @@ export function ReferrerProCard({
             </button>
           </>
         )}
-
-        <Text
-          ta="center"
-          style={{
-            fontSize: 9,
-            color: "var(--gk-accent-primary)",
-            opacity: 0.75,
-            letterSpacing: 0.5,
-            position: "relative",
-            zIndex: 1,
-            marginTop: 6,
-          }}
-        >
-          powered by gigKraft.com
-        </Text>
-      </Card>
+      </ProviderCard>
 
       <RequestReferralModal
         opened={requestOpen}

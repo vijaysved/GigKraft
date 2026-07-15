@@ -41,3 +41,23 @@ export function formatMonthYear(iso: string | null | undefined): string {
   if (!iso) return "";
   return new Date(iso).toLocaleDateString("en-US", { month: "short", year: "numeric" });
 }
+
+/** Partially masks a phone number, e.g. "(925) 555-1234" -> "(925) ***-1234" */
+export function maskPhone(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length < 10) return phone.length > 2 ? `${phone.slice(0, 2)}***` : "***";
+  const area = digits.slice(-10, -7);
+  const last4 = digits.slice(-4);
+  return `(${area}) ***-${last4}`;
+}
+
+/** Partially masks an email, e.g. "john.doe@gmail.com" -> "j***e@g**.com" */
+export function maskEmail(email: string): string {
+  const [local, domain] = email.split("@");
+  if (!domain) return email;
+  const maskedLocal = local.length <= 2 ? `${local[0]}**` : `${local[0]}***${local[local.length - 1]}`;
+  const domainParts = domain.split(".");
+  const tld = domainParts.pop() ?? "";
+  const maskedDomain = `${domainParts.join(".")[0] ?? ""}**`;
+  return `${maskedLocal}@${maskedDomain}.${tld}`;
+}

@@ -28,6 +28,8 @@ from feedback.api import public_router as feedback_public_router
 from feedback.api import router as feedback_router
 from circles.api import public_router as circles_public_router
 from circles.api import router as circles_router
+from communities.api import me_router as communities_me_router
+from communities.api import public_router as communities_public_router
 from referrals.api import public_router as referrals_public_router
 from referrals.api import router as referrals_router
 from recommendations.api import public_router as recommendations_public_router
@@ -69,6 +71,10 @@ api.add_router("/feedback", feedback_public_router)
 api.add_router("/feedback", feedback_router)
 api.add_router("/circles", circles_router)
 api.add_router("/circles", circles_public_router)
+# Literal paths (/checkout, /subscription, /check-slug) are defined before the
+# /{slug} wildcard within communities_public_router itself (see communities/api.py).
+api.add_router("/communities", communities_public_router)
+api.add_router("/me/community", communities_me_router)
 # Authenticated /me endpoints must be registered BEFORE the public /{slug} wildcard
 # so that /api/referrer/me is not caught by the slug pattern
 api.add_router("/referrer", referrals_router)

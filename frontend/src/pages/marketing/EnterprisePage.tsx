@@ -34,7 +34,7 @@ export function EnterprisePage() {
             <Grid.Col span={{ base: 12, md: 7 }}>
               <Stack gap="lg">
                 <Box style={{ display: "inline-flex", alignItems: "center", gap: 8, alignSelf: "flex-start", padding: "6px 12px", border: "1px solid rgba(255,255,255,0.5)", borderRadius: 999, fontSize: 12, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: "white" }}>
-                  <Box style={{ width: 8, height: 8, borderRadius: "50%", background: "#7AE600" }} />
+                  <Box style={{ width: 8, height: 8, borderRadius: "50%", background: "#fff" }} />
                   Enterprise &amp; contractors · coming soon
                 </Box>
                 <Title order={1} style={{ fontSize: "clamp(34px,5vw,60px)", lineHeight: 1.02, letterSpacing: -1, color: "white" }}>
@@ -76,7 +76,7 @@ export function EnterprisePage() {
                 <Stack gap="md">
                   {ROADMAP.map((r) => (
                     <Group key={r.title} gap="md" align="flex-start">
-                      <ThemeIcon size={40} radius={11} color="orange" variant="light">{r.icon}</ThemeIcon>
+                      <ThemeIcon size={40} radius={11} color="pink" variant="light">{r.icon}</ThemeIcon>
                       <Box>
                         <Text fw={700} size="md">{r.title}</Text>
                         <Text size="sm" c="dimmed" lh={1.5}>{r.body}</Text>
