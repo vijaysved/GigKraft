@@ -13,7 +13,9 @@ from django.views.decorators.http import require_GET
 from referrals.models import ReferrerProfile
 from accounts.models import HomeownerProfile, ProProfile
 
-FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
+FRONTEND_URL = os.environ.get("FRONTEND_URL") or (
+    "http://localhost:5173" if os.environ.get("DJANGO_DEBUG", "False") == "True" else "https://gigkraft.com"
+)
 GK_LOGO = "https://gigkraft.com/brand/gigKraftLogo.png"
 
 BOT_AGENTS = (

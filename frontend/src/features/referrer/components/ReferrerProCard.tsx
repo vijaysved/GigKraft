@@ -23,7 +23,6 @@ import { useNavigate } from "react-router-dom";
 
 import { claimProInvite } from "../../../api/endpoints";
 import { getAccessToken } from "../../../api/tokens";
-import { API_BASE_URL } from "../../../config";
 import { fallbackAvatar } from "../../../assets/fallbackAvatars";
 import type { ProCardOut } from "../types";
 import { RequestReferralModal } from "./RequestReferralModal";
@@ -155,15 +154,16 @@ export function ReferrerProCard({
   }
 
   function buildShareText(): string {
-    // Use the backend social-preview endpoint (not the frontend SPA URL) so WhatsApp/SMS
-    // link previews scrape real server-rendered OG tags and show the referrer's profile pic.
-    const shareUrl = `${API_BASE_URL}/us/${slug}/refer`;
+    // Canonical gigkraft.com URL — Vercel proxies bot/crawler user-agents on this path
+    // to the backend social-preview endpoint, so link previews still show the
+    // referrer's real profile pic even though this is the plain frontend URL.
+    const shareUrl = `https://gigkraft.com/us/${slug}/refer`;
     const lines: string[] = [`👋 ${pro.name}${pro.trade ? ` — ${pro.trade}` : ""}`];
-    lines.push(`Recommended by ${referrerName} on GigKraft`);
     if (pro.phone) lines.push(`📞 ${formatPhone(pro.phone)}`);
     if (pro.email) lines.push(`✉️ ${pro.email}`);
     if (pro.endorsement) lines.push(`"${pro.endorsement}" — ${referrerName}`);
     lines.push("", `👀 Check out all of ${referrerName}'s trusted pros: ${shareUrl}`);
+    lines.push("", `Recommended by ${referrerName} on GigKraft`);
     return lines.join("\n");
   }
 

@@ -249,6 +249,13 @@ INVITE_EMAIL_MODELS = {
 }
 
 
+def _finalize_invite_link(message_body: str, scenario: str, slug: str, token: str) -> str:
+    """Swap the raw `gigkraft.com/us/{slug}/refer` placeholder for the real, trackable claim link."""
+    placeholder = f"gigkraft.com/us/{slug}/refer"
+    final_link = f"https://gigkraft.com/us/{slug}/refer?{CLAIM_PARAMS[scenario]}={token}"
+    return message_body.replace(placeholder, final_link)
+
+
 def _send_invite_email(*, scenario: str, email: str, message_body: str, slug: str, token: str) -> Optional[uuid.UUID]:
     """Send the invite via Resend (mirrors comms.services email flow used for prospects).
 
@@ -258,9 +265,8 @@ def _send_invite_email(*, scenario: str, email: str, message_body: str, slug: st
     if not email or not message_body:
         return None
 
-    placeholder = f"gigkraft.com/us/{slug}/refer"
     final_link = f"https://gigkraft.com/us/{slug}/refer?{CLAIM_PARAMS[scenario]}={token}"
-    final_body = message_body.replace(placeholder, final_link)
+    final_body = _finalize_invite_link(message_body, scenario, slug, token)
 
     track_token = uuid.uuid4()
     try:
@@ -1705,8 +1711,9 @@ def send_invite_channel(request, scenario: str, invite_id: int, payload: SendCha
         return 200, {"ok": True, "channel": "email", "requires_manual_confirm": False}
 
     # sms / whatsapp — referrer sends manually from their own device, then confirms
+    final_body = _finalize_invite_link(message_body, scenario, profile.slug, invite.token)
     return 200, {
-        "ok": True, "channel": payload.channel, "requires_manual_confirm": True, "message_body": message_body,
+        "ok": True, "channel": payload.channel, "requires_manual_confirm": True, "message_body": final_body,
     }
 
 

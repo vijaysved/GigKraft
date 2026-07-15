@@ -336,10 +336,9 @@ export function ReferrerPublicPage() {
 
   const isFollower = !!followerState;
   const avatarSrc = page.avatar_url || fallbackAvatar(page.slug);
-  // pageUrl: what the user sees / copies — always the frontend canonical URL
+  // Canonical gigkraft.com URL — Vercel proxies bot/crawler user-agents on this path to the
+  // backend social-preview endpoint, so link previews still show the real profile pic.
   const pageUrl = `https://gigkraft.com/us/${slug}/refer`;
-  // shareUrl: what WhatsApp scrapes — the Django social-preview endpoint which serves real OG tags
-  const shareUrl = `${API_BASE_URL}/us/${slug}/refer`;
 
   function handleCopyUrl() {
     void navigator.clipboard.writeText(pageUrl).then(() => {
@@ -360,8 +359,7 @@ export function ReferrerPublicPage() {
       `👥 ${page!.follower_count} follower${page!.follower_count !== 1 ? "s" : ""}`,
       `📋 ${page!.referral_count} referral${page!.referral_count !== 1 ? "s" : ""} sent`,
     );
-    // Use the backend preview URL so WhatsApp's bot gets real OG tags (profile pic + name)
-    lines.push("", `🔗 ${shareUrl}`);
+    lines.push("", `🔗 ${pageUrl}`);
 
     const msg = encodeURIComponent(lines.join("\n"));
     window.open(`https://wa.me/?text=${msg}`, "_blank", "noopener,noreferrer");
