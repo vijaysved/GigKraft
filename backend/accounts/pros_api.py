@@ -80,6 +80,17 @@ class ProOut(Schema):
     role: str
     trade_categories: list[TradeCategoryOut]
     stats: ProStatsSummary
+    # Popularity/Quality-of-Work card metrics — design-specs/11.ContactCardUpdate.md.
+    popularity_score: Optional[int]
+    quality_score: Optional[int]
+    recommended_count: int
+    used_count: int
+    review_count: int
+    schedule_adherence_pct: Optional[int]
+    professionalism_cleanliness_pct: Optional[int]
+    pricing_transparency_pct: Optional[int]
+    communication_quality_pct: Optional[int]
+    rehire_intent_pct: Optional[int]
 
 
 def serialize_pro(pro: ProProfile) -> dict:
@@ -121,6 +132,16 @@ def serialize_pro(pro: ProProfile) -> dict:
             "recs_approved": approved.count(),
             "avg_stars": approved.aggregate(avg=Avg("stars"))["avg"],
         },
+        "popularity_score": pro.popularity_score,
+        "quality_score": pro.quality_score,
+        "recommended_count": pro.recommended_count,
+        "used_count": pro.used_count,
+        "review_count": pro.review_count,
+        "schedule_adherence_pct": pro.schedule_adherence_pct,
+        "professionalism_cleanliness_pct": pro.professionalism_cleanliness_pct,
+        "pricing_transparency_pct": pro.pricing_transparency_pct,
+        "communication_quality_pct": pro.communication_quality_pct,
+        "rehire_intent_pct": pro.rehire_intent_pct,
     }
 
 

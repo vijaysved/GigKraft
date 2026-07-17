@@ -771,6 +771,22 @@
           },
           {
             "in": "query",
+            "name": "skill",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Skill"
+            },
+            "required": false
+          },
+          {
+            "in": "query",
             "name": "licensed",
             "schema": {
               "anyOf": [
@@ -1286,6 +1302,22 @@
           },
           {
             "in": "query",
+            "name": "radius",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Radius"
+            },
+            "required": false
+          },
+          {
+            "in": "query",
             "name": "q",
             "schema": {
               "anyOf": [
@@ -1317,7 +1349,7 @@
             }
           }
         },
-        "description": "Discovery / B2B search (1.13). Filters by node, trade and ZIP.",
+        "description": "Discovery / B2B search (1.13). Filters by node, trade and ZIP (radial match).",
         "tags": [
           "pros"
         ],
@@ -3209,6 +3241,64 @@
         ]
       }
     },
+    "/api/recommendations/rate": {
+      "post": {
+        "operationId": "recommendations_api_rate_pro",
+        "summary": "Rate Pro",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecommendationOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "description": "Card-click rating, for a logged-in user, of either an on-platform pro\nor an off-platform referred contact (design-specs/12.OffPlatformProRatings.md\n\u00a74). Re-rating the same target edits the rater's existing Recommendation\ninstead of creating a duplicate.",
+        "tags": [
+          "recommendations"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RateProIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
     "/api/recommendations/{rec_id}/approve": {
       "post": {
         "operationId": "recommendations_api_approve_recommendation",
@@ -3245,6 +3335,16 @@
               }
             }
           },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Not Found",
             "content": {
@@ -3256,7 +3356,7 @@
             }
           }
         },
-        "description": "Pro approves -> the recommendation goes public on the profile.",
+        "description": "Approve -> the recommendation counts toward the pro's public scores.",
         "tags": [
           "recommendations"
         ],
@@ -3289,6 +3389,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RecommendationOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
                 }
               }
             }
@@ -4964,6 +5074,78 @@
         "tags": [
           "gk_admin"
         ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/gk-admin/users/{user_id}/roles": {
+      "patch": {
+        "operationId": "common_gk_admin_api_set_user_roles",
+        "summary": "Set User Roles",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "schema": {
+              "title": "User Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRow"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response",
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Set the full set of capability roles a user holds at once (e.g. Pro +\nReferrer + Community Owner). One becomes the primary `role`; the rest are\nstored in `extra_roles` \u2014 see CAPABILITY_ROLES / _PRIMARY_PRIORITY above.",
+        "tags": [
+          "gk_admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetUserRolesIn"
+              }
+            }
+          },
+          "required": true
+        },
         "security": [
           {
             "JWTAuth": []
@@ -7745,6 +7927,1772 @@
           },
           "required": true
         }
+      }
+    },
+    "/api/communities/checkout": {
+      "post": {
+        "operationId": "communities_api_create_community_checkout",
+        "summary": "Create Community Checkout",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckoutOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "description": "Start a Stripe Checkout session for a Referrer starting a Community subscription.",
+        "tags": [
+          "communities"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/communities/subscription": {
+      "get": {
+        "operationId": "communities_api_community_subscription_status",
+        "summary": "Community Subscription Status",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionStatusOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "communities"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/communities/check-slug": {
+      "get": {
+        "operationId": "communities_api_check_slug_available",
+        "summary": "Check Slug Available",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "slug",
+            "schema": {
+              "title": "Slug",
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "communities"
+        ]
+      }
+    },
+    "/api/communities/{slug}/copy-link": {
+      "post": {
+        "operationId": "communities_api_log_copy_link",
+        "summary": "Log Copy Link",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "schema": {
+              "title": "Slug",
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CopyLinkOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "description": "Fired when a visitor taps 'Copy page link' \u2014 powers the copied-count shown on the page.",
+        "tags": [
+          "communities"
+        ]
+      }
+    },
+    "/api/communities/{slug}": {
+      "get": {
+        "operationId": "communities_api_get_community",
+        "summary": "Get Community",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "schema": {
+              "title": "Slug",
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommunityOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "communities"
+        ],
+        "security": [
+          {
+            "OptionalJWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/communities/{slug}/members": {
+      "get": {
+        "operationId": "communities_api_list_public_members",
+        "summary": "List Public Members",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "schema": {
+              "title": "Slug",
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CommunityMemberOut"
+                  },
+                  "title": "Response",
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "communities"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/communities/{slug}/join/{token}": {
+      "get": {
+        "operationId": "communities_api_preview_join",
+        "summary": "Preview Join",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "schema": {
+              "title": "Slug",
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "token",
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JoinPreviewOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "communities"
+        ]
+      },
+      "post": {
+        "operationId": "communities_api_join_community",
+        "summary": "Join Community",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "schema": {
+              "title": "Slug",
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "token",
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response",
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "communities"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JoinIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "OptionalJWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/communities/{slug}/join/{token}/send-otp": {
+      "post": {
+        "operationId": "communities_api_send_join_otp",
+        "summary": "Send Join Otp",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "schema": {
+              "title": "Slug",
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "token",
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response",
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "communities"
+        ]
+      }
+    },
+    "/api/communities/{slug}/join": {
+      "post": {
+        "operationId": "communities_api_join_community_self",
+        "summary": "Join Community Self",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "schema": {
+              "title": "Slug",
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response",
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "description": "Self-serve join request for an already-authenticated visitor \u2014 no invite token required.\n\nDistinct from POST /{slug}/join/{token} above, which is for pre-known invitees the\nowner already added to the directory (and therefore already vetted) \u2014 those still\nauto-join. A brand-new self-serve request instead lands as PENDING until the\nowner/moderator approves it via POST /me/community/members/{id}/approve.",
+        "tags": [
+          "communities"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/communities/{slug}/request-pro": {
+      "post": {
+        "operationId": "communities_api_request_pro",
+        "summary": "Request Pro",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "schema": {
+              "title": "Slug",
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response",
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "communities"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestProIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/communities/{slug}/request-intro": {
+      "post": {
+        "operationId": "communities_api_request_intro",
+        "summary": "Request Intro",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "schema": {
+              "title": "Slug",
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response",
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "communities"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestProIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/communities/{slug}/message-owner": {
+      "post": {
+        "operationId": "communities_api_message_owner",
+        "summary": "Message Owner",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "schema": {
+              "title": "Slug",
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response",
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "description": "Send a message that lands as a real Lead/chat thread in the owner's inbox.\n\nAuthenticated visitors send as themselves; anonymous visitors must supply\nguest_name and are attributed to the shared 'anonymous@gigkraft.internal'\nsentinel user (same pattern as leads.api.create_anonymous_lead), so no\nper-visitor account is created just to send one message.",
+        "tags": [
+          "communities"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessageOwnerIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "OptionalJWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/communities/{slug}/recommend-pro": {
+      "post": {
+        "operationId": "communities_api_recommend_pro",
+        "summary": "Recommend Pro",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "schema": {
+              "title": "Slug",
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response",
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "description": "A joined Member suggests a pro for the Community's list \u2014 lands pending\nOwner/Moderator approval rather than going straight onto the public page.\ndesign-specs/13.RecommendAPro-LandingIntent.md.",
+        "tags": [
+          "communities"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecommendProIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/communities/{slug}/link-preview": {
+      "post": {
+        "operationId": "communities_api_link_preview",
+        "summary": "Link Preview",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "schema": {
+              "title": "Slug",
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkPreviewOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "description": "Best-effort metadata fetch for the optional URL field on the\nRecommend-a-Pro form \u2014 lets a Member preview how the link would look\nbefore submitting. Gated to joined Members, same as recommend_pro, to\nlimit the server-side-fetch surface.",
+        "tags": [
+          "communities"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkPreviewIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/me/community": {
+      "get": {
+        "operationId": "communities_api_get_my_community",
+        "summary": "Get My Community",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagedCommunityOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "communities"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "communities_api_create_my_community",
+        "summary": "Create My Community",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagedCommunityOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "description": "Name the Lead's Community (Workflow 1 step 4).\n\nThe webhook creates a placeholder `Community` row on checkout completion\n(it needs to exist before `CommunitySubscription` can FK to it), so this\nis really \"set the name for the first time\" rather than a bare create \u2014\nget_or_create keeps it safe to call even if the webhook race hasn't landed yet.",
+        "tags": [
+          "communities"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCommunityIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      },
+      "patch": {
+        "operationId": "communities_api_update_my_community",
+        "summary": "Update My Community",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagedCommunityOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "communities"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCommunityIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/me/community/billing": {
+      "get": {
+        "operationId": "communities_api_community_billing",
+        "summary": "Community Billing",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommunityBillingOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "communities"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/me/community/downgrade": {
+      "post": {
+        "operationId": "communities_api_downgrade_my_community",
+        "summary": "Downgrade My Community",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response",
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "communities"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/me/community/members": {
+      "get": {
+        "operationId": "communities_api_list_my_members",
+        "summary": "List My Members",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CommunityMemberOut"
+                  },
+                  "title": "Response",
+                  "type": "array"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "communities"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "communities_api_add_members",
+        "summary": "Add Members",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddMembersOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "communities"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddMembersIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/me/community/pending-ratings": {
+      "get": {
+        "operationId": "communities_api_list_pending_ratings",
+        "summary": "List Pending Ratings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PendingRatingOut"
+                  },
+                  "title": "Response",
+                  "type": "array"
+                }
+              }
+            }
+          }
+        },
+        "description": "Off-platform pros' card-click ratings awaiting approval before they\ncount toward that pro's public score \u2014 design-specs/12.OffPlatformProRatings.md\n\u00a74/\u00a79 #3. Approve/hide via the existing /api/recommendations/{id}/approve|hide.",
+        "tags": [
+          "communities"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/me/community/pending-pro-recommendations": {
+      "get": {
+        "operationId": "communities_api_list_pending_pro_recommendations",
+        "summary": "List Pending Pro Recommendations",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PendingProRecommendationOut"
+                  },
+                  "title": "Response",
+                  "type": "array"
+                }
+              }
+            }
+          }
+        },
+        "description": "Member-submitted pro suggestions awaiting Owner/Moderator approval \u2014\ndesign-specs/13.RecommendAPro-LandingIntent.md \u00a74.",
+        "tags": [
+          "communities"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/me/community/pending-pro-recommendations/{referrer_pro_id}/approve": {
+      "post": {
+        "operationId": "communities_api_approve_pro_recommendation",
+        "summary": "Approve Pro Recommendation",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "referrer_pro_id",
+            "schema": {
+              "title": "Referrer Pro Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommunityProOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "communities"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/me/community/pending-pro-recommendations/{referrer_pro_id}/decline": {
+      "post": {
+        "operationId": "communities_api_decline_pro_recommendation",
+        "summary": "Decline Pro Recommendation",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "referrer_pro_id",
+            "schema": {
+              "title": "Referrer Pro Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response",
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "communities"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/me/community/members/upload": {
+      "post": {
+        "operationId": "communities_api_upload_members",
+        "summary": "Upload Members",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddMembersOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "communities"
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "properties": {
+                  "file": {
+                    "format": "binary",
+                    "title": "File",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "file"
+                ],
+                "title": "FileParams",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/me/community/members/{member_id}/resend": {
+      "post": {
+        "operationId": "communities_api_resend_member_invite",
+        "summary": "Resend Member Invite",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "member_id",
+            "schema": {
+              "title": "Member Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response",
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "communities"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/me/community/members/{member_id}": {
+      "delete": {
+        "operationId": "communities_api_remove_member",
+        "summary": "Remove Member",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "member_id",
+            "schema": {
+              "title": "Member Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "communities"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/me/community/members/{member_id}/approve": {
+      "post": {
+        "operationId": "communities_api_approve_member",
+        "summary": "Approve Member",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "member_id",
+            "schema": {
+              "title": "Member Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommunityMemberOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "communities"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/me/community/members/{member_id}/decline": {
+      "post": {
+        "operationId": "communities_api_decline_member",
+        "summary": "Decline Member",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "member_id",
+            "schema": {
+              "title": "Member Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommunityMemberOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "communities"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/me/community/members/{member_id}/role": {
+      "post": {
+        "operationId": "communities_api_set_member_role",
+        "summary": "Set Member Role",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "member_id",
+            "schema": {
+              "title": "Member Id",
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommunityMemberOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "communities"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/me/community/pros/candidates": {
+      "get": {
+        "operationId": "communities_api_list_pro_candidates",
+        "summary": "List Pro Candidates",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CommunityProCandidateOut"
+                  },
+                  "title": "Response",
+                  "type": "array"
+                }
+              }
+            }
+          }
+        },
+        "description": "All of the Lead's personal-page pros, with `on_this_community` computed\nagainst *this* Community specifically. `ReferrerPro.show_on_community`\ndefaults to True on every row regardless of `community` \u2014 including pros\nnever added to any community \u2014 so it can't be used directly to say whether\na pro is actually on this page; it only means something once `community_id`\nmatches.",
+        "tags": [
+          "communities"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/me/community/pros/toggle": {
+      "post": {
+        "operationId": "communities_api_toggle_community_pro",
+        "summary": "Toggle Community Pro",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommunityProOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "communities"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ToggleProIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/me/community/pros/off-platform": {
+      "post": {
+        "operationId": "communities_api_add_off_platform_pro",
+        "summary": "Add Off Platform Pro",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommunityProOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "communities"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddOffPlatformProIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/me/community/pros/bulk-import": {
+      "post": {
+        "operationId": "communities_api_bulk_import_pros",
+        "summary": "Bulk Import Pros",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkImportProsOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "description": "CSV/paste bulk import \u2014 same off-platform-pro creation as add_off_platform_pro,\nlooped, skipping rows with no contact info or ones that dupe an existing off-platform\nentry on this referrer's list (matched by phone or email).",
+        "tags": [
+          "communities"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkImportProsIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
+      }
+    },
+    "/api/me/community/analytics": {
+      "get": {
+        "operationId": "communities_api_community_analytics",
+        "summary": "Community Analytics",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommunityAnalyticsOut"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "communities"
+        ],
+        "security": [
+          {
+            "JWTAuth": []
+          }
+        ]
       }
     },
     "/api/referrer/me": {
@@ -10808,6 +12756,95 @@
           },
           "stats": {
             "$ref": "#/components/schemas/ProStatsSummary"
+          },
+          "popularity_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Popularity Score"
+          },
+          "quality_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quality Score"
+          },
+          "recommended_count": {
+            "title": "Recommended Count",
+            "type": "integer"
+          },
+          "used_count": {
+            "title": "Used Count",
+            "type": "integer"
+          },
+          "review_count": {
+            "title": "Review Count",
+            "type": "integer"
+          },
+          "schedule_adherence_pct": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Schedule Adherence Pct"
+          },
+          "professionalism_cleanliness_pct": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Professionalism Cleanliness Pct"
+          },
+          "pricing_transparency_pct": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pricing Transparency Pct"
+          },
+          "communication_quality_pct": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Communication Quality Pct"
+          },
+          "rehire_intent_pct": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rehire Intent Pct"
           }
         },
         "required": [
@@ -10838,7 +12875,17 @@
           "phone",
           "role",
           "trade_categories",
-          "stats"
+          "stats",
+          "popularity_score",
+          "quality_score",
+          "recommended_count",
+          "used_count",
+          "review_count",
+          "schedule_adherence_pct",
+          "professionalism_cleanliness_pct",
+          "pricing_transparency_pct",
+          "communication_quality_pct",
+          "rehire_intent_pct"
         ],
         "title": "ProOut",
         "type": "object"
@@ -12198,6 +14245,16 @@
               }
             ]
           },
+          "recipient": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PartyOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "last_message": {
             "anyOf": [
               {
@@ -12238,6 +14295,7 @@
           "created_at",
           "homeowner",
           "pro",
+          "recipient",
           "last_message",
           "unread_hint",
           "quotes"
@@ -12905,6 +14963,47 @@
           "stars"
         ],
         "title": "ReviewSubmitIn",
+        "type": "object"
+      },
+      "RateProIn": {
+        "description": "Card-click rating (design-specs/12.OffPlatformProRatings.md \u00a74) \u2014\nthe logged-in rater's identity comes from the JWT, not this payload.\nExactly one of pro_id/referrer_pro_id must be set.",
+        "properties": {
+          "pro_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pro Id"
+          },
+          "referrer_pro_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Referrer Pro Id"
+          },
+          "stars": {
+            "title": "Stars",
+            "type": "integer"
+          },
+          "text": {
+            "default": "",
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "stars"
+        ],
+        "title": "RateProIn",
         "type": "object"
       },
       "FavoritesOut": {
@@ -13958,34 +16057,56 @@
       },
       "SubscriptionStatusOut": {
         "properties": {
+          "has_community": {
+            "title": "Has Community",
+            "type": "boolean"
+          },
           "has_active_subscription": {
             "title": "Has Active Subscription",
             "type": "boolean"
           },
-          "subscription": {
+          "community_slug": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/SubscriptionOut"
+                "type": "string"
               },
               {
                 "type": "null"
               }
-            ]
+            ],
+            "title": "Community Slug"
+          },
+          "plan": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
           },
           "stripe_mode": {
             "title": "Stripe Mode",
             "type": "string"
-          },
-          "user_id": {
-            "title": "User Id",
-            "type": "integer"
           }
         },
         "required": [
+          "has_community",
           "has_active_subscription",
-          "subscription",
-          "stripe_mode",
-          "user_id"
+          "stripe_mode"
         ],
         "title": "SubscriptionStatusOut",
         "type": "object"
@@ -14543,6 +16664,13 @@
             "title": "Role",
             "type": "string"
           },
+          "extra_roles": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Extra Roles",
+            "type": "array"
+          },
           "first_name": {
             "title": "First Name",
             "type": "string"
@@ -14605,6 +16733,7 @@
           "email",
           "phone",
           "role",
+          "extra_roles",
           "first_name",
           "last_name",
           "node_id",
@@ -14615,6 +16744,22 @@
           "pro_handle"
         ],
         "title": "UserRow",
+        "type": "object"
+      },
+      "SetUserRolesIn": {
+        "properties": {
+          "roles": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Roles",
+            "type": "array"
+          }
+        },
+        "required": [
+          "roles"
+        ],
+        "title": "SetUserRolesIn",
         "type": "object"
       },
       "StripeConfigOut": {
@@ -14645,6 +16790,22 @@
           },
           "live_price_annual": {
             "title": "Live Price Annual",
+            "type": "string"
+          },
+          "test_price_community_monthly": {
+            "title": "Test Price Community Monthly",
+            "type": "string"
+          },
+          "test_price_community_annual": {
+            "title": "Test Price Community Annual",
+            "type": "string"
+          },
+          "live_price_community_monthly": {
+            "title": "Live Price Community Monthly",
+            "type": "string"
+          },
+          "live_price_community_annual": {
+            "title": "Live Price Community Annual",
             "type": "string"
           },
           "test_key_set": {
@@ -14679,6 +16840,10 @@
           "test_price_annual",
           "live_price_monthly",
           "live_price_annual",
+          "test_price_community_monthly",
+          "test_price_community_annual",
+          "live_price_community_monthly",
+          "live_price_community_annual",
           "test_key_set",
           "live_key_set",
           "webhook_secret_set",
@@ -14707,6 +16872,26 @@
           },
           "live_price_annual": {
             "title": "Live Price Annual",
+            "type": "string"
+          },
+          "test_price_community_monthly": {
+            "default": "",
+            "title": "Test Price Community Monthly",
+            "type": "string"
+          },
+          "test_price_community_annual": {
+            "default": "",
+            "title": "Test Price Community Annual",
+            "type": "string"
+          },
+          "live_price_community_monthly": {
+            "default": "",
+            "title": "Live Price Community Monthly",
+            "type": "string"
+          },
+          "live_price_community_annual": {
+            "default": "",
+            "title": "Live Price Community Annual",
             "type": "string"
           }
         },
@@ -17047,9 +19232,9 @@
             "title": "Name",
             "type": "string"
           },
-          "skill": {
+          "trade": {
             "default": "",
-            "title": "Skill",
+            "title": "Trade",
             "type": "string"
           },
           "phone": {
@@ -17254,27 +19439,9 @@
       },
       "RequestProIn": {
         "properties": {
-          "circle_pro_id": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Circle Pro Id"
-          },
-          "pro_id": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Pro Id"
+          "community_pro_id": {
+            "title": "Community Pro Id",
+            "type": "integer"
           },
           "seeker_name": {
             "title": "Seeker Name",
@@ -17300,6 +19467,7 @@
           }
         },
         "required": [
+          "community_pro_id",
           "seeker_name",
           "seeker_phone",
           "job_title"
@@ -17343,6 +19511,1184 @@
           "job_title"
         ],
         "title": "RequestIntroIn",
+        "type": "object"
+      },
+      "CopyLinkOut": {
+        "properties": {
+          "link_copy_count": {
+            "title": "Link Copy Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "link_copy_count"
+        ],
+        "title": "CopyLinkOut",
+        "type": "object"
+      },
+      "CommunityOut": {
+        "properties": {
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "cover_image_url": {
+            "title": "Cover Image Url",
+            "type": "string"
+          },
+          "theme": {
+            "title": "Theme",
+            "type": "string"
+          },
+          "lead_name": {
+            "title": "Lead Name",
+            "type": "string"
+          },
+          "lead_avatar_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lead Avatar Url"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "is_read_only": {
+            "title": "Is Read Only",
+            "type": "boolean"
+          },
+          "is_publicly_visible": {
+            "title": "Is Publicly Visible",
+            "type": "boolean"
+          },
+          "pro_count": {
+            "title": "Pro Count",
+            "type": "integer"
+          },
+          "member_count": {
+            "default": 0,
+            "title": "Member Count",
+            "type": "integer"
+          },
+          "page_views": {
+            "default": 0,
+            "title": "Page Views",
+            "type": "integer"
+          },
+          "link_copy_count": {
+            "default": 0,
+            "title": "Link Copy Count",
+            "type": "integer"
+          },
+          "viewer_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Viewer Status"
+          },
+          "pros": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/CommunityProOut"
+            },
+            "title": "Pros",
+            "type": "array"
+          }
+        },
+        "required": [
+          "slug",
+          "name",
+          "description",
+          "cover_image_url",
+          "theme",
+          "lead_name",
+          "status",
+          "is_read_only",
+          "is_publicly_visible",
+          "pro_count"
+        ],
+        "title": "CommunityOut",
+        "type": "object"
+      },
+      "CommunityProOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "pro_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pro Id"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "trade": {
+            "title": "Trade",
+            "type": "string"
+          },
+          "avatar_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar Url"
+          },
+          "handle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Handle"
+          },
+          "endorsement": {
+            "title": "Endorsement",
+            "type": "string"
+          },
+          "tags": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          },
+          "is_off_platform": {
+            "title": "Is Off Platform",
+            "type": "boolean"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "popularity_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Popularity Score"
+          },
+          "quality_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quality Score"
+          },
+          "recommended_count": {
+            "default": 0,
+            "title": "Recommended Count",
+            "type": "integer"
+          },
+          "used_count": {
+            "default": 0,
+            "title": "Used Count",
+            "type": "integer"
+          },
+          "review_count": {
+            "default": 0,
+            "title": "Review Count",
+            "type": "integer"
+          },
+          "schedule_adherence_pct": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Schedule Adherence Pct"
+          },
+          "professionalism_cleanliness_pct": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Professionalism Cleanliness Pct"
+          },
+          "pricing_transparency_pct": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pricing Transparency Pct"
+          },
+          "communication_quality_pct": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Communication Quality Pct"
+          },
+          "rehire_intent_pct": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rehire Intent Pct"
+          },
+          "submitted_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Submitted By Name"
+          }
+        },
+        "required": [
+          "id",
+          "display_name",
+          "trade",
+          "endorsement",
+          "is_off_platform"
+        ],
+        "title": "CommunityProOut",
+        "type": "object"
+      },
+      "CommunityMemberOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "phone": {
+            "title": "Phone",
+            "type": "string"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          },
+          "click_count": {
+            "title": "Click Count",
+            "type": "integer"
+          },
+          "invited_at": {
+            "title": "Invited At",
+            "type": "string"
+          },
+          "joined_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Joined At"
+          },
+          "last_resent_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Resent At"
+          },
+          "avatar_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar Url"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "phone",
+          "email",
+          "status",
+          "role",
+          "click_count",
+          "invited_at"
+        ],
+        "title": "CommunityMemberOut",
+        "type": "object"
+      },
+      "JoinPreviewOut": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "phone": {
+            "title": "Phone",
+            "type": "string"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "community_name": {
+            "title": "Community Name",
+            "type": "string"
+          },
+          "community_slug": {
+            "title": "Community Slug",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "phone",
+          "email",
+          "status",
+          "community_name",
+          "community_slug"
+        ],
+        "title": "JoinPreviewOut",
+        "type": "object"
+      },
+      "JoinIn": {
+        "properties": {
+          "otp_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Otp Code"
+          },
+          "google_id_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Google Id Token"
+          }
+        },
+        "title": "JoinIn",
+        "type": "object"
+      },
+      "MessageOwnerIn": {
+        "properties": {
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "guest_name": {
+            "default": "",
+            "title": "Guest Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "title": "MessageOwnerIn",
+        "type": "object"
+      },
+      "RecommendProIn": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "trade": {
+            "default": "",
+            "title": "Trade",
+            "type": "string"
+          },
+          "phone": {
+            "default": "",
+            "title": "Phone",
+            "type": "string"
+          },
+          "email": {
+            "default": "",
+            "title": "Email",
+            "type": "string"
+          },
+          "url": {
+            "default": "",
+            "title": "Url",
+            "type": "string"
+          },
+          "endorsement": {
+            "default": "",
+            "title": "Endorsement",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "RecommendProIn",
+        "type": "object"
+      },
+      "LinkPreviewOut": {
+        "properties": {
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "image": {
+            "title": "Image",
+            "type": "string"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "description",
+          "image",
+          "created_at"
+        ],
+        "title": "LinkPreviewOut",
+        "type": "object"
+      },
+      "LinkPreviewIn": {
+        "properties": {
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "title": "LinkPreviewIn",
+        "type": "object"
+      },
+      "ManagedCommunityOut": {
+        "properties": {
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "cover_image_url": {
+            "title": "Cover Image Url",
+            "type": "string"
+          },
+          "theme": {
+            "title": "Theme",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "is_read_only": {
+            "title": "Is Read Only",
+            "type": "boolean"
+          },
+          "viewer_role": {
+            "title": "Viewer Role",
+            "type": "string"
+          },
+          "short_code": {
+            "title": "Short Code",
+            "type": "string"
+          },
+          "short_link_click_count": {
+            "title": "Short Link Click Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "slug",
+          "name",
+          "description",
+          "cover_image_url",
+          "theme",
+          "status",
+          "is_read_only",
+          "viewer_role",
+          "short_code",
+          "short_link_click_count"
+        ],
+        "title": "ManagedCommunityOut",
+        "type": "object"
+      },
+      "CreateCommunityIn": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "description": {
+            "default": "",
+            "title": "Description",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "CreateCommunityIn",
+        "type": "object"
+      },
+      "UpdateCommunityIn": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slug"
+          },
+          "cover_image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cover Image Url"
+          },
+          "theme": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Theme"
+          }
+        },
+        "title": "UpdateCommunityIn",
+        "type": "object"
+      },
+      "CommunityBillingOut": {
+        "properties": {
+          "plan": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan"
+          },
+          "plan_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Label"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "renews_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Renews At"
+          },
+          "card_last4": {
+            "default": "",
+            "title": "Card Last4",
+            "type": "string"
+          },
+          "monthly_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Monthly Value"
+          },
+          "invoices": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/CommunityInvoiceOut"
+            },
+            "title": "Invoices",
+            "type": "array"
+          }
+        },
+        "title": "CommunityBillingOut",
+        "type": "object"
+      },
+      "CommunityInvoiceOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "amount": {
+            "title": "Amount",
+            "type": "number"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "period_label": {
+            "title": "Period Label",
+            "type": "string"
+          },
+          "issued_at": {
+            "title": "Issued At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "amount",
+          "status",
+          "period_label",
+          "issued_at"
+        ],
+        "title": "CommunityInvoiceOut",
+        "type": "object"
+      },
+      "AddMembersOut": {
+        "properties": {
+          "added": {
+            "title": "Added",
+            "type": "integer"
+          },
+          "skipped": {
+            "title": "Skipped",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "added",
+          "skipped"
+        ],
+        "title": "AddMembersOut",
+        "type": "object"
+      },
+      "AddMemberIn": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "phone": {
+            "default": "",
+            "title": "Phone",
+            "type": "string"
+          },
+          "email": {
+            "default": "",
+            "title": "Email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "AddMemberIn",
+        "type": "object"
+      },
+      "AddMembersIn": {
+        "properties": {
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/AddMemberIn"
+            },
+            "title": "Members",
+            "type": "array"
+          }
+        },
+        "required": [
+          "members"
+        ],
+        "title": "AddMembersIn",
+        "type": "object"
+      },
+      "PendingRatingOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "referrer_pro_id": {
+            "title": "Referrer Pro Id",
+            "type": "integer"
+          },
+          "pro_name": {
+            "title": "Pro Name",
+            "type": "string"
+          },
+          "rater_name": {
+            "title": "Rater Name",
+            "type": "string"
+          },
+          "stars": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stars"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "referrer_pro_id",
+          "pro_name",
+          "rater_name",
+          "stars",
+          "text",
+          "created_at"
+        ],
+        "title": "PendingRatingOut",
+        "type": "object"
+      },
+      "PendingProRecommendationOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "trade": {
+            "title": "Trade",
+            "type": "string"
+          },
+          "phone": {
+            "title": "Phone",
+            "type": "string"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          },
+          "endorsement": {
+            "title": "Endorsement",
+            "type": "string"
+          },
+          "submitted_by_name": {
+            "title": "Submitted By Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "trade",
+          "phone",
+          "email",
+          "url",
+          "endorsement",
+          "submitted_by_name"
+        ],
+        "title": "PendingProRecommendationOut",
+        "type": "object"
+      },
+      "RoleIn": {
+        "properties": {
+          "role": {
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "role"
+        ],
+        "title": "RoleIn",
+        "type": "object"
+      },
+      "CommunityProCandidateOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "trade": {
+            "title": "Trade",
+            "type": "string"
+          },
+          "phone": {
+            "title": "Phone",
+            "type": "string"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "avatar_url": {
+            "title": "Avatar Url",
+            "type": "string"
+          },
+          "endorsement": {
+            "title": "Endorsement",
+            "type": "string"
+          },
+          "tags": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          },
+          "is_on_platform": {
+            "title": "Is On Platform",
+            "type": "boolean"
+          },
+          "on_this_community": {
+            "title": "On This Community",
+            "type": "boolean"
+          },
+          "pending_approval": {
+            "default": false,
+            "title": "Pending Approval",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "trade",
+          "phone",
+          "email",
+          "avatar_url",
+          "endorsement",
+          "is_on_platform",
+          "on_this_community"
+        ],
+        "title": "CommunityProCandidateOut",
+        "type": "object"
+      },
+      "ToggleProIn": {
+        "properties": {
+          "referrer_pro_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Referrer Pro Id"
+          },
+          "pro_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pro Id"
+          }
+        },
+        "title": "ToggleProIn",
+        "type": "object"
+      },
+      "BulkImportProsOut": {
+        "properties": {
+          "added": {
+            "title": "Added",
+            "type": "integer"
+          },
+          "skipped": {
+            "title": "Skipped",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "added",
+          "skipped"
+        ],
+        "title": "BulkImportProsOut",
+        "type": "object"
+      },
+      "BulkImportProRowIn": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "trade": {
+            "default": "",
+            "title": "Trade",
+            "type": "string"
+          },
+          "phone": {
+            "default": "",
+            "title": "Phone",
+            "type": "string"
+          },
+          "email": {
+            "default": "",
+            "title": "Email",
+            "type": "string"
+          },
+          "endorsement": {
+            "default": "",
+            "title": "Endorsement",
+            "type": "string"
+          },
+          "tags": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "BulkImportProRowIn",
+        "type": "object"
+      },
+      "BulkImportProsIn": {
+        "properties": {
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/BulkImportProRowIn"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "rows"
+        ],
+        "title": "BulkImportProsIn",
+        "type": "object"
+      },
+      "CommunityAnalyticsOut": {
+        "properties": {
+          "page_views": {
+            "title": "Page Views",
+            "type": "integer"
+          },
+          "requests_submitted": {
+            "title": "Requests Submitted",
+            "type": "integer"
+          },
+          "member_count": {
+            "title": "Member Count",
+            "type": "integer"
+          },
+          "invited_count": {
+            "title": "Invited Count",
+            "type": "integer"
+          },
+          "joined_count": {
+            "title": "Joined Count",
+            "type": "integer"
+          },
+          "pro_count": {
+            "title": "Pro Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "page_views",
+          "requests_submitted",
+          "member_count",
+          "invited_count",
+          "joined_count",
+          "pro_count"
+        ],
+        "title": "CommunityAnalyticsOut",
         "type": "object"
       },
       "ReferrerDashboardOut": {
@@ -17556,6 +20902,10 @@
             "title": "Show On Page",
             "type": "boolean"
           },
+          "show_on_community": {
+            "title": "Show On Community",
+            "type": "boolean"
+          },
           "display_order": {
             "title": "Display Order",
             "type": "integer"
@@ -17630,6 +20980,7 @@
           "avatar_url",
           "endorsement",
           "show_on_page",
+          "show_on_community",
           "display_order",
           "referral_count",
           "is_on_platform",
@@ -17830,6 +21181,17 @@
             ],
             "title": "Email"
           },
+          "zip": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Zip"
+          },
           "note": {
             "anyOf": [
               {
@@ -17856,6 +21218,20 @@
               }
             ],
             "title": "Message"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tags"
           }
         },
         "required": [
@@ -19032,6 +22408,17 @@
             "title": "Id",
             "type": "integer"
           },
+          "linked_pro_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Linked Pro Id"
+          },
           "name": {
             "title": "Name",
             "type": "string"
@@ -19124,6 +22511,98 @@
               }
             ],
             "title": "Click Count"
+          },
+          "popularity_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Popularity Score"
+          },
+          "quality_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quality Score"
+          },
+          "recommended_count": {
+            "default": 0,
+            "title": "Recommended Count",
+            "type": "integer"
+          },
+          "used_count": {
+            "default": 0,
+            "title": "Used Count",
+            "type": "integer"
+          },
+          "review_count": {
+            "default": 0,
+            "title": "Review Count",
+            "type": "integer"
+          },
+          "schedule_adherence_pct": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Schedule Adherence Pct"
+          },
+          "professionalism_cleanliness_pct": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Professionalism Cleanliness Pct"
+          },
+          "pricing_transparency_pct": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pricing Transparency Pct"
+          },
+          "communication_quality_pct": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Communication Quality Pct"
+          },
+          "rehire_intent_pct": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rehire Intent Pct"
           }
         },
         "required": [

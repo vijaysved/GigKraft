@@ -1,4 +1,4 @@
-from django.db.models.signals import post_save
+from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
 
@@ -22,3 +22,43 @@ def auto_convert_prospect(sender, instance, created, **kwargs):
         prospect.status = Prospect.Status.CONVERTED
         prospect.converted_user = instance
         prospect.save(update_fields=["status", "converted_user", "updated_at"])
+
+
+# ---------------------------------------------------------------------------
+# Popularity / Quality-of-Work card metrics (design-specs/11.ContactCardUpdate.md)
+#
+# Recomputed synchronously on every write that can move a score — there's no
+# Celery/async task runner in this codebase, and these writes are user-click-rate
+# (favorite a pro, approve a review, win a job), not page-view-rate.
+# ---------------------------------------------------------------------------
+
+@receiver(post_save, sender="recommendations.Recommendation")
+def recompute_metrics_on_recommendation_save(sender, instance, **kwargs):
+    if instance.pro_id is None:
+        return  # off-platform rating — see referrals/signals.py instead
+    from accounts.metrics import recompute_pro_metrics
+
+    recompute_pro_metrics(instance.pro)
+
+
+@receiver(post_save, sender="leads.Lead")
+def recompute_metrics_on_lead_save(sender, instance, **kwargs):
+    if instance.pro_id is None:
+        return
+    from accounts.metrics import recompute_pro_metrics
+
+    recompute_pro_metrics(instance.pro)
+
+
+@receiver(post_save, sender="accounts.FavoritePro")
+def recompute_metrics_on_favorite_save(sender, instance, **kwargs):
+    from accounts.metrics import recompute_pro_metrics
+
+    recompute_pro_metrics(instance.pro)
+
+
+@receiver(post_delete, sender="accounts.FavoritePro")
+def recompute_metrics_on_favorite_delete(sender, instance, **kwargs):
+    from accounts.metrics import recompute_pro_metrics
+
+    recompute_pro_metrics(instance.pro)

@@ -6,9 +6,11 @@ interface Props {
   onSuccess: (idToken: string) => Promise<void>;
   onError?: (message: string) => void;
   fullWidth?: boolean;
+  shape?: "rectangular" | "pill" | "circle" | "square";
+  size?: "large" | "medium" | "small";
 }
 
-export function GoogleSignInButton({ label = "continue_with", onSuccess, onError, fullWidth }: Props) {
+export function GoogleSignInButton({ label = "continue_with", onSuccess, onError, fullWidth, shape = "rectangular", size = "large" }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [buttonWidth, setButtonWidth] = useState(300);
   const [mounted, setMounted] = useState(false);
@@ -48,8 +50,8 @@ export function GoogleSignInButton({ label = "continue_with", onSuccess, onError
       {mounted && (
         <GoogleLogin
           text={label}
-          shape="rectangular"
-          size="large"
+          shape={shape}
+          size={size}
           width={buttonWidth}
           logo_alignment="left"
           onSuccess={async ({ credential }) => {

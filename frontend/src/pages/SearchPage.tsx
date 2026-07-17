@@ -127,6 +127,8 @@ function ProCard({
       trade={tradeLine}
       respondsIn={pro.response_hours > 0 ? `~${pro.response_hours}h` : null}
       favorite={{ isFavorited, onToggle: () => onToggleFavorite(pro.id), isAuthenticated }}
+      popularityScore={pro.popularity_score}
+      qualityScore={pro.quality_score}
     >
       <Group gap={4} mb={4} wrap="wrap" style={{ position: "relative", zIndex: 1 }}>
         {pro.stats.krafts_verified > 0 && (

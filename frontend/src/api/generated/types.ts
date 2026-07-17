@@ -499,7 +499,7 @@ export interface paths {
         };
         /**
          * List Pros
-         * @description Discovery / B2B search (1.13). Filters by node, trade and ZIP.
+         * @description Discovery / B2B search (1.13). Filters by node, trade and ZIP (radial match).
          */
         get: operations["accounts_pros_api_list_pros"];
         put?: never;
@@ -1160,6 +1160,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/recommendations/rate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rate Pro
+         * @description Card-click rating, for a logged-in user, of either an on-platform pro
+         *     or an off-platform referred contact (design-specs/12.OffPlatformProRatings.md
+         *     §4). Re-rating the same target edits the rater's existing Recommendation
+         *     instead of creating a duplicate.
+         */
+        post: operations["recommendations_api_rate_pro"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/recommendations/{rec_id}/approve": {
         parameters: {
             query?: never;
@@ -1171,7 +1194,7 @@ export interface paths {
         put?: never;
         /**
          * Approve Recommendation
-         * @description Pro approves -> the recommendation goes public on the profile.
+         * @description Approve -> the recommendation counts toward the pro's public scores.
          */
         post: operations["recommendations_api_approve_recommendation"];
         delete?: never;
@@ -1813,6 +1836,28 @@ export interface paths {
         head?: never;
         /** Set User Visitor */
         patch: operations["common_gk_admin_api_set_user_visitor"];
+        trace?: never;
+    };
+    "/api/gk-admin/users/{user_id}/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Set User Roles
+         * @description Set the full set of capability roles a user holds at once (e.g. Pro +
+         *     Referrer + Community Owner). One becomes the primary `role`; the rest are
+         *     stored in `extra_roles` — see CAPABILITY_ROLES / _PRIMARY_PRIORITY above.
+         */
+        patch: operations["common_gk_admin_api_set_user_roles"];
         trace?: never;
     };
     "/api/gk-admin/nodes": {
@@ -2698,6 +2743,634 @@ export interface paths {
         put?: never;
         /** Request Intro */
         post: operations["circles_api_request_intro"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/communities/checkout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Community Checkout
+         * @description Start a Stripe Checkout session for a Referrer starting a Community subscription.
+         */
+        post: operations["communities_api_create_community_checkout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/communities/subscription": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Community Subscription Status */
+        get: operations["communities_api_community_subscription_status"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/communities/check-slug": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Check Slug Available */
+        get: operations["communities_api_check_slug_available"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/communities/{slug}/copy-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Log Copy Link
+         * @description Fired when a visitor taps 'Copy page link' — powers the copied-count shown on the page.
+         */
+        post: operations["communities_api_log_copy_link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/communities/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Community */
+        get: operations["communities_api_get_community"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/communities/{slug}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Public Members */
+        get: operations["communities_api_list_public_members"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/communities/{slug}/join/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Preview Join */
+        get: operations["communities_api_preview_join"];
+        put?: never;
+        /** Join Community */
+        post: operations["communities_api_join_community"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/communities/{slug}/join/{token}/send-otp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send Join Otp */
+        post: operations["communities_api_send_join_otp"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/communities/{slug}/join": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Join Community Self
+         * @description Self-serve join request for an already-authenticated visitor — no invite token required.
+         *
+         *     Distinct from POST /{slug}/join/{token} above, which is for pre-known invitees the
+         *     owner already added to the directory (and therefore already vetted) — those still
+         *     auto-join. A brand-new self-serve request instead lands as PENDING until the
+         *     owner/moderator approves it via POST /me/community/members/{id}/approve.
+         */
+        post: operations["communities_api_join_community_self"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/communities/{slug}/request-pro": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request Pro */
+        post: operations["communities_api_request_pro"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/communities/{slug}/request-intro": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request Intro */
+        post: operations["communities_api_request_intro"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/communities/{slug}/message-owner": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Message Owner
+         * @description Send a message that lands as a real Lead/chat thread in the owner's inbox.
+         *
+         *     Authenticated visitors send as themselves; anonymous visitors must supply
+         *     guest_name and are attributed to the shared 'anonymous@gigkraft.internal'
+         *     sentinel user (same pattern as leads.api.create_anonymous_lead), so no
+         *     per-visitor account is created just to send one message.
+         */
+        post: operations["communities_api_message_owner"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/communities/{slug}/recommend-pro": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Recommend Pro
+         * @description A joined Member suggests a pro for the Community's list — lands pending
+         *     Owner/Moderator approval rather than going straight onto the public page.
+         *     design-specs/13.RecommendAPro-LandingIntent.md.
+         */
+        post: operations["communities_api_recommend_pro"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/communities/{slug}/link-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Link Preview
+         * @description Best-effort metadata fetch for the optional URL field on the
+         *     Recommend-a-Pro form — lets a Member preview how the link would look
+         *     before submitting. Gated to joined Members, same as recommend_pro, to
+         *     limit the server-side-fetch surface.
+         */
+        post: operations["communities_api_link_preview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/community": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get My Community */
+        get: operations["communities_api_get_my_community"];
+        put?: never;
+        /**
+         * Create My Community
+         * @description Name the Lead's Community (Workflow 1 step 4).
+         *
+         *     The webhook creates a placeholder `Community` row on checkout completion
+         *     (it needs to exist before `CommunitySubscription` can FK to it), so this
+         *     is really "set the name for the first time" rather than a bare create —
+         *     get_or_create keeps it safe to call even if the webhook race hasn't landed yet.
+         */
+        post: operations["communities_api_create_my_community"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update My Community */
+        patch: operations["communities_api_update_my_community"];
+        trace?: never;
+    };
+    "/api/me/community/billing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Community Billing */
+        get: operations["communities_api_community_billing"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/community/downgrade": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Downgrade My Community */
+        post: operations["communities_api_downgrade_my_community"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/community/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List My Members */
+        get: operations["communities_api_list_my_members"];
+        put?: never;
+        /** Add Members */
+        post: operations["communities_api_add_members"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/community/pending-ratings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Pending Ratings
+         * @description Off-platform pros' card-click ratings awaiting approval before they
+         *     count toward that pro's public score — design-specs/12.OffPlatformProRatings.md
+         *     §4/§9 #3. Approve/hide via the existing /api/recommendations/{id}/approve|hide.
+         */
+        get: operations["communities_api_list_pending_ratings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/community/pending-pro-recommendations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Pending Pro Recommendations
+         * @description Member-submitted pro suggestions awaiting Owner/Moderator approval —
+         *     design-specs/13.RecommendAPro-LandingIntent.md §4.
+         */
+        get: operations["communities_api_list_pending_pro_recommendations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/community/pending-pro-recommendations/{referrer_pro_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve Pro Recommendation */
+        post: operations["communities_api_approve_pro_recommendation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/community/pending-pro-recommendations/{referrer_pro_id}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decline Pro Recommendation */
+        post: operations["communities_api_decline_pro_recommendation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/community/members/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload Members */
+        post: operations["communities_api_upload_members"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/community/members/{member_id}/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resend Member Invite */
+        post: operations["communities_api_resend_member_invite"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/community/members/{member_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove Member */
+        delete: operations["communities_api_remove_member"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/community/members/{member_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve Member */
+        post: operations["communities_api_approve_member"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/community/members/{member_id}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decline Member */
+        post: operations["communities_api_decline_member"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/community/members/{member_id}/role": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Set Member Role */
+        post: operations["communities_api_set_member_role"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/community/pros/candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Pro Candidates
+         * @description All of the Lead's personal-page pros, with `on_this_community` computed
+         *     against *this* Community specifically. `ReferrerPro.show_on_community`
+         *     defaults to True on every row regardless of `community` — including pros
+         *     never added to any community — so it can't be used directly to say whether
+         *     a pro is actually on this page; it only means something once `community_id`
+         *     matches.
+         */
+        get: operations["communities_api_list_pro_candidates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/community/pros/toggle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Toggle Community Pro */
+        post: operations["communities_api_toggle_community_pro"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/community/pros/off-platform": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add Off Platform Pro */
+        post: operations["communities_api_add_off_platform_pro"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/community/pros/bulk-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bulk Import Pros
+         * @description CSV/paste bulk import — same off-platform-pro creation as add_off_platform_pro,
+         *     looped, skipping rows with no contact info or ones that dupe an existing off-platform
+         *     entry on this referrer's list (matched by phone or email).
+         */
+        post: operations["communities_api_bulk_import_pros"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/community/analytics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Community Analytics */
+        get: operations["communities_api_community_analytics"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3758,6 +4431,26 @@ export interface components {
             /** Trade Categories */
             trade_categories: components["schemas"]["TradeCategoryOut"][];
             stats: components["schemas"]["ProStatsSummary"];
+            /** Popularity Score */
+            popularity_score: number | null;
+            /** Quality Score */
+            quality_score: number | null;
+            /** Recommended Count */
+            recommended_count: number;
+            /** Used Count */
+            used_count: number;
+            /** Review Count */
+            review_count: number;
+            /** Schedule Adherence Pct */
+            schedule_adherence_pct: number | null;
+            /** Professionalism Cleanliness Pct */
+            professionalism_cleanliness_pct: number | null;
+            /** Pricing Transparency Pct */
+            pricing_transparency_pct: number | null;
+            /** Communication Quality Pct */
+            communication_quality_pct: number | null;
+            /** Rehire Intent Pct */
+            rehire_intent_pct: number | null;
         };
         /** ProStatsSummary */
         ProStatsSummary: {
@@ -4212,6 +4905,7 @@ export interface components {
             created_at: string;
             homeowner: components["schemas"]["PartyOut"];
             pro: components["schemas"]["PartyOut"] | null;
+            recipient: components["schemas"]["PartyOut"] | null;
             /** Last Message */
             last_message: string | null;
             /** Unread Hint */
@@ -4482,6 +5176,25 @@ export interface components {
              * @default []
              */
             photo_urls: string[];
+        };
+        /**
+         * RateProIn
+         * @description Card-click rating (design-specs/12.OffPlatformProRatings.md §4) —
+         *     the logged-in rater's identity comes from the JWT, not this payload.
+         *     Exactly one of pro_id/referrer_pro_id must be set.
+         */
+        RateProIn: {
+            /** Pro Id */
+            pro_id?: number | null;
+            /** Referrer Pro Id */
+            referrer_pro_id?: number | null;
+            /** Stars */
+            stars: number;
+            /**
+             * Text
+             * @default
+             */
+            text: string;
         };
         /** FavoritesOut */
         FavoritesOut: {
@@ -4857,13 +5570,18 @@ export interface components {
         };
         /** SubscriptionStatusOut */
         SubscriptionStatusOut: {
+            /** Has Community */
+            has_community: boolean;
             /** Has Active Subscription */
             has_active_subscription: boolean;
-            subscription: components["schemas"]["SubscriptionOut"] | null;
+            /** Community Slug */
+            community_slug?: string | null;
+            /** Plan */
+            plan?: string | null;
+            /** Status */
+            status?: string | null;
             /** Stripe Mode */
             stripe_mode: string;
-            /** User Id */
-            user_id: number;
         };
         /** PlanIn */
         PlanIn: {
@@ -5065,6 +5783,8 @@ export interface components {
             phone: string | null;
             /** Role */
             role: string;
+            /** Extra Roles */
+            extra_roles: string[];
             /** First Name */
             first_name: string;
             /** Last Name */
@@ -5082,6 +5802,11 @@ export interface components {
             /** Pro Handle */
             pro_handle: string | null;
         };
+        /** SetUserRolesIn */
+        SetUserRolesIn: {
+            /** Roles */
+            roles: string[];
+        };
         /** StripeConfigOut */
         StripeConfigOut: {
             /** Mode */
@@ -5098,6 +5823,14 @@ export interface components {
             live_price_monthly: string;
             /** Live Price Annual */
             live_price_annual: string;
+            /** Test Price Community Monthly */
+            test_price_community_monthly: string;
+            /** Test Price Community Annual */
+            test_price_community_annual: string;
+            /** Live Price Community Monthly */
+            live_price_community_monthly: string;
+            /** Live Price Community Annual */
+            live_price_community_annual: string;
             /** Test Key Set */
             test_key_set: boolean;
             /** Live Key Set */
@@ -5119,6 +5852,26 @@ export interface components {
             live_price_monthly: string;
             /** Live Price Annual */
             live_price_annual: string;
+            /**
+             * Test Price Community Monthly
+             * @default
+             */
+            test_price_community_monthly: string;
+            /**
+             * Test Price Community Annual
+             * @default
+             */
+            test_price_community_annual: string;
+            /**
+             * Live Price Community Monthly
+             * @default
+             */
+            live_price_community_monthly: string;
+            /**
+             * Live Price Community Annual
+             * @default
+             */
+            live_price_community_annual: string;
         };
         /** StripeConnectionOut */
         StripeConnectionOut: {
@@ -5945,10 +6698,10 @@ export interface components {
             /** Name */
             name: string;
             /**
-             * Skill
+             * Trade
              * @default
              */
-            skill: string;
+            trade: string;
             /**
              * Phone
              * @default
@@ -6026,10 +6779,8 @@ export interface components {
         };
         /** RequestProIn */
         RequestProIn: {
-            /** Circle Pro Id */
-            circle_pro_id?: number | null;
-            /** Pro Id */
-            pro_id?: number | null;
+            /** Community Pro Id */
+            community_pro_id: number;
             /** Seeker Name */
             seeker_name: string;
             /** Seeker Phone */
@@ -6067,6 +6818,465 @@ export interface components {
              * @default
              */
             detail: string;
+        };
+        /** CopyLinkOut */
+        CopyLinkOut: {
+            /** Link Copy Count */
+            link_copy_count: number;
+        };
+        /** CommunityOut */
+        CommunityOut: {
+            /** Slug */
+            slug: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description: string;
+            /** Cover Image Url */
+            cover_image_url: string;
+            /** Theme */
+            theme: string;
+            /** Lead Name */
+            lead_name: string;
+            /** Lead Avatar Url */
+            lead_avatar_url?: string | null;
+            /** Status */
+            status: string;
+            /** Is Read Only */
+            is_read_only: boolean;
+            /** Is Publicly Visible */
+            is_publicly_visible: boolean;
+            /** Pro Count */
+            pro_count: number;
+            /**
+             * Member Count
+             * @default 0
+             */
+            member_count: number;
+            /**
+             * Page Views
+             * @default 0
+             */
+            page_views: number;
+            /**
+             * Link Copy Count
+             * @default 0
+             */
+            link_copy_count: number;
+            /** Viewer Status */
+            viewer_status?: string | null;
+            /**
+             * Pros
+             * @default []
+             */
+            pros: components["schemas"]["CommunityProOut"][];
+        };
+        /** CommunityProOut */
+        CommunityProOut: {
+            /** Id */
+            id: number;
+            /** Pro Id */
+            pro_id?: number | null;
+            /** Display Name */
+            display_name: string;
+            /** Trade */
+            trade: string;
+            /** Avatar Url */
+            avatar_url?: string | null;
+            /** Handle */
+            handle?: string | null;
+            /** Endorsement */
+            endorsement: string;
+            /**
+             * Tags
+             * @default []
+             */
+            tags: string[];
+            /** Is Off Platform */
+            is_off_platform: boolean;
+            /** Phone */
+            phone?: string | null;
+            /** Email */
+            email?: string | null;
+            /** Popularity Score */
+            popularity_score?: number | null;
+            /** Quality Score */
+            quality_score?: number | null;
+            /**
+             * Recommended Count
+             * @default 0
+             */
+            recommended_count: number;
+            /**
+             * Used Count
+             * @default 0
+             */
+            used_count: number;
+            /**
+             * Review Count
+             * @default 0
+             */
+            review_count: number;
+            /** Schedule Adherence Pct */
+            schedule_adherence_pct?: number | null;
+            /** Professionalism Cleanliness Pct */
+            professionalism_cleanliness_pct?: number | null;
+            /** Pricing Transparency Pct */
+            pricing_transparency_pct?: number | null;
+            /** Communication Quality Pct */
+            communication_quality_pct?: number | null;
+            /** Rehire Intent Pct */
+            rehire_intent_pct?: number | null;
+            /** Submitted By Name */
+            submitted_by_name?: string | null;
+        };
+        /** CommunityMemberOut */
+        CommunityMemberOut: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Phone */
+            phone: string;
+            /** Email */
+            email: string;
+            /** Status */
+            status: string;
+            /** Role */
+            role: string;
+            /** Click Count */
+            click_count: number;
+            /** Invited At */
+            invited_at: string;
+            /** Joined At */
+            joined_at?: string | null;
+            /** Last Resent At */
+            last_resent_at?: string | null;
+            /** Avatar Url */
+            avatar_url?: string | null;
+        };
+        /** JoinPreviewOut */
+        JoinPreviewOut: {
+            /** Name */
+            name: string;
+            /** Phone */
+            phone: string;
+            /** Email */
+            email: string;
+            /** Status */
+            status: string;
+            /** Community Name */
+            community_name: string;
+            /** Community Slug */
+            community_slug: string;
+        };
+        /** JoinIn */
+        JoinIn: {
+            /** Otp Code */
+            otp_code?: string | null;
+            /** Google Id Token */
+            google_id_token?: string | null;
+        };
+        /** MessageOwnerIn */
+        MessageOwnerIn: {
+            /** Body */
+            body: string;
+            /**
+             * Guest Name
+             * @default
+             */
+            guest_name: string;
+        };
+        /** RecommendProIn */
+        RecommendProIn: {
+            /** Name */
+            name: string;
+            /**
+             * Trade
+             * @default
+             */
+            trade: string;
+            /**
+             * Phone
+             * @default
+             */
+            phone: string;
+            /**
+             * Email
+             * @default
+             */
+            email: string;
+            /**
+             * Url
+             * @default
+             */
+            url: string;
+            /**
+             * Endorsement
+             * @default
+             */
+            endorsement: string;
+        };
+        /** LinkPreviewOut */
+        LinkPreviewOut: {
+            /** Title */
+            title: string;
+            /** Description */
+            description: string;
+            /** Image */
+            image: string;
+            /** Created At */
+            created_at: string;
+        };
+        /** LinkPreviewIn */
+        LinkPreviewIn: {
+            /** Url */
+            url: string;
+        };
+        /** ManagedCommunityOut */
+        ManagedCommunityOut: {
+            /** Slug */
+            slug: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description: string;
+            /** Cover Image Url */
+            cover_image_url: string;
+            /** Theme */
+            theme: string;
+            /** Status */
+            status: string;
+            /** Is Read Only */
+            is_read_only: boolean;
+            /** Viewer Role */
+            viewer_role: string;
+            /** Short Code */
+            short_code: string;
+            /** Short Link Click Count */
+            short_link_click_count: number;
+        };
+        /** CreateCommunityIn */
+        CreateCommunityIn: {
+            /** Name */
+            name: string;
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+        };
+        /** UpdateCommunityIn */
+        UpdateCommunityIn: {
+            /** Name */
+            name?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Slug */
+            slug?: string | null;
+            /** Cover Image Url */
+            cover_image_url?: string | null;
+            /** Theme */
+            theme?: string | null;
+        };
+        /** CommunityBillingOut */
+        CommunityBillingOut: {
+            /** Plan */
+            plan?: string | null;
+            /** Plan Label */
+            plan_label?: string | null;
+            /** Status */
+            status?: string | null;
+            /** Renews At */
+            renews_at?: string | null;
+            /**
+             * Card Last4
+             * @default
+             */
+            card_last4: string;
+            /** Monthly Value */
+            monthly_value?: number | null;
+            /**
+             * Invoices
+             * @default []
+             */
+            invoices: components["schemas"]["CommunityInvoiceOut"][];
+        };
+        /** CommunityInvoiceOut */
+        CommunityInvoiceOut: {
+            /** Id */
+            id: number;
+            /** Amount */
+            amount: number;
+            /** Status */
+            status: string;
+            /** Period Label */
+            period_label: string;
+            /** Issued At */
+            issued_at: string;
+        };
+        /** AddMembersOut */
+        AddMembersOut: {
+            /** Added */
+            added: number;
+            /** Skipped */
+            skipped: number;
+        };
+        /** AddMemberIn */
+        AddMemberIn: {
+            /** Name */
+            name: string;
+            /**
+             * Phone
+             * @default
+             */
+            phone: string;
+            /**
+             * Email
+             * @default
+             */
+            email: string;
+        };
+        /** AddMembersIn */
+        AddMembersIn: {
+            /** Members */
+            members: components["schemas"]["AddMemberIn"][];
+        };
+        /** PendingRatingOut */
+        PendingRatingOut: {
+            /** Id */
+            id: number;
+            /** Referrer Pro Id */
+            referrer_pro_id: number;
+            /** Pro Name */
+            pro_name: string;
+            /** Rater Name */
+            rater_name: string;
+            /** Stars */
+            stars: number | null;
+            /** Text */
+            text: string;
+            /** Created At */
+            created_at: string;
+        };
+        /** PendingProRecommendationOut */
+        PendingProRecommendationOut: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Trade */
+            trade: string;
+            /** Phone */
+            phone: string;
+            /** Email */
+            email: string;
+            /** Url */
+            url: string;
+            /** Endorsement */
+            endorsement: string;
+            /** Submitted By Name */
+            submitted_by_name: string;
+        };
+        /** RoleIn */
+        RoleIn: {
+            /** Role */
+            role: string;
+        };
+        /** CommunityProCandidateOut */
+        CommunityProCandidateOut: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Trade */
+            trade: string;
+            /** Phone */
+            phone: string;
+            /** Email */
+            email: string;
+            /** Avatar Url */
+            avatar_url: string;
+            /** Endorsement */
+            endorsement: string;
+            /**
+             * Tags
+             * @default []
+             */
+            tags: string[];
+            /** Is On Platform */
+            is_on_platform: boolean;
+            /** On This Community */
+            on_this_community: boolean;
+            /**
+             * Pending Approval
+             * @default false
+             */
+            pending_approval: boolean;
+        };
+        /** ToggleProIn */
+        ToggleProIn: {
+            /** Referrer Pro Id */
+            referrer_pro_id?: number | null;
+            /** Pro Id */
+            pro_id?: number | null;
+        };
+        /** BulkImportProsOut */
+        BulkImportProsOut: {
+            /** Added */
+            added: number;
+            /** Skipped */
+            skipped: number;
+        };
+        /** BulkImportProRowIn */
+        BulkImportProRowIn: {
+            /** Name */
+            name: string;
+            /**
+             * Trade
+             * @default
+             */
+            trade: string;
+            /**
+             * Phone
+             * @default
+             */
+            phone: string;
+            /**
+             * Email
+             * @default
+             */
+            email: string;
+            /**
+             * Endorsement
+             * @default
+             */
+            endorsement: string;
+            /**
+             * Tags
+             * @default []
+             */
+            tags: string[];
+        };
+        /** BulkImportProsIn */
+        BulkImportProsIn: {
+            /** Rows */
+            rows: components["schemas"]["BulkImportProRowIn"][];
+        };
+        /** CommunityAnalyticsOut */
+        CommunityAnalyticsOut: {
+            /** Page Views */
+            page_views: number;
+            /** Requests Submitted */
+            requests_submitted: number;
+            /** Member Count */
+            member_count: number;
+            /** Invited Count */
+            invited_count: number;
+            /** Joined Count */
+            joined_count: number;
+            /** Pro Count */
+            pro_count: number;
         };
         /** ReferrerDashboardOut */
         ReferrerDashboardOut: {
@@ -6155,6 +7365,8 @@ export interface components {
             tags: string[];
             /** Show On Page */
             show_on_page: boolean;
+            /** Show On Community */
+            show_on_community: boolean;
             /** Display Order */
             display_order: number;
             /** Referral Count */
@@ -6241,6 +7453,8 @@ export interface components {
             phone?: string | null;
             /** Email */
             email?: string | null;
+            /** Zip */
+            zip?: string | null;
             /** Note */
             note?: string | null;
             /**
@@ -6250,6 +7464,8 @@ export interface components {
             channel: string;
             /** Message */
             message?: string | null;
+            /** Tags */
+            tags?: string[] | null;
         };
         /** InviteProResendOut */
         InviteProResendOut: {
@@ -6673,6 +7889,8 @@ export interface components {
         ProCardOut: {
             /** Id */
             id: number;
+            /** Linked Pro Id */
+            linked_pro_id?: number | null;
             /** Name */
             name: string;
             /** Trade */
@@ -6710,6 +7928,35 @@ export interface components {
             short_url: string;
             /** Click Count */
             click_count?: number | null;
+            /** Popularity Score */
+            popularity_score?: number | null;
+            /** Quality Score */
+            quality_score?: number | null;
+            /**
+             * Recommended Count
+             * @default 0
+             */
+            recommended_count: number;
+            /**
+             * Used Count
+             * @default 0
+             */
+            used_count: number;
+            /**
+             * Review Count
+             * @default 0
+             */
+            review_count: number;
+            /** Schedule Adherence Pct */
+            schedule_adherence_pct?: number | null;
+            /** Professionalism Cleanliness Pct */
+            professionalism_cleanliness_pct?: number | null;
+            /** Pricing Transparency Pct */
+            pricing_transparency_pct?: number | null;
+            /** Communication Quality Pct */
+            communication_quality_pct?: number | null;
+            /** Rehire Intent Pct */
+            rehire_intent_pct?: number | null;
         };
         /** ReferrerPublicOut */
         ReferrerPublicOut: {
@@ -7295,6 +8542,7 @@ export interface operations {
                 radius?: number | null;
                 category?: string | null;
                 subcategory?: string | null;
+                skill?: string | null;
                 licensed?: boolean | null;
                 insured?: boolean | null;
                 max_response_hours?: number | null;
@@ -7587,6 +8835,7 @@ export interface operations {
                 node?: string | null;
                 trade?: string | null;
                 zip?: string | null;
+                radius?: number | null;
                 q?: string | null;
             };
             header?: never;
@@ -8763,6 +10012,48 @@ export interface operations {
             };
         };
     };
+    recommendations_api_rate_pro: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RateProIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecommendationOut"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
     recommendations_api_approve_recommendation: {
         parameters: {
             query?: never;
@@ -8785,6 +10076,15 @@ export interface operations {
             };
             /** @description Bad Request */
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8821,6 +10121,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RecommendationOut"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
                 };
             };
             /** @description Not Found */
@@ -9827,6 +11136,54 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserRow"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    common_gk_admin_api_set_user_roles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetUserRolesIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserRow"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Not Found */
@@ -11637,6 +12994,1204 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    communities_api_create_community_checkout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckoutIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckoutOut"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    communities_api_community_subscription_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubscriptionStatusOut"];
+                };
+            };
+        };
+    };
+    communities_api_check_slug_available: {
+        parameters: {
+            query: {
+                slug: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    communities_api_log_copy_link: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CopyLinkOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    communities_api_get_community: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommunityOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    communities_api_list_public_members: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommunityMemberOut"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    communities_api_preview_join: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JoinPreviewOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    communities_api_join_community: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JoinIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    communities_api_send_join_otp: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    communities_api_join_community_self: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    communities_api_request_pro: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestProIn"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    communities_api_request_intro: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestProIn"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    communities_api_message_owner: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MessageOwnerIn"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    communities_api_recommend_pro: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecommendProIn"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    communities_api_link_preview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinkPreviewIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LinkPreviewOut"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    communities_api_get_my_community: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagedCommunityOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    communities_api_create_my_community: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateCommunityIn"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagedCommunityOut"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    communities_api_update_my_community: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateCommunityIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagedCommunityOut"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    communities_api_community_billing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommunityBillingOut"];
+                };
+            };
+        };
+    };
+    communities_api_downgrade_my_community: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    communities_api_list_my_members: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommunityMemberOut"][];
+                };
+            };
+        };
+    };
+    communities_api_add_members: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddMembersIn"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AddMembersOut"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    communities_api_list_pending_ratings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PendingRatingOut"][];
+                };
+            };
+        };
+    };
+    communities_api_list_pending_pro_recommendations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PendingProRecommendationOut"][];
+                };
+            };
+        };
+    };
+    communities_api_approve_pro_recommendation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                referrer_pro_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommunityProOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    communities_api_decline_pro_recommendation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                referrer_pro_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    communities_api_upload_members: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * File
+                     * Format: binary
+                     */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AddMembersOut"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    communities_api_resend_member_invite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                member_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    communities_api_remove_member: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                member_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    communities_api_approve_member: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                member_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommunityMemberOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    communities_api_decline_member: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                member_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommunityMemberOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    communities_api_set_member_role: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                member_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommunityMemberOut"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    communities_api_list_pro_candidates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommunityProCandidateOut"][];
+                };
+            };
+        };
+    };
+    communities_api_toggle_community_pro: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ToggleProIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommunityProOut"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    communities_api_add_off_platform_pro: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddOffPlatformProIn"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommunityProOut"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    communities_api_bulk_import_pros: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkImportProsIn"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BulkImportProsOut"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    communities_api_community_analytics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommunityAnalyticsOut"];
                 };
             };
         };

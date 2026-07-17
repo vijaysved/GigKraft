@@ -101,6 +101,17 @@ def _build_pro_card(rp: ReferrerPro, follower: Optional[ReferrerFollower], is_ow
         is_insured = pro.insured
         is_on_platform = True
         is_pending = False
+        # Popularity/Quality-of-Work card metrics — design-specs/11.ContactCardUpdate.md.
+        popularity_score = pro.popularity_score
+        quality_score = pro.quality_score
+        recommended_count = pro.recommended_count
+        used_count = pro.used_count
+        review_count = pro.review_count
+        schedule_adherence_pct = pro.schedule_adherence_pct
+        professionalism_cleanliness_pct = pro.professionalism_cleanliness_pct
+        pricing_transparency_pct = pro.pricing_transparency_pct
+        communication_quality_pct = pro.communication_quality_pct
+        rehire_intent_pct = pro.rehire_intent_pct
     else:
         name = invite.name if invite else ""
         trade = invite.trade if invite else ""
@@ -113,6 +124,19 @@ def _build_pro_card(rp: ReferrerPro, follower: Optional[ReferrerFollower], is_ow
         is_insured = False
         is_on_platform = False
         is_pending = invite.status == ProInvite.Status.PENDING if invite else False
+        # Off-platform (referred) pros score via ReferrerPro's own cached
+        # fields, not ProProfile — design-specs/12.OffPlatformProRatings.md.
+        # No "recommended" (favorites) sub-metric applies to them (§3.1).
+        popularity_score = rp.popularity_score
+        quality_score = rp.quality_score
+        recommended_count = 0
+        used_count = rp.used_count
+        review_count = rp.review_count
+        schedule_adherence_pct = rp.schedule_adherence_pct
+        professionalism_cleanliness_pct = rp.professionalism_cleanliness_pct
+        pricing_transparency_pct = rp.pricing_transparency_pct
+        communication_quality_pct = rp.communication_quality_pct
+        rehire_intent_pct = rp.rehire_intent_pct
 
     request_status = None
     tap_to_call = False
@@ -145,6 +169,16 @@ def _build_pro_card(rp: ReferrerPro, follower: Optional[ReferrerFollower], is_ow
         "request_status": request_status,
         "short_url": f"https://gigkraft.com/p/{rp.short_code}",
         "click_count": rp.short_link_click_count if is_owner else None,
+        "popularity_score": popularity_score,
+        "quality_score": quality_score,
+        "recommended_count": recommended_count,
+        "used_count": used_count,
+        "review_count": review_count,
+        "schedule_adherence_pct": schedule_adherence_pct,
+        "professionalism_cleanliness_pct": professionalism_cleanliness_pct,
+        "pricing_transparency_pct": pricing_transparency_pct,
+        "communication_quality_pct": communication_quality_pct,
+        "rehire_intent_pct": rehire_intent_pct,
     }
 
 
@@ -329,6 +363,17 @@ class ProCardOut(Schema):
     request_status: Optional[str] = None
     short_url: str
     click_count: Optional[int] = None
+    # Popularity/Quality-of-Work card metrics — design-specs/11.ContactCardUpdate.md.
+    popularity_score: Optional[int] = None
+    quality_score: Optional[int] = None
+    recommended_count: int = 0
+    used_count: int = 0
+    review_count: int = 0
+    schedule_adherence_pct: Optional[int] = None
+    professionalism_cleanliness_pct: Optional[int] = None
+    pricing_transparency_pct: Optional[int] = None
+    communication_quality_pct: Optional[int] = None
+    rehire_intent_pct: Optional[int] = None
 
 
 class FollowerStateOut(Schema):

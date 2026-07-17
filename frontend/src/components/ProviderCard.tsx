@@ -1,8 +1,9 @@
 import { Avatar, Badge, Box, Card, Group, Stack, Text, Tooltip } from "@mantine/core";
-import { IconHeart, IconHeartFilled, IconMail, IconPhone } from "@tabler/icons-react";
+import { IconHeart, IconHeartFilled, IconHelmet, IconMail, IconPhone } from "@tabler/icons-react";
 import type { ReactNode, Ref } from "react";
 
 import { fallbackAvatar } from "../assets/fallbackAvatars";
+import { SpeedometerGauge } from "./SpeedometerGauge";
 import { formatPhone, maskEmail, maskPhone } from "../utils/format";
 
 export interface ProviderCardFavorite {
@@ -32,6 +33,9 @@ interface ProviderCardProps {
    * photos are blurred heavily; generic stock avatars get a much lighter blur since
    * they don't identify anyone. The name stays visible; phone/email are partially masked. */
   blurred?: boolean;
+  /** design-specs/11.ContactCardUpdate.md — 0-100, or null/undefined = "not enough data". */
+  popularityScore?: number | null;
+  qualityScore?: number | null;
   children?: ReactNode;
 }
 
@@ -54,6 +58,8 @@ export function ProviderCard({
   topRightAction,
   favorite,
   blurred,
+  popularityScore,
+  qualityScore,
   children,
 }: ProviderCardProps) {
   const hasRealAvatar = !!avatarUrl;
@@ -62,17 +68,36 @@ export function ProviderCard({
 
   const badges = (
     <Group gap={4} wrap="nowrap" style={{ flexShrink: 0 }}>
-      <Badge
-        size="xs"
-        variant="filled"
-        style={{
-          flexShrink: 0,
-          backgroundColor: tier === "pro" ? "var(--gk-accent-primary)" : "var(--gk-accent-secondary)",
-          color: tier === "pro" ? "var(--gk-accent-secondary)" : "var(--gk-accent-primary)",
-        }}
-      >
-        {tier === "pro" ? "Pro" : "Referred"}
-      </Badge>
+      {tier === "pro" ? (
+        <Tooltip label="GigKraft Pro" position="top" withArrow>
+          <Box
+            style={{
+              flexShrink: 0,
+              width: 20,
+              height: 20,
+              borderRadius: "50%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: "var(--gk-accent-primary)",
+            }}
+          >
+            <IconHelmet size={12} color="var(--gk-accent-secondary)" />
+          </Box>
+        </Tooltip>
+      ) : (
+        <Badge
+          size="xs"
+          variant="filled"
+          style={{
+            flexShrink: 0,
+            backgroundColor: "var(--gk-accent-secondary)",
+            color: "var(--gk-accent-primary)",
+          }}
+        >
+          Pro
+        </Badge>
+      )}
       {isPending && (
         <Badge
           size="xs"
@@ -94,7 +119,7 @@ export function ProviderCard({
       onClick={onClick}
       style={{
         cursor: onClick ? "pointer" : undefined,
-        borderColor: "var(--gk-accent-primary)",
+        borderColor: tier === "pro" ? "var(--gk-accent-primary)" : "var(--gk-accent-secondary)",
         boxShadow: highlighted
           ? "0 0 0 2px var(--gk-accent-primary), 0 4px 16px color-mix(in srgb, var(--gk-accent-primary) 30%, transparent)"
           : "0 2px 12px color-mix(in srgb, var(--gk-accent-secondary) 20%, transparent)",
@@ -205,6 +230,18 @@ export function ProviderCard({
       </Group>
 
       {children}
+
+      {(popularityScore !== undefined || qualityScore !== undefined) && (
+        <Group
+          justify="center"
+          gap={20}
+          mt={6}
+          style={{ position: "relative", zIndex: 1 }}
+        >
+          <SpeedometerGauge value={popularityScore ?? null} label="Popularity" size={30} />
+          <SpeedometerGauge value={qualityScore ?? null} label="Quality" size={30} />
+        </Group>
+      )}
 
       <Text
         ta="center"

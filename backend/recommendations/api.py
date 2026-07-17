@@ -17,7 +17,8 @@ from accounts.models import ProProfile
 from common import notify
 from common.permissions import require_pro
 from leads.models import Lead
-from recommendations.models import Recommendation
+from recommendations.models import Recommendation, generate_token
+from referrals.models import ReferrerPro
 
 router = Router(tags=["recommendations"])
 public_router = Router(tags=["recommendations"])
@@ -65,6 +66,16 @@ class ReviewSubmitIn(Schema):
     stars: int
     text: str = ""
     photo_urls: list[str] = []
+
+
+class RateProIn(Schema):
+    """Card-click rating (design-specs/12.OffPlatformProRatings.md §4) —
+    the logged-in rater's identity comes from the JWT, not this payload.
+    Exactly one of pro_id/referrer_pro_id must be set."""
+    pro_id: Optional[int] = None
+    referrer_pro_id: Optional[int] = None
+    stars: int
+    text: str = ""  # pre-encoded via encodeRecText on the frontend, same as the magic-link flow
 
 
 def magic_link(rec: Recommendation) -> str:
@@ -154,7 +165,7 @@ def review_context(request, token: str):
     """Public: load the review screen context from a magic link (2.5)."""
     rec = (
         Recommendation.objects.filter(token=token)
-        .select_related("pro", "pro__user", "lead")
+        .select_related("pro", "pro__user", "referrer_pro", "lead")
         .first()
     )
     if rec is None:
@@ -162,9 +173,10 @@ def review_context(request, token: str):
     if rec.status == Recommendation.Status.SENT:
         rec.status = Recommendation.Status.OPENED
         rec.save(update_fields=["status"])
+    target = rec.pro or rec.referrer_pro
     return 200, {
-        "pro_name": rec.pro.display_name,
-        "pro_trade": rec.pro.primary_trade,
+        "pro_name": target.display_name,
+        "pro_trade": target.primary_trade if rec.pro else target.trade,
         "client_name": rec.client_name,
         "job_title": rec.lead.job_title if rec.lead else None,
         "status": rec.status,
@@ -212,16 +224,78 @@ def list_recommendations(request, status: Optional[str] = None):
 
 
 @router.post(
-    "/{rec_id}/approve",
+    "/rate",
     response={200: RecommendationOut, 400: ErrorOut, 404: ErrorOut},
     auth=jwt_auth,
 )
+def rate_pro(request, payload: RateProIn):
+    """Card-click rating, for a logged-in user, of either an on-platform pro
+    or an off-platform referred contact (design-specs/12.OffPlatformProRatings.md
+    §4). Re-rating the same target edits the rater's existing Recommendation
+    instead of creating a duplicate."""
+    if bool(payload.pro_id) == bool(payload.referrer_pro_id):
+        return 400, {"detail": "Provide exactly one of pro_id or referrer_pro_id."}
+    if not 1 <= payload.stars <= 5:
+        return 400, {"detail": "stars must be between 1 and 5."}
+
+    pro = None
+    referrer_pro = None
+    if payload.pro_id:
+        pro = ProProfile.objects.filter(pk=payload.pro_id).first()
+        if pro is None:
+            return 404, {"detail": "Pro not found."}
+    else:
+        referrer_pro = ReferrerPro.objects.filter(pk=payload.referrer_pro_id, pro__isnull=True).first()
+        if referrer_pro is None:
+            return 404, {"detail": "Referred pro not found."}
+
+    rater_name = f"{request.auth.first_name} {request.auth.last_name}".strip() or "GigKraft user"
+    rec, _created = Recommendation.objects.update_or_create(
+        rater=request.auth, pro=pro, referrer_pro=referrer_pro,
+        defaults={
+            "client_name": rater_name,
+            "stars": payload.stars,
+            "text": payload.text,
+            "status": Recommendation.Status.SUBMITTED,
+            "submitted_at": timezone.now(),
+            "token": generate_token(),
+        },
+    )
+    if pro:
+        notify.notify_user(pro.user, f"New rating from {rater_name} to moderate.")
+    return 200, serialize_rec(rec)
+
+
+def _can_moderate(request, rec: Recommendation) -> bool:
+    """Who may approve/hide a Recommendation before it counts toward scores.
+    On-platform: the pro themselves. Off-platform: whoever added them
+    (the referrer), or the Community's Owner/Moderators if community-scoped
+    — §4/§9 #3 of the off-platform spec."""
+    if rec.pro_id:
+        return rec.pro.user_id == request.auth.id
+    rp = rec.referrer_pro
+    if rp is None:
+        return False
+    if rp.referrer_id == request.auth.id:
+        return True
+    if rp.community_id:
+        from communities.api import _viewer_status
+        return _viewer_status(rp.community, request.auth) in ("owner", "moderator")
+    return False
+
+
+@router.post(
+    "/{rec_id}/approve",
+    response={200: RecommendationOut, 400: ErrorOut, 403: ErrorOut, 404: ErrorOut},
+    auth=jwt_auth,
+)
 def approve_recommendation(request, rec_id: int):
-    """Pro approves -> the recommendation goes public on the profile."""
-    pro = require_pro(request)
-    rec = Recommendation.objects.filter(pk=rec_id, pro=pro).first()
+    """Approve -> the recommendation counts toward the pro's public scores."""
+    rec = Recommendation.objects.select_related("pro__user", "referrer_pro__community").filter(pk=rec_id).first()
     if rec is None:
         return 404, {"detail": "Recommendation not found."}
+    if not _can_moderate(request, rec):
+        return 403, {"detail": "You don't have permission to moderate this recommendation."}
     if rec.status != Recommendation.Status.SUBMITTED:
         return 400, {"detail": "Only submitted recommendations can be approved."}
     rec.status = Recommendation.Status.APPROVED
@@ -231,14 +305,15 @@ def approve_recommendation(request, rec_id: int):
 
 @router.post(
     "/{rec_id}/hide",
-    response={200: RecommendationOut, 404: ErrorOut},
+    response={200: RecommendationOut, 403: ErrorOut, 404: ErrorOut},
     auth=jwt_auth,
 )
 def hide_recommendation(request, rec_id: int):
-    pro = require_pro(request)
-    rec = Recommendation.objects.filter(pk=rec_id, pro=pro).first()
+    rec = Recommendation.objects.select_related("pro__user", "referrer_pro__community").filter(pk=rec_id).first()
     if rec is None:
         return 404, {"detail": "Recommendation not found."}
+    if not _can_moderate(request, rec):
+        return 403, {"detail": "You don't have permission to moderate this recommendation."}
     rec.status = Recommendation.Status.HIDDEN
     rec.save(update_fields=["status"])
     return 200, serialize_rec(rec)

@@ -12,6 +12,7 @@ export const REC_METRICS = [
   { key: "clear_rates",       label: "Clear rates" },
   { key: "written_estimates", label: "Written estimates" },
   { key: "material_policy",   label: "Material policy" },
+  { key: "rehire_intent",     label: "Would hire again" },
 ] as const;
 
 export type RecMetricKey = typeof REC_METRICS[number]["key"];
@@ -24,6 +25,7 @@ export const DEFAULT_METRICS: RecMetrics = {
   clear_rates:       false,
   written_estimates: false,
   material_policy:   false,
+  rehire_intent:     false,
 };
 
 // ── Metric encode / decode (stored inside the text field) ─────────────────────
@@ -108,6 +110,20 @@ export async function approveRecommendation(id: number): Promise<RecommendationO
   const { data, error, response } = await client.POST("/api/recommendations/{rec_id}/approve", {
     params: { path: { rec_id: id } },
   });
+  if (!data) throw new Error((error as { detail?: string })?.detail ?? `${response.status}`);
+  return data;
+}
+
+/** Card-click rating (design-specs/12.OffPlatformProRatings.md §4) — for a
+ * logged-in user, of either an on-platform pro or an off-platform referred
+ * contact. Exactly one of pro_id/referrer_pro_id must be set. */
+export async function ratePro(body: {
+  pro_id?: number;
+  referrer_pro_id?: number;
+  stars: number;
+  text: string;
+}): Promise<RecommendationOut> {
+  const { data, error, response } = await client.POST("/api/recommendations/rate", { body });
   if (!data) throw new Error((error as { detail?: string })?.detail ?? `${response.status}`);
   return data;
 }

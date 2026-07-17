@@ -16,6 +16,7 @@ import {
 } from "@mantine/core";
 import {
   IconBriefcase,
+  IconBulb,
   IconCheck,
   IconEye,
   IconLink,
@@ -35,13 +36,15 @@ import { useSetPublicBrandTheme } from "../../theme/PublicBrandThemeContext";
 import { brandCssVars } from "../../theme/themes";
 import { TAG_FILTER_COLOR } from "../../theme/tagColor";
 import { toCamelTag } from "../../utils/tags";
+import { ProviderDetailModal } from "../../components/ProviderDetailModal";
 import { CommunityHeader } from "./components/CommunityHeader";
 import { CommunityProCard } from "./components/CommunityProCard";
 import { JoinCommunityModal } from "./components/JoinCommunityModal";
 import { MessageOwnerModal } from "./components/MessageOwnerModal";
+import { RecommendProModal } from "./components/RecommendProModal";
 import { RequestCommunityProModal } from "./components/RequestCommunityProModal";
 import { communityFetch, useCommunityPublic } from "./hooks/useCommunity";
-import type { CommunityMemberOut, CommunityProOut } from "./types";
+import type { CommunityProOut } from "./types";
 
 const iconColor = { color: "var(--gk-accent-primary)" } satisfies React.CSSProperties;
 
@@ -109,27 +112,6 @@ function IconAction({
   );
 }
 
-function PublicMembersList({ slug }: { slug: string }) {
-  const [members, setMembers] = useState<CommunityMemberOut[]>([]);
-  useEffect(() => {
-    communityFetch(`/api/communities/${slug}/members`)
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data: CommunityMemberOut[]) => setMembers(data))
-      .catch(() => setMembers([]));
-  }, [slug]);
-  if (members.length === 0) return <Text size="sm" c="dimmed">No members yet.</Text>;
-  return (
-    <Group gap="xs">
-      {members.map((m) => (
-        <Group key={m.id} gap={6} wrap="nowrap">
-          <Avatar size={24} radius="xl" color="teal">{m.name[0]?.toUpperCase()}</Avatar>
-          <Text size="sm">{m.name}</Text>
-        </Group>
-      ))}
-    </Group>
-  );
-}
-
 export function CommunityPublicPage() {
   const { slug } = useParams<{ slug: string }>();
   const { status, user } = useAuth();
@@ -140,14 +122,17 @@ export function CommunityPublicPage() {
   const { data, loading, error, refetch } = useCommunityPublic(slug);
   useSetPublicBrandTheme(data?.theme);
   const [requestPro, setRequestPro] = useState<CommunityProOut | null>(null);
+  const [detailPro, setDetailPro] = useState<CommunityProOut | null>(null);
   const [search, setSearch] = useState("");
   const [selectedTrades, setSelectedTrades] = useState<Set<string>>(new Set());
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
+  const [selfOnly, setSelfOnly] = useState(false);
   const [copied, setCopied] = useState(false);
   const [linkCopyCount, setLinkCopyCount] = useState(0);
   const [joinOpen, setJoinOpen] = useState(false);
   const [joining, setJoining] = useState(false);
   const [messageOwnerOpen, setMessageOwnerOpen] = useState(false);
+  const [recommendOpen, setRecommendOpen] = useState(false);
 
   const uniqueTrades = useMemo(() => {
     if (!data?.pros) return [] as string[];
@@ -180,9 +165,10 @@ export function CommunityPublicPage() {
       }
       if (selectedTrades.size > 0 && !selectedTrades.has(p.trade)) return false;
       if (selectedTags.size > 0 && !p.tags?.some((t) => selectedTags.has(t))) return false;
+      if (selfOnly && !p.is_related_to_viewer) return false;
       return true;
     });
-  }, [search, data, selectedTrades, selectedTags]);
+  }, [search, data, selectedTrades, selectedTags, selfOnly]);
 
   useEffect(() => {
     if (data) {
@@ -244,6 +230,15 @@ export function CommunityPublicPage() {
     }
   }
 
+  function handleRecommendClick() {
+    if (data!.is_read_only) return;
+    setRecommendOpen(true);
+  }
+
+  function handleJoinResult() {
+    void refetch();
+  }
+
   function handleCopyUrl() {
     void navigator.clipboard.writeText(`https://gigkraft.com/community/${slug}`).then(() => {
       setCopied(true);
@@ -274,107 +269,122 @@ export function CommunityPublicPage() {
         {/* ── Top: community line ── */}
         <div
           style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexWrap: "wrap",
-            gap: 16,
             paddingBottom: 8,
             marginBottom: data.description ? 4 : 10,
             borderBottom: "1.5px solid var(--gk-accent-primary)",
           }}
         >
-          <Group gap="sm" wrap="nowrap" align="center">
-            <Avatar
-              src={data.cover_image_url || undefined}
-              size={44}
-              radius="xl"
-              color="teal"
-              style={{ border: "2px solid var(--gk-accent-primary)", flexShrink: 0 }}
-            >
-              <IconUsersGroup size={18} />
-            </Avatar>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 16,
+            }}
+          >
+            <Group gap="sm" wrap="nowrap" align="center">
+              <Avatar
+                src={data.cover_image_url || undefined}
+                size={44}
+                radius="xl"
+                color="teal"
+                style={{ border: "2px solid var(--gk-accent-primary)", flexShrink: 0 }}
+              >
+                <IconUsersGroup size={18} />
+              </Avatar>
 
-            <Group gap={10} wrap="wrap" align="center">
               <Title order={5} style={{ wordBreak: "break-word", color: "var(--gk-accent-secondary)" }}>
                 {data.name}
               </Title>
+            </Group>
 
-              {data.status === "archived" ? (
-                <Badge color="gray" variant="filled" size="xs" style={{ width: "fit-content" }}>
-                  Managed by {data.lead_name} · Archived
+            <Group gap="lg" wrap="nowrap" align="center">
+              <Group gap="md" wrap="nowrap">
+                {stats.map(({ icon, count, label, color }) => (
+                  <Group key={label} gap={4} wrap="nowrap">
+                    <Center style={{ color }}>{icon}</Center>
+                    <Text size="sm" fw={700} lh={1} style={{ color }}>{count}</Text>
+                    <Text size="xs" c="dimmed">{label}</Text>
+                  </Group>
+                ))}
+              </Group>
+
+              <IconAction
+                label={copied ? "Copied!" : "Copy page link"}
+                onClick={handleCopyUrl}
+                color={copied ? "var(--mantine-color-green-6)" : "var(--gk-accent-primary)"}
+              >
+                {copied ? <IconCheck size={18} /> : <IconLink size={18} />}
+              </IconAction>
+
+              {!data.is_read_only && (
+                <button
+                  style={{ ...joinBtn, width: "auto", padding: "8px 20px" }}
+                  onClick={handleRecommendClick}
+                >
+                  <IconBulb size={15} color="#fff" />
+                  Suggest a Pro
+                </button>
+              )}
+
+              {(data.viewer_status === "none" || data.viewer_status == null) && !data.is_read_only && (
+                <button
+                  style={{ ...joinBtn, width: "auto", padding: "8px 20px", opacity: joining ? 0.7 : 1 }}
+                  disabled={joining}
+                  onClick={() => void handleJoinClick()}
+                >
+                  <IconUsersGroup size={15} color="#fff" />
+                  Join This Community
+                </button>
+              )}
+
+              {data.viewer_status === "pending" && (
+                <Badge color="yellow" variant="light" size="lg" radius="xl" style={{ textTransform: "none" }}>
+                  Request Pending
                 </Badge>
-              ) : (
-                <Group gap={6} wrap="nowrap">
-                  <Avatar src={data.lead_avatar_url || undefined} size={18} radius="xl" color="teal" style={{ fontSize: 10 }}>
-                    {data.lead_name[0]?.toUpperCase()}
-                  </Avatar>
-                  <Text size="xs" c="dimmed">Maintained by {data.lead_name}</Text>
-                  {data.viewer_status !== "owner" && !data.is_read_only && (
-                    <Tooltip label={`Message ${data.lead_name}`} withArrow>
-                      <button
-                        onClick={() => setMessageOwnerOpen(true)}
-                        aria-label={`Message ${data.lead_name}`}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 3,
-                          border: "none",
-                          background: "transparent",
-                          color: "var(--gk-accent-primary)",
-                          cursor: "pointer",
-                          fontFamily: "inherit",
-                          fontSize: 11,
-                          fontWeight: 700,
-                          padding: 0,
-                        }}
-                      >
-                        <IconMessage size={13} />
-                        Chat
-                      </button>
-                    </Tooltip>
-                  )}
-                </Group>
               )}
             </Group>
-          </Group>
+          </div>
 
-          <Group gap="lg" wrap="nowrap" align="center">
-            <Group gap="md" wrap="nowrap">
-              {stats.map(({ icon, count, label, color }) => (
-                <Group key={label} gap={4} wrap="nowrap">
-                  <Center style={{ color }}>{icon}</Center>
-                  <Text size="sm" fw={700} lh={1} style={{ color }}>{count}</Text>
-                  <Text size="xs" c="dimmed">{label}</Text>
-                </Group>
-              ))}
-            </Group>
-
-            <IconAction
-              label={copied ? "Copied!" : "Copy page link"}
-              onClick={handleCopyUrl}
-              color={copied ? "var(--mantine-color-green-6)" : "var(--gk-accent-primary)"}
-            >
-              {copied ? <IconCheck size={18} /> : <IconLink size={18} />}
-            </IconAction>
-
-            {(data.viewer_status === "none" || data.viewer_status == null) && !data.is_read_only && (
-              <button
-                style={{ ...joinBtn, width: "auto", padding: "8px 20px", opacity: joining ? 0.7 : 1 }}
-                disabled={joining}
-                onClick={() => void handleJoinClick()}
-              >
-                <IconUsersGroup size={15} color="#fff" />
-                Join This Community
-              </button>
-            )}
-
-            {data.viewer_status === "pending" && (
-              <Badge color="yellow" variant="light" size="lg" radius="xl" style={{ textTransform: "none" }}>
-                Request Pending
+          <div style={{ marginTop: 6, marginLeft: 56 }}>
+            {data.status === "archived" ? (
+              <Badge color="gray" variant="filled" size="xs" style={{ width: "fit-content" }}>
+                Managed by {data.lead_name} · Archived
               </Badge>
+            ) : (
+              <Group gap={6} wrap="nowrap">
+                <Avatar src={data.lead_avatar_url || undefined} size={18} radius="xl" color="teal" style={{ fontSize: 10 }}>
+                  {data.lead_name[0]?.toUpperCase()}
+                </Avatar>
+                <Text size="xs" c="dimmed">Maintained by {data.lead_name}</Text>
+                {data.viewer_status !== "owner" && !data.is_read_only && (
+                  <Tooltip label={`Message ${data.lead_name}`} withArrow>
+                    <button
+                      onClick={() => setMessageOwnerOpen(true)}
+                      aria-label={`Message ${data.lead_name}`}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 3,
+                        border: "none",
+                        background: "transparent",
+                        color: "var(--gk-accent-primary)",
+                        cursor: "pointer",
+                        fontFamily: "inherit",
+                        fontSize: 11,
+                        fontWeight: 700,
+                        padding: 0,
+                      }}
+                    >
+                      <IconMessage size={13} />
+                      Chat
+                    </button>
+                  </Tooltip>
+                )}
+              </Group>
             )}
-          </Group>
+          </div>
         </div>
 
         {data.description && (
@@ -385,7 +395,7 @@ export function CommunityPublicPage() {
 
         <Group align="flex-start" gap="lg" wrap="wrap">
           {/* ── Left: filters — a scrollable line running top to bottom (hidden on mobile) ── */}
-          {(uniqueTrades.length > 0 || uniqueTags.length > 0) && (
+          {(uniqueTrades.length > 0 || uniqueTags.length > 0 || status === "authenticated") && (
             <Box
               visibleFrom="sm"
               className="gk-slick-scroll"
@@ -403,6 +413,25 @@ export function CommunityPublicPage() {
             >
               <Text fw={700} size="sm" mb={6} style={iconColor}>Filters</Text>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {status === "authenticated" && (
+                  <button
+                    onClick={() => setSelfOnly((v) => !v)}
+                    style={{
+                      padding: "3px 11px",
+                      borderRadius: 99,
+                      border: "1.5px solid var(--gk-accent-primary)",
+                      background: selfOnly ? "var(--gk-accent-primary)" : "transparent",
+                      color: selfOnly ? "var(--gk-accent-secondary)" : "var(--gk-accent-primary)",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    Self
+                  </button>
+                )}
                 {uniqueTrades.map((t) => {
                   const active = selectedTrades.has(t);
                   return (
@@ -498,6 +527,7 @@ export function CommunityPublicPage() {
                   leadName={data.lead_name}
                   onRequest={handleRequest}
                   onTagClick={toggleTag}
+                  onExpand={() => setDetailPro(pro)}
                   blurred={!isAuthenticated}
                   favorite={pro.pro_id != null ? {
                     isFavorited: favIds.has(pro.pro_id),
@@ -507,13 +537,6 @@ export function CommunityPublicPage() {
                 />
               ))}
             </SimpleGrid>
-          )}
-
-          {isMemberOrHigher && slug && (
-            <Stack gap="sm">
-              <Text fw={700} size="sm" style={iconColor}>Members</Text>
-              <PublicMembersList slug={slug} />
-            </Stack>
           )}
         </Stack>
         </Group>
@@ -525,6 +548,50 @@ export function CommunityPublicPage() {
           </a>
         </Text>
       </div>
+
+      <ProviderDetailModal
+        opened={!!detailPro}
+        onClose={() => setDetailPro(null)}
+        avatarUrl={detailPro?.avatar_url}
+        avatarSeed={detailPro?.id ?? 0}
+        name={detailPro?.display_name ?? ""}
+        tier={detailPro?.is_off_platform ? "referred" : "pro"}
+        trade={detailPro?.trade}
+        phone={detailPro?.phone}
+        email={detailPro?.email}
+        endorsement={detailPro?.endorsement}
+        endorsementAttribution={detailPro?.submitted_by_name ? `${detailPro.submitted_by_name} (Member)` : data.lead_name}
+        tags={detailPro?.tags}
+        onTagClick={toggleTag}
+        blurred={!isAuthenticated}
+        favorite={detailPro?.pro_id != null ? {
+          isFavorited: favIds.has(detailPro.pro_id),
+          onToggle: () => toggleFavorite(detailPro.pro_id!),
+          isAuthenticated,
+        } : undefined}
+        popularityScore={detailPro?.popularity_score}
+        qualityScore={detailPro?.quality_score}
+        recommendedCount={detailPro?.recommended_count}
+        usedCount={detailPro?.used_count}
+        reviewCount={detailPro?.review_count}
+        qualityBreakdown={detailPro ? [
+          { label: "Schedule Adherence", pct: detailPro.schedule_adherence_pct },
+          { label: "Professionalism & Cleanliness", pct: detailPro.professionalism_cleanliness_pct },
+          { label: "Pricing Transparency", pct: detailPro.pricing_transparency_pct },
+          { label: "Communication Quality", pct: detailPro.communication_quality_pct },
+          { label: "Re-hire Intent", pct: detailPro.rehire_intent_pct },
+        ] : undefined}
+        ratingTarget={detailPro ? (
+          detailPro.pro_id != null
+            ? { proId: detailPro.pro_id }
+            : { referrerProId: detailPro.id }
+        ) : undefined}
+        primaryAction={detailPro ? {
+          label: "Connect",
+          disabled: data.is_read_only,
+          onClick: () => { const pro = detailPro; setDetailPro(null); handleRequest(pro); },
+        } : undefined}
+      />
 
       <RequestCommunityProModal
         opened={!!requestPro}
@@ -540,7 +607,17 @@ export function CommunityPublicPage() {
         communityName={data.name}
         coverImageUrl={data.cover_image_url}
         theme={data.theme}
-        onJoined={() => void refetch()}
+        onJoined={handleJoinResult}
+      />
+
+      <RecommendProModal
+        opened={recommendOpen}
+        onClose={() => setRecommendOpen(false)}
+        slug={slug ?? ""}
+        communityName={data.name}
+        theme={data.theme}
+        viewerStatus={data.viewer_status}
+        onJoined={handleJoinResult}
       />
 
       <MessageOwnerModal

@@ -11,13 +11,15 @@ interface Props {
   leadName?: string;
   onRequest: (pro: CommunityProOut) => void;
   onTagClick: (tag: string) => void;
+  onExpand?: () => void;
   favorite?: ProviderCardFavorite;
   blurred?: boolean;
 }
 
-export function CommunityProCard({ pro, disabled, leadName, onRequest, onTagClick, favorite, blurred }: Props) {
+export function CommunityProCard({ pro, disabled, leadName, onRequest, onTagClick, onExpand, favorite, blurred }: Props) {
   return (
     <ProviderCard
+      onClick={onExpand}
       avatarUrl={pro.avatar_url}
       avatarSeed={pro.id}
       name={pro.display_name}
@@ -28,9 +30,11 @@ export function CommunityProCard({ pro, disabled, leadName, onRequest, onTagClic
       email={pro.email}
       favorite={pro.pro_id != null ? favorite : undefined}
       blurred={blurred}
+      popularityScore={pro.popularity_score}
+      qualityScore={pro.quality_score}
       topRightAction={
         <button
-          onClick={() => onRequest(pro)}
+          onClick={(e) => { e.stopPropagation(); onRequest(pro); }}
           disabled={disabled}
           style={{
             display: "flex",
@@ -51,7 +55,7 @@ export function CommunityProCard({ pro, disabled, leadName, onRequest, onTagClic
     >
       {pro.endorsement && (
         <Text size="xs" fs="italic" c="dimmed" lineClamp={2} mb={4} style={{ position: "relative", zIndex: 1 }}>
-          "{pro.endorsement}"{leadName ? ` — ${leadName}` : ""}
+          "{pro.endorsement}"{pro.submitted_by_name ? ` — ${pro.submitted_by_name} (Member)` : leadName ? ` — ${leadName}` : ""}
         </Text>
       )}
 

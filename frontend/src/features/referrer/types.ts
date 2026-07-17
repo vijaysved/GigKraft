@@ -18,6 +18,17 @@ export interface ProCardOut {
   request_status: string | null;
   short_url: string;
   click_count: number | null;
+  // Popularity/Quality-of-Work card metrics — design-specs/11.ContactCardUpdate.md.
+  popularity_score: number | null;
+  quality_score: number | null;
+  recommended_count: number;
+  used_count: number;
+  review_count: number;
+  schedule_adherence_pct: number | null;
+  professionalism_cleanliness_pct: number | null;
+  pricing_transparency_pct: number | null;
+  communication_quality_pct: number | null;
+  rehire_intent_pct: number | null;
 }
 
 export interface FollowerState {

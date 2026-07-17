@@ -1,4 +1,4 @@
-import { Badge, Button, Menu, Table, Text } from "@mantine/core";
+import { Avatar, Badge, Button, Group, Menu, Table, Text } from "@mantine/core";
 import { IconDots } from "@tabler/icons-react";
 
 import { formatPhone } from "../../../utils/format";
@@ -41,7 +41,14 @@ export function MemberRosterTable({ members, viewerRole, onResend, onRemove, onS
       <Table.Tbody>
         {members.map((m) => (
           <Table.Tr key={m.id}>
-            <Table.Td>{m.name}</Table.Td>
+            <Table.Td>
+              <Group gap={8} wrap="nowrap">
+                <Avatar src={m.avatar_url || undefined} size={24} radius="xl">
+                  {m.name[0]?.toUpperCase() || "?"}
+                </Avatar>
+                <Text size="sm">{m.name}</Text>
+              </Group>
+            </Table.Td>
             <Table.Td>
               <Text size="xs" c="dimmed">{m.phone ? formatPhone(m.phone) : m.email || "—"}</Text>
             </Table.Td>

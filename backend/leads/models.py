@@ -57,6 +57,13 @@ class Lead(models.Model):
         default=False,
         help_text="True when lead is held pending off-platform pro activation via Circle.",
     )
+    # Structured link to the off-platform pro this Lead was requested for
+    # (Community's request-intro flow) — see design-specs/12.OffPlatformProRatings.md
+    # §3.3. Lets used_count be computed for off-platform pros; previously this
+    # link only existed as unindexed JSON in CommunityAnalyticsEvent.metadata.
+    referrer_pro = models.ForeignKey(
+        "referrals.ReferrerPro", null=True, blank=True, on_delete=models.SET_NULL, related_name="escrow_leads"
+    )
     # SLA: created_at + pro.response_hours, set on create (see set_respond_by).
     respond_by = models.DateTimeField(null=True, blank=True)
     first_response_at = models.DateTimeField(null=True, blank=True)

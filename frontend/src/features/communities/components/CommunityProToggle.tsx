@@ -237,9 +237,16 @@ export function CommunityProToggle({ readOnly }: Props) {
                           <Text size="xs" c={rp.trade ? undefined : "dimmed"} style={ellipsis}>{rp.trade || "—"}</Text>
                         </Table.Td>
                         <Table.Td>
-                          <Badge size="xs" variant="light" color={rp.is_on_platform ? "green" : "gray"}>
-                            {rp.is_on_platform ? "On Platform" : "Off-Platform"}
-                          </Badge>
+                          <Group gap={4} wrap="nowrap">
+                            <Badge size="xs" variant="light" color={rp.is_on_platform ? "green" : "gray"}>
+                              {rp.is_on_platform ? "On Platform" : "Off-Platform"}
+                            </Badge>
+                            {rp.pending_approval && (
+                              <Tooltip label="Suggested by a Member — review it above before it can appear on the Community" withArrow>
+                                <Badge size="xs" variant="filled" color="yellow">Pending</Badge>
+                              </Tooltip>
+                            )}
+                          </Group>
                         </Table.Td>
                         <Table.Td>
                           <Switch

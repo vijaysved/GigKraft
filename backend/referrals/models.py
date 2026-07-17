@@ -90,6 +90,7 @@ class ProInvite(models.Model):
     phone = models.CharField(max_length=30, blank=True, default="")
     email = models.EmailField(blank=True, default="")
     zip = models.CharField(max_length=10, blank=True, default="")
+    url = models.URLField(max_length=300, blank=True, default="")
     note = models.TextField(blank=True, default="")
     channel = models.CharField(max_length=10, blank=True, default="")
     message_body = models.TextField(blank=True, default="")
@@ -147,6 +148,31 @@ class ReferrerPro(models.Model):
     short_code = models.CharField(max_length=10, unique=True, db_index=True, blank=True, default="")
     short_link_click_count = models.PositiveIntegerField(default=0)
     added_at = models.DateTimeField(auto_now_add=True)
+
+    # Popularity/Quality-of-Work card metrics for off-platform pros — cached,
+    # recomputed by signal handlers in referrals/signals.py. Only meaningful
+    # when is_off_platform; on-platform pros score via accounts.ProProfile
+    # instead (see design-specs/12.OffPlatformProRatings.md §3.1).
+    popularity_score = models.PositiveSmallIntegerField(null=True, blank=True)
+    quality_score = models.PositiveSmallIntegerField(null=True, blank=True)
+    used_count = models.PositiveIntegerField(default=0)
+    review_count = models.PositiveIntegerField(default=0)
+    schedule_adherence_pct = models.PositiveSmallIntegerField(null=True, blank=True)
+    professionalism_cleanliness_pct = models.PositiveSmallIntegerField(null=True, blank=True)
+    pricing_transparency_pct = models.PositiveSmallIntegerField(null=True, blank=True)
+    communication_quality_pct = models.PositiveSmallIntegerField(null=True, blank=True)
+    rehire_intent_pct = models.PositiveSmallIntegerField(null=True, blank=True)
+    metrics_updated_at = models.DateTimeField(null=True, blank=True)
+
+    # Member-submitted pro suggestions — design-specs/13.RecommendAPro-LandingIntent.md.
+    # Every existing/Owner-added row keeps submitted_by=None, pending_approval=False,
+    # i.e. today's behavior is the default and unaffected by these two fields.
+    submitted_by = models.ForeignKey(
+        "accounts.User",
+        null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="submitted_pro_recommendations",
+    )
+    pending_approval = models.BooleanField(default=False)
 
     class Meta:
         ordering = ["display_order", "added_at"]

@@ -120,6 +120,22 @@ class ProProfile(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # Popularity/Quality-of-Work card metrics — cached, recomputed by signal
+    # handlers in accounts/signals.py whenever a Recommendation, Lead, or
+    # FavoritePro changes (see accounts/metrics.py::recompute_pro_metrics).
+    # Never computed at read time — see design-specs/11.ContactCardUpdate.md §3.
+    popularity_score = models.PositiveSmallIntegerField(null=True, blank=True)
+    quality_score = models.PositiveSmallIntegerField(null=True, blank=True)
+    recommended_count = models.PositiveIntegerField(default=0)
+    used_count = models.PositiveIntegerField(default=0)
+    review_count = models.PositiveIntegerField(default=0)
+    schedule_adherence_pct = models.PositiveSmallIntegerField(null=True, blank=True)
+    professionalism_cleanliness_pct = models.PositiveSmallIntegerField(null=True, blank=True)
+    pricing_transparency_pct = models.PositiveSmallIntegerField(null=True, blank=True)
+    communication_quality_pct = models.PositiveSmallIntegerField(null=True, blank=True)
+    rehire_intent_pct = models.PositiveSmallIntegerField(null=True, blank=True)
+    metrics_updated_at = models.DateTimeField(null=True, blank=True)
+
     def _generate_handle(self) -> str:
         """Derive a unique slug from the pro's name or trade."""
         parts = [self.user.first_name, self.user.last_name]

@@ -9,7 +9,7 @@ import {
 } from "@mantine/core";
 import { IconCheck } from "@tabler/icons-react";
 import { useState } from "react";
-import { Link, Navigate, useLocation } from "react-router-dom";
+import { Link, Navigate, useLocation, useSearchParams } from "react-router-dom";
 
 import { ApiError } from "../api/endpoints";
 import { useAuth } from "../auth/AuthContext";
@@ -30,17 +30,26 @@ const HERO_BULLETS = [
   "One flat rate — no per-lead bidding, no hidden rake",
 ];
 
+/** Only a same-site relative path is a safe redirect target — reject absolute/protocol-relative
+ * URLs (e.g. "//evil.com") so `returnTo` can't be used as an open redirect. */
+function safeReturnTo(value: string | null): string | null {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) return null;
+  return value;
+}
+
 export function LoginPage() {
   const { status, user, loginWithGoogle } = useAuth();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
 
   const [error, setError] = useState<string | null>(null);
 
   const from =
     (location.state as { from?: { pathname?: string } } | null)?.from?.pathname ?? null;
+  const returnTo = safeReturnTo(searchParams.get("returnTo"));
 
   if (status === "authenticated" && user) {
-    return <Navigate to={from ?? ROLE_HOME[user.role] ?? "/member/welcome"} replace />;
+    return <Navigate to={returnTo ?? from ?? ROLE_HOME[user.role] ?? "/member/welcome"} replace />;
   }
 
   return (

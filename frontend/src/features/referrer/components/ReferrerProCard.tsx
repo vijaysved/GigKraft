@@ -25,6 +25,7 @@ import { claimProInvite } from "../../../api/endpoints";
 import { getAccessToken } from "../../../api/tokens";
 import { CollapsibleTags } from "../../../components/CollapsibleTags";
 import { ProviderCard, type ProviderCardFavorite } from "../../../components/ProviderCard";
+import { ProviderDetailModal } from "../../../components/ProviderDetailModal";
 import type { ProCardOut } from "../types";
 import { RequestReferralModal } from "./RequestReferralModal";
 import { formatPhone, maskEmail, maskPhone } from "../../../utils/format";
@@ -58,7 +59,7 @@ function ShareIconBtn({
 }) {
   return (
     <button
-      onClick={onClick}
+      onClick={(e) => { e.stopPropagation(); onClick(); }}
       aria-label={label}
       title={label}
       style={{
@@ -142,6 +143,7 @@ export function ReferrerProCard({
 }: Props) {
   const navigate = useNavigate();
   const [requestOpen, setRequestOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
   const [claiming, setClaiming] = useState(false);
   const [copied, setCopied] = useState(false);
   const [notePopover, setNotePopover] = useState<"whatsapp" | "sms" | "copy" | null>(null);
@@ -219,6 +221,7 @@ export function ReferrerProCard({
     <>
       <ProviderCard
         cardRef={cardRef}
+        onClick={() => setDetailOpen(true)}
         highlighted={isHighlighted}
         avatarUrl={pro.avatar_url}
         avatarSeed={pro.id}
@@ -228,9 +231,11 @@ export function ReferrerProCard({
         trade={pro.trade || null}
         respondsIn={pro.responds_in}
         favorite={pro.linked_pro_id != null ? favorite : undefined}
+        popularityScore={pro.popularity_score}
+        qualityScore={pro.quality_score}
         topRightAction={
           <button
-            onClick={handleRequestClick}
+            onClick={(e) => { e.stopPropagation(); handleRequestClick(); }}
             style={{
               padding: "3px 11px",
               background: "var(--gk-brand-gradient)",
@@ -408,7 +413,7 @@ export function ReferrerProCard({
           <>
             <Divider my={6} style={{ borderColor: "var(--gk-accent-primary)", opacity: 0.4 }} />
             <button
-              onClick={handleClaim}
+              onClick={(e) => { e.stopPropagation(); void handleClaim(); }}
               disabled={claiming}
               style={{
                 width: "100%",
@@ -434,6 +439,40 @@ export function ReferrerProCard({
           </>
         )}
       </ProviderCard>
+
+      <ProviderDetailModal
+        opened={detailOpen}
+        onClose={() => setDetailOpen(false)}
+        avatarUrl={pro.avatar_url}
+        avatarSeed={pro.id}
+        name={pro.name}
+        tier={pro.is_on_platform ? "pro" : "referred"}
+        trade={pro.trade || null}
+        phone={pro.phone}
+        email={pro.email}
+        endorsement={pro.endorsement}
+        endorsementAttribution={referrerName}
+        tags={pro.tags}
+        onTagClick={onTagClick}
+        favorite={pro.linked_pro_id != null ? favorite : undefined}
+        popularityScore={pro.popularity_score}
+        qualityScore={pro.quality_score}
+        recommendedCount={pro.recommended_count}
+        usedCount={pro.used_count}
+        reviewCount={pro.review_count}
+        qualityBreakdown={[
+          { label: "Schedule Adherence", pct: pro.schedule_adherence_pct },
+          { label: "Professionalism & Cleanliness", pct: pro.professionalism_cleanliness_pct },
+          { label: "Pricing Transparency", pct: pro.pricing_transparency_pct },
+          { label: "Communication Quality", pct: pro.communication_quality_pct },
+          { label: "Re-hire Intent", pct: pro.rehire_intent_pct },
+        ]}
+        primaryAction={{
+          label: "Refer me",
+          onClick: () => { setDetailOpen(false); handleRequestClick(); },
+        }}
+        ratingTarget={pro.linked_pro_id != null ? { proId: pro.linked_pro_id } : { referrerProId: pro.id }}
+      />
 
       <RequestReferralModal
         opened={requestOpen}

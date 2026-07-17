@@ -7,6 +7,7 @@ import {
   IconCreditCard,
   IconExternalLink,
   IconSettings,
+  IconStar,
   IconUpload,
   IconUsers,
   IconX,
@@ -22,6 +23,8 @@ import { CommunityAnalyticsPanel } from "./components/CommunityAnalyticsPanel";
 import { CommunityBillingTab } from "./components/CommunityBillingTab";
 import { CommunityProToggle } from "./components/CommunityProToggle";
 import { MemberRosterTable } from "./components/MemberRosterTable";
+import { PendingProRecommendationsPanel } from "./components/PendingProRecommendationsPanel";
+import { PendingRatingsPanel } from "./components/PendingRatingsPanel";
 import { communityFetch, useMyCommunity } from "./hooks/useCommunity";
 import { useCommunityMembers } from "./hooks/useCommunityMembers";
 import type { ManagedCommunityOut } from "./types";
@@ -173,7 +176,20 @@ export function CommunityDashboardPage() {
   const { data: community, loading, notFound, refetch } = useMyCommunity();
   const { members, addMembers, uploadCsv, resendInvite, removeMember, setRole, approveMember, declineMember } = useCommunityMembers();
   const [addOpen, setAddOpen] = useState(false);
+  const [pendingProCount, setPendingProCount] = useState(0);
   const pendingCount = members.filter((m) => m.status === "pending").length;
+
+  // Fetched eagerly (independent of the "Pro List" tab being mounted) so the
+  // tab's badge count is visible before the owner ever clicks into it —
+  // otherwise a pending suggestion is easy to miss, same complaint as the
+  // Members tab's badge already solves for pending member requests.
+  useEffect(() => {
+    if (!community) return;
+    communityFetch("/api/me/community/pending-pro-recommendations")
+      .then((res) => (res.ok ? res.json() as Promise<unknown[]> : []))
+      .then((rows) => setPendingProCount(rows.length))
+      .catch(() => {});
+  }, [community]);
 
   // Only show the full-page loader on first load — not on every refetch()
   // after a save, which would otherwise unmount the Tabs and bounce the
@@ -238,7 +254,14 @@ export function CommunityDashboardPage() {
           >
             Members
           </Tabs.Tab>
-          <Tabs.Tab value="pros" leftSection={<IconBriefcase size={15} />}>Pro List</Tabs.Tab>
+          <Tabs.Tab
+            value="pros"
+            leftSection={<IconBriefcase size={15} />}
+            rightSection={pendingProCount > 0 ? <Badge size="xs" circle color="yellow">{pendingProCount}</Badge> : undefined}
+          >
+            Pro List
+          </Tabs.Tab>
+          <Tabs.Tab value="ratings" leftSection={<IconStar size={15} />}>Ratings</Tabs.Tab>
           <Tabs.Tab value="analytics" leftSection={<IconChartBar size={15} />}>Analytics</Tabs.Tab>
           {isOwner && <Tabs.Tab value="settings" leftSection={<IconSettings size={15} />}>Settings</Tabs.Tab>}
           {isOwner && <Tabs.Tab value="billing" leftSection={<IconCreditCard size={15} />}>Billing</Tabs.Tab>}
@@ -263,7 +286,20 @@ export function CommunityDashboardPage() {
         </Tabs.Panel>
 
         <Tabs.Panel value="pros">
-          <CommunityProToggle readOnly={community.is_read_only} />
+          <Stack gap="xl">
+            <Stack gap="xs">
+              <Text fw={700} size="sm">Suggested Pros Awaiting Approval</Text>
+              <PendingProRecommendationsPanel onCountChange={setPendingProCount} />
+            </Stack>
+            <CommunityProToggle readOnly={community.is_read_only} />
+          </Stack>
+        </Tabs.Panel>
+
+        <Tabs.Panel value="ratings">
+          <Stack gap="xs">
+            <Text fw={700} size="sm">Pending Ratings</Text>
+            <PendingRatingsPanel />
+          </Stack>
         </Tabs.Panel>
 
         <Tabs.Panel value="analytics">

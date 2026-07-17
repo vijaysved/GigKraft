@@ -18,7 +18,7 @@ interface Props {
   communityName: string;
   coverImageUrl?: string | null;
   theme?: string | null;
-  onJoined: () => void;
+  onJoined: (status: "done" | "pending") => void;
 }
 
 type Step = "start" | "otp" | "name" | "joining" | "retry" | "done" | "pending";
@@ -56,8 +56,9 @@ export function JoinCommunityModal({ opened, onClose, slug, communityName, cover
       const res = await communityFetch(`/api/communities/${slug}/join`, { method: "POST" });
       const data = await res.json() as { status?: string; detail?: string };
       if (!res.ok) throw new Error(data.detail ?? "Could not join this Community.");
-      setStep(data.status === "pending" ? "pending" : "done");
-      onJoined();
+      const resultStatus = data.status === "pending" ? "pending" : "done";
+      setStep(resultStatus);
+      onJoined(resultStatus);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong.");
       setStep("retry");

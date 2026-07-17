@@ -5,7 +5,7 @@ import secrets
 from typing import Optional
 
 import stripe
-from django.db.models import F
+from django.db.models import F, Q
 from django.utils import timezone
 from ninja import File, Router, Schema
 from ninja.errors import HttpError
@@ -26,6 +26,7 @@ from communities.models import (
 from comms.services import send_email
 from leads.models import Lead, Message
 from nodes.models import Node
+from recommendations.models import Recommendation
 from referrals.api import _log_invite_event, _normalize_tags, _serialize_referrer_pro
 from referrals.models import InviteEvent, ReferrerPro
 
@@ -54,6 +55,23 @@ class CommunityProOut(Schema):
     is_off_platform: bool
     phone: Optional[str] = None
     email: Optional[str] = None
+    # Popularity/Quality-of-Work card metrics — design-specs/11.ContactCardUpdate.md.
+    popularity_score: Optional[int] = None
+    quality_score: Optional[int] = None
+    recommended_count: int = 0
+    used_count: int = 0
+    review_count: int = 0
+    schedule_adherence_pct: Optional[int] = None
+    professionalism_cleanliness_pct: Optional[int] = None
+    pricing_transparency_pct: Optional[int] = None
+    communication_quality_pct: Optional[int] = None
+    rehire_intent_pct: Optional[int] = None
+    # Member-submitted suggestions attribute the endorsement to the submitting
+    # Member instead of the Lead — design-specs/13.RecommendAPro-LandingIntent.md §5.
+    submitted_by_name: Optional[str] = None
+    # True when the authenticated viewer owns this pro's account, or has a Lead
+    # or Recommendation tied to it (hired/reviewed) — powers the "Self" filter.
+    is_related_to_viewer: bool = False
 
 
 class CommunityOut(Schema):
@@ -86,6 +104,7 @@ class CommunityMemberOut(Schema):
     invited_at: str
     joined_at: Optional[str] = None
     last_resent_at: Optional[str] = None
+    avatar_url: Optional[str] = None
 
 
 class ManagedCommunityOut(Schema):
@@ -144,6 +163,37 @@ class AddOffPlatformProIn(Schema):
     phone: str = ""
     email: str = ""
     endorsement: str = ""
+
+
+class RecommendProIn(Schema):
+    name: str
+    trade: str = ""
+    phone: str = ""
+    email: str = ""
+    url: str = ""
+    endorsement: str = ""
+
+
+class PendingProRecommendationOut(Schema):
+    id: int
+    name: str
+    trade: str
+    phone: str
+    email: str
+    url: str
+    endorsement: str
+    submitted_by_name: str
+
+
+class LinkPreviewIn(Schema):
+    url: str
+
+
+class LinkPreviewOut(Schema):
+    title: str
+    description: str
+    image: str
+    created_at: str
 
 
 class JoinPreviewOut(Schema):
@@ -233,19 +283,69 @@ def _lead_avatar_url(lead: User) -> Optional[str]:
     return None
 
 
-def _serialize_pro(rp: ReferrerPro) -> dict:
+def _related_referrer_pro_ids(pros_qs, authed_user: Optional[User]) -> set[int]:
+    """ReferrerPro ids the given viewer is related to: they own the pro's
+    account, or they have a Lead or Recommendation tied to it (hired/reviewed).
+    Scoped to the rows already fetched in `pros_qs` to avoid a per-row query."""
+    if not authed_user:
+        return set()
+
+    rp_ids = [rp.pk for rp in pros_qs]
+    pro_ids = [rp.pro_id for rp in pros_qs if rp.pro_id]
+
+    owned_rp_ids = set(
+        ReferrerPro.objects.filter(pk__in=rp_ids, pro__user_id=authed_user.id).values_list("pk", flat=True)
+    )
+    hired_pro_ids = set(
+        Lead.objects.filter(homeowner=authed_user, pro_id__in=pro_ids).values_list("pro_id", flat=True)
+    )
+    hired_rp_ids = set(
+        Lead.objects.filter(homeowner=authed_user, referrer_pro_id__in=rp_ids).values_list("referrer_pro_id", flat=True)
+    )
+    reviewed_pro_ids = set(
+        Recommendation.objects.filter(rater=authed_user, pro_id__in=pro_ids).values_list("pro_id", flat=True)
+    )
+    reviewed_rp_ids = set(
+        Recommendation.objects.filter(rater=authed_user, referrer_pro_id__in=rp_ids).values_list("referrer_pro_id", flat=True)
+    )
+
+    related_by_pro = hired_pro_ids | reviewed_pro_ids
+    return {
+        rp.pk for rp in pros_qs
+        if rp.pk in owned_rp_ids or rp.pk in hired_rp_ids or rp.pk in reviewed_rp_ids or rp.pro_id in related_by_pro
+    }
+
+
+def _serialize_pro(rp: ReferrerPro, related_rp_ids: Optional[set[int]] = None) -> dict:
+    pro = rp.pro
     return {
         "id": rp.pk,
         "pro_id": rp.pro_id,
         "display_name": rp.display_name,
         "trade": rp.trade,
-        "avatar_url": rp.pro.avatar_url if rp.pro else None,
-        "handle": rp.pro.handle if rp.pro else None,
+        "avatar_url": pro.avatar_url if pro else None,
+        "handle": pro.handle if pro else None,
         "endorsement": rp.endorsement,
         "tags": rp.tags or [],
         "is_off_platform": rp.is_off_platform,
-        "phone": (rp.pro.user.phone if rp.pro else rp.pro_invite.phone if rp.pro_invite else "") or None,
-        "email": (rp.pro.user.email if rp.pro else rp.pro_invite.email if rp.pro_invite else "") or None,
+        "phone": (pro.user.phone if pro else rp.pro_invite.phone if rp.pro_invite else "") or None,
+        "email": (pro.user.email if pro else rp.pro_invite.email if rp.pro_invite else "") or None,
+        # Popularity/Quality-of-Work card metrics. On-platform pros score via
+        # ProProfile; off-platform pros score via ReferrerPro's own cached
+        # fields instead (design-specs/12.OffPlatformProRatings.md §3.1) —
+        # no "recommended" (favorites) sub-metric applies to off-platform.
+        "popularity_score": pro.popularity_score if pro else rp.popularity_score,
+        "quality_score": pro.quality_score if pro else rp.quality_score,
+        "recommended_count": pro.recommended_count if pro else 0,
+        "used_count": pro.used_count if pro else rp.used_count,
+        "review_count": pro.review_count if pro else rp.review_count,
+        "schedule_adherence_pct": pro.schedule_adherence_pct if pro else rp.schedule_adherence_pct,
+        "professionalism_cleanliness_pct": pro.professionalism_cleanliness_pct if pro else rp.professionalism_cleanliness_pct,
+        "pricing_transparency_pct": pro.pricing_transparency_pct if pro else rp.pricing_transparency_pct,
+        "communication_quality_pct": pro.communication_quality_pct if pro else rp.communication_quality_pct,
+        "rehire_intent_pct": pro.rehire_intent_pct if pro else rp.rehire_intent_pct,
+        "submitted_by_name": rp.submitted_by.first_name if rp.submitted_by else None,
+        "is_related_to_viewer": rp.pk in related_rp_ids if related_rp_ids else False,
     }
 
 
@@ -276,6 +376,7 @@ def _serialize_member(m: CommunityMember) -> dict:
         "invited_at": m.invited_at.isoformat(),
         "joined_at": m.joined_at.isoformat() if m.joined_at else None,
         "last_resent_at": m.last_resent_at.isoformat() if m.last_resent_at else None,
+        "avatar_url": _lead_avatar_url(m.user) if m.user_id else None,
     }
 
 
@@ -303,6 +404,25 @@ def _managed_community(request) -> tuple[Community, str]:
     if membership:
         return membership.community, "moderator"
     raise HttpError(403, "You don't manage a Community.")
+
+
+def _member_community(request, slug: str) -> Community:
+    """Resolve a Community the caller is a joined or pending-approval Member/Moderator
+    of — OR owns — for the Recommend-a-Pro flow (design-specs/13.RecommendAPro-LandingIntent.md).
+    PENDING counts too: the frontend self-serve-joins the caller right before this call,
+    and a brand-new (not pre-vetted) joiner lands PENDING until the owner approves them.
+    Broader than _managed_community, which deliberately excludes plain Members."""
+    community = _get_community_or_404(slug)
+    if request.auth.pk == community.lead_id:
+        return community
+    is_member = CommunityMember.objects.filter(
+        community=community,
+        user=request.auth,
+        status__in=[CommunityMember.Status.JOINED, CommunityMember.Status.PENDING],
+    ).exists()
+    if not is_member:
+        raise HttpError(403, "You must be a Community Member to do this.")
+    return community
 
 
 def _require_owner(request) -> Community:
@@ -455,9 +575,12 @@ def get_community(request, slug: str):
             "pros": [],
         }
 
-    pros_qs = ReferrerPro.objects.select_related("pro", "pro__user", "pro_invite").filter(
-        community=community, show_on_community=True
+    pros_qs = list(
+        ReferrerPro.objects.select_related("pro", "pro__user", "pro_invite", "submitted_by").filter(
+            community=community, show_on_community=True
+        )
     )
+    related_rp_ids = _related_referrer_pro_ids(pros_qs, authed_user)
     return 200, {
         "slug": community.slug,
         "name": community.name,
@@ -469,7 +592,7 @@ def get_community(request, slug: str):
         "status": community.status,
         "is_read_only": community.is_read_only,
         "is_publicly_visible": True,
-        "pro_count": pros_qs.count(),
+        "pro_count": len(pros_qs),
         "member_count": community.members.filter(status=CommunityMember.Status.JOINED).count(),
         "page_views": community.analytics_events.filter(
             event_type=CommunityAnalyticsEvent.EventType.PAGE_VIEW
@@ -478,7 +601,7 @@ def get_community(request, slug: str):
             event_type=CommunityAnalyticsEvent.EventType.LINK_COPIED
         ).count(),
         "viewer_status": viewer_status,
-        "pros": [_serialize_pro(rp) for rp in pros_qs],
+        "pros": [_serialize_pro(rp, related_rp_ids) for rp in pros_qs],
     }
 
 
@@ -597,6 +720,16 @@ def join_community_self(request, slug: str):
 
     name = f"{user.first_name} {user.last_name}".strip() or user.phone or user.email or "Member"
 
+    # A phone/email-matched row found above is still unlinked (user__isnull=True was
+    # part of that query) — link it now, even if its status already reads JOINED/PENDING
+    # and we're about to return early. Otherwise the row stays permanently unlinked and
+    # every later user=request.auth membership check (e.g. Recommend-a-Pro) 403s forever.
+    if member and member.user_id is None:
+        member.user = user
+        if not member.name:
+            member.name = name
+        member.save(update_fields=["user", "name"])
+
     if member and member.status == CommunityMember.Status.JOINED:
         return 200, {"status": member.status}
     if member and member.status == CommunityMember.Status.PENDING:
@@ -701,6 +834,7 @@ def request_intro(request, slug: str, payload: RequestProIn):
         node=node,
         homeowner=request.auth,
         pro=None,
+        referrer_pro=rp,
         job_title=payload.job_title,
         detail=f"{payload.detail}\n\nAddress: {payload.address}".strip() if payload.address else payload.detail,
         thread_type=Lead.ThreadType.REQUEST,
@@ -786,6 +920,84 @@ def message_owner(request, slug: str, payload: MessageOwnerIn):
     Message.objects.create(lead=lead, sender=sender, body=payload.body.strip())
     notify.notify_user(community.lead, f"New message from {sender_name} via {community.name}.")
     return 201, {"lead_id": lead.pk}
+
+
+@public_router.post("/{slug}/recommend-pro", response={201: dict, 400: ErrorOut, 403: ErrorOut}, auth=jwt_auth)
+def recommend_pro(request, slug: str, payload: RecommendProIn):
+    """A joined Member suggests a pro for the Community's list — lands pending
+    Owner/Moderator approval rather than going straight onto the public page.
+    design-specs/13.RecommendAPro-LandingIntent.md."""
+    community = _member_community(request, slug)
+    if community.is_read_only:
+        return 400, {"detail": "This Community is archived and no longer accepting suggestions."}
+    if not payload.name.strip():
+        return 400, {"detail": "Please enter the pro's name."}
+    phone = payload.phone.strip()
+    email = payload.email.strip()
+    if not phone and not email:
+        return 400, {"detail": "Provide either a phone number or email for the pro you're suggesting."}
+    url = payload.url.strip()
+    if url and not (url.startswith("http://") or url.startswith("https://")):
+        return 400, {"detail": "Enter a valid website link (starting with http:// or https://)."}
+
+    from referrals.models import ProInvite
+
+    dup_filter = Q()
+    if phone:
+        dup_filter |= Q(pro_invite__phone=phone)
+    if email:
+        dup_filter |= Q(pro_invite__email=email)
+    if ReferrerPro.objects.filter(community=community, pro_invite__isnull=False).filter(dup_filter).exists():
+        return 400, {"detail": "This pro is already on the list."}
+
+    invite = ProInvite.objects.create(
+        invited_by=community.lead,
+        name=payload.name.strip(),
+        trade=payload.trade.strip(),
+        phone=phone,
+        email=email,
+        url=url,
+    )
+    max_order = ReferrerPro.objects.filter(referrer=community.lead).count()
+    rp = ReferrerPro.objects.create(
+        referrer=community.lead,
+        pro_invite=invite,
+        community=community,
+        show_on_page=False,
+        show_on_community=False,
+        pending_approval=True,
+        submitted_by=request.auth,
+        endorsement=payload.endorsement.strip()[:200],
+        display_order=max_order,
+    )
+
+    notify.notify_user(
+        community.lead, f"{request.auth.first_name} suggested a new pro for {community.name}: {rp.display_name}."
+    )
+    moderators = CommunityMember.objects.filter(
+        community=community, role=CommunityMember.Role.MODERATOR, status=CommunityMember.Status.JOINED, user__isnull=False
+    ).select_related("user")
+    for mod in moderators:
+        notify.notify_user(
+            mod.user, f"{request.auth.first_name} suggested a new pro for {community.name}: {rp.display_name}."
+        )
+
+    return 201, {"id": rp.pk}
+
+
+@public_router.post("/{slug}/link-preview", response={200: LinkPreviewOut, 400: ErrorOut}, auth=jwt_auth)
+def link_preview(request, slug: str, payload: LinkPreviewIn):
+    """Best-effort metadata fetch for the optional URL field on the
+    Recommend-a-Pro form — lets a Member preview how the link would look
+    before submitting. Gated to joined Members, same as recommend_pro, to
+    limit the server-side-fetch surface."""
+    _member_community(request, slug)
+    from communities.link_preview import LinkPreviewError, fetch_link_preview
+
+    try:
+        return 200, fetch_link_preview(payload.url)
+    except LinkPreviewError as e:
+        return 400, {"detail": str(e)}
 
 
 # ---------------------------------------------------------------------------
@@ -898,7 +1110,104 @@ def downgrade_my_community(request):
 @me_router.get("/members", response=list[CommunityMemberOut])
 def list_my_members(request):
     community, _role = _managed_community(request)
-    return [_serialize_member(m) for m in community.members.all()]
+    members = community.members.select_related("user__referrer_profile", "user__homeowner_profile").all()
+    return [_serialize_member(m) for m in members]
+
+
+class PendingRatingOut(Schema):
+    id: int
+    referrer_pro_id: int
+    pro_name: str
+    rater_name: str
+    stars: Optional[int]
+    text: str
+    created_at: str
+
+
+@me_router.get("/pending-ratings", response=list[PendingRatingOut])
+def list_pending_ratings(request):
+    """Off-platform pros' card-click ratings awaiting approval before they
+    count toward that pro's public score — design-specs/12.OffPlatformProRatings.md
+    §4/§9 #3. Approve/hide via the existing /api/recommendations/{id}/approve|hide."""
+    community, _role = _managed_community(request)
+    recs = (
+        Recommendation.objects.filter(
+            referrer_pro__community=community, status=Recommendation.Status.SUBMITTED
+        )
+        .select_related("referrer_pro", "rater")
+        .order_by("-created_at")
+    )
+    return [
+        {
+            "id": r.id,
+            "referrer_pro_id": r.referrer_pro_id,
+            "pro_name": r.referrer_pro.display_name,
+            "rater_name": r.rater.first_name if r.rater else r.client_name,
+            "stars": r.stars,
+            "text": r.text,
+            "created_at": r.created_at.isoformat(),
+        }
+        for r in recs
+    ]
+
+
+@me_router.get("/pending-pro-recommendations", response=list[PendingProRecommendationOut])
+def list_pending_pro_recommendations(request):
+    """Member-submitted pro suggestions awaiting Owner/Moderator approval —
+    design-specs/13.RecommendAPro-LandingIntent.md §4."""
+    community, _role = _managed_community(request)
+    rows = (
+        ReferrerPro.objects.filter(community=community, pending_approval=True)
+        .select_related("pro_invite", "submitted_by")
+        .order_by("-added_at")
+    )
+    return [
+        {
+            "id": rp.pk,
+            "name": rp.display_name,
+            "trade": rp.trade,
+            "phone": rp.pro_invite.phone if rp.pro_invite else "",
+            "email": rp.pro_invite.email if rp.pro_invite else "",
+            "url": rp.pro_invite.url if rp.pro_invite else "",
+            "endorsement": rp.endorsement,
+            "submitted_by_name": rp.submitted_by.first_name if rp.submitted_by else "",
+            "created_at": rp.added_at.isoformat(),
+        }
+        for rp in rows
+    ]
+
+
+@me_router.post("/pending-pro-recommendations/{referrer_pro_id}/approve", response={200: CommunityProOut, 404: ErrorOut})
+def approve_pro_recommendation(request, referrer_pro_id: int):
+    community, _role = _managed_community(request)
+    rp = ReferrerPro.objects.filter(
+        pk=referrer_pro_id, community=community, pending_approval=True
+    ).select_related("pro", "pro_invite", "submitted_by").first()
+    if not rp:
+        return 404, {"detail": "Pending suggestion not found."}
+    rp.show_on_community = True
+    rp.pending_approval = False
+    rp.save(update_fields=["show_on_community", "pending_approval"])
+    if rp.submitted_by:
+        notify.notify_user(rp.submitted_by, f"Your suggestion, {rp.display_name}, is now live on {community.name}!")
+    return 200, _serialize_pro(rp)
+
+
+@me_router.post("/pending-pro-recommendations/{referrer_pro_id}/decline", response={200: dict, 404: ErrorOut})
+def decline_pro_recommendation(request, referrer_pro_id: int):
+    community, _role = _managed_community(request)
+    rp = ReferrerPro.objects.filter(
+        pk=referrer_pro_id, community=community, pending_approval=True
+    ).select_related("submitted_by").first()
+    if not rp:
+        return 404, {"detail": "Pending suggestion not found."}
+    rp.pending_approval = False
+    rp.save(update_fields=["pending_approval"])
+    if rp.submitted_by:
+        notify.notify_user(
+            rp.submitted_by, f"{community.name}'s owner didn't add your suggestion, {rp.display_name}, to the list."
+        )
+    return 200, {"ok": True}
 
 
 @me_router.post("/members", response={201: AddMembersOut, 400: ErrorOut})
@@ -1060,6 +1369,9 @@ class CommunityProCandidateOut(Schema):
     tags: list[str] = []
     is_on_platform: bool
     on_this_community: bool
+    # A Member-submitted suggestion awaiting Owner/Moderator approval — distinct from
+    # `is_pending` (dropped here), which means an off-platform invite hasn't been claimed.
+    pending_approval: bool = False
 
 
 @me_router.get("/pros/candidates", response=list[CommunityProCandidateOut])
@@ -1076,6 +1388,7 @@ def list_pro_candidates(request):
     for rp in rows:
         data = _serialize_referrer_pro(rp)
         data["on_this_community"] = rp.community_id == community.pk and rp.show_on_community
+        data["pending_approval"] = rp.pending_approval
         out.append(data)
     return out
 
