@@ -6929,6 +6929,11 @@ export interface components {
             rehire_intent_pct?: number | null;
             /** Submitted By Name */
             submitted_by_name?: string | null;
+            /**
+             * Is Related To Viewer
+             * @default false
+             */
+            is_related_to_viewer: boolean;
         };
         /** CommunityMemberOut */
         CommunityMemberOut: {
